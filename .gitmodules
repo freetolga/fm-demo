@@ -1,0 +1,6 @@
+[submodule "wxwidgets"]
+	path = wxwidgets
+	url = https://github.com/wxWidgets/wxWidgets
+[submodule "matplotplusplus"]
+	path = matplotplusplus
+	url = https://github.com/alandefreitas/matplotplusplus/
