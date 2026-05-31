@@ -37,9 +37,9 @@ void message_signal::set_ac(double newac) {
 void message_signal::modulate() {
     // calculate the cumulative sum for every element in this new vector
     std::valarray<double> inst_freq;
-    inst_freq.resize(time.size(), 0);
-    for(int i = 0; i < time.size(); ++i) {
-        inst_freq[i] = 2*pi*kf*time[i];
+    inst_freq.resize(original.size(), 0);
+    for(int i = 0; i < original.size(); ++i) {
+        inst_freq[i] = 2*pi*kf*original[i];
     }
     // finish FM
     modulated = cos(2*pi*fc*time + inst_freq);
