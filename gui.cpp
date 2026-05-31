@@ -1,11 +1,14 @@
+#include "wx/brush.h"
 #include "wx/event.h"
 #include "wx/gdicmn.h"
 #include "wx/sizer.h"
 #include <valarray>
 #include <wx/wx.h>
-#include <matplot/matplot.h>
+//#include <matplot/matplot.h>
+#include <mathplot.h>
 
 #include "block1.h"
+#include "wx/toplevel.h"
 
 class MyApp : public wxApp
 {
@@ -23,6 +26,8 @@ private:
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
     void OnPlot(wxCommandEvent& event);
+    mpWindow * m_plot = new mpWindow(this, -1, wxDefaultPosition, wxSize(200, 200), wxSUNKEN_BORDER);
+    mpFXYVector *vectorLayer = new mpFXYVector("Vector");
 };
 
 enum
@@ -62,11 +67,14 @@ MyFrame::MyFrame()
     SetStatusText("Welcome to wxWidgets!");
 
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer *button_sizer = new wxBoxSizer( wxHORIZONTAL );
+    wxBoxSizer *buttons_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Hello World", wxDefaultPosition, wxSize(100,60));
-    button_sizer->Add(plotButton, wxSizerFlags(0).Align(0).Border(wxALL,0));
-    main_sizer->Add(button_sizer, 0, wxALIGN_CENTER);
+    buttons_sizer->Add(plotButton, 0, wxEXPAND, 0);
+    main_sizer->Add(buttons_sizer, 1, wxSHAPED, 10);
+    main_sizer->Add(m_plot, 10, wxSHAPED, 10);
+    SetSizer(main_sizer); 
+    SetAutoLayout(TRUE);
 
     Bind(wxEVT_MENU, &MyFrame::OnHello, this, ID_Hello);
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
@@ -91,7 +99,6 @@ void MyFrame::OnHello(wxCommandEvent& event)
 }
 
 void MyFrame::OnPlot(wxCommandEvent& event) {
-    using namespace matplot;
     double fm1 = 20;
     double fm2 = 200;
     double fm3 = 220;
@@ -114,6 +121,10 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     for(double d: m1.original) {
         y.push_back(d);
     }
-    plot(x,y);
-    show();
+    vectorLayer->SetData(std::move(x), std::move(y));
+    vectorLayer->SetContinuity(true);
+    vectorLayer->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+    vectorLayer->SetDrawOutsideMargins(false);
+    m_plot->AddLayer(vectorLayer);
+    m_plot->Fit();
 }

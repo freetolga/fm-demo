@@ -6,7 +6,7 @@
 	url = https://github.com/alandefreitas/matplotplusplus/
 [submodule "wxmathplot"]
 	path = wxmathplot
-	url = https://github.com/mkarmona/wxMathPlot
+	url = https://github.com/gagiuntoli/wxMathPlot
 [submodule "portaudio"]
 	path = portaudio
 	url = https://github.com/PortAudio/portaudio
