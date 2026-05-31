@@ -1,6 +1,7 @@
 #include "wx/brush.h"
 #include "wx/event.h"
 #include "wx/gdicmn.h"
+#include "wx/print.h"
 #include "wx/sizer.h"
 #include <valarray>
 #include <wx/wx.h>
@@ -26,6 +27,7 @@ private:
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
     void OnPlot(wxCommandEvent& event);
+    void OnResize(wxSizeEvent& event);
     mpWindow * m_plot = new mpWindow(this, -1, wxDefaultPosition, wxSize(200, 200), wxSUNKEN_BORDER);
     mpFXYVector *vectorLayer = new mpFXYVector("Vector");
 };
@@ -66,12 +68,12 @@ MyFrame::MyFrame()
     CreateStatusBar();
     SetStatusText("Welcome to wxWidgets!");
 
-    wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer *buttons_sizer = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *main_sizer = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *buttons_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Hello World", wxDefaultPosition, wxSize(100,60));
-    buttons_sizer->Add(plotButton, 0, wxEXPAND, 0);
-    main_sizer->Add(buttons_sizer, 1, wxSHAPED, 10);
+    buttons_sizer->Add(plotButton, 0, wxSHAPED, 0);
+    main_sizer->Add(buttons_sizer, 1, wxEXPAND, 10);
     main_sizer->Add(m_plot, 10, wxSHAPED, 10);
     SetSizer(main_sizer); 
     SetAutoLayout(TRUE);
@@ -80,6 +82,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
+    Bind(wxEVT_SIZE, &MyFrame::OnResize, this, ID_Hello);
 }
 
 void MyFrame::OnExit(wxCommandEvent& event)
@@ -125,6 +128,12 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer->SetContinuity(true);
     vectorLayer->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer->SetDrawOutsideMargins(false);
+    m_plot->DelLayer(vectorLayer);
     m_plot->AddLayer(vectorLayer);
+    m_plot->Fit();
+}
+
+void MyFrame::OnResize(wxSizeEvent& event) {
+    this->Refresh();
     m_plot->Fit();
 }
