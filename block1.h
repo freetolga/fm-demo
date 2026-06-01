@@ -18,6 +18,7 @@ class message_signal {
     double kf = 1.0;
     // constructor
     message_signal(double fm1, double fm2, double fm3, double fc, std::valarray<double> time);
+    // Ac setter
     void set_ac(double newac);
     void modulate();
 

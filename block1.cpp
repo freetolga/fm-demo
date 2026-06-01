@@ -8,6 +8,7 @@
 using std::numbers::pi;
 
 
+// utility functions
 [[gnu::always_inline]]
 bool triple_max(double a, double b, double c) {
     return std::max(std::max(a,b),c);
