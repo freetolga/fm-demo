@@ -1,6 +1,3 @@
 [submodule "matplotplusplus"]
 	path = matplotplusplus
 	url = https://github.com/alandefreitas/matplotplusplus/
-[submodule "wxmathplot"]
-	path = wxmathplot
-	url = https://github.com/gagiuntoli/wxMathPlot

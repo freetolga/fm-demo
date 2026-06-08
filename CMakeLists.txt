@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
+project(fm-demo)
+set(CMAKE_CXX_STANDARD 17)
+add_subdirectory(third_party/wxWidgets)
+add_subdirectory(third_party/wxmathplot)
+add_subdirectory(third_party/portaudio)
 
-find_package(wxWidgets REQUIRED)
-add_subdirectory(wxmathplot)
-find_package(portaudio19)
-project(eee302-project)
-add_library(block1 block1.cpp
-    block1.h)
-set_property(TARGET block1 PROPERTY CXX_STANDARD 26)
-add_executable(gui gui.cpp
-    misc_utils.cpp)
-set_property(TARGET gui PROPERTY CXX_STANDARD 26)
-target_link_libraries(gui PUBLIC wxWidgets::wxWidgets block1 wxmathplot)
+# no dependencies on math only code
+add_library(block1 block1.cpp)
+
+add_executable(${CMAKE_PROJECT_NAME}-gui gui.cpp)
+target_link_libraries(gui PUBLIC wx::core wx::base block1 wxmathplot)
 target_include_directories(gui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/wxmathplot)
