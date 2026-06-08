@@ -9,9 +9,9 @@ class message_signal {
     std::valarray<double> original;
     std::valarray<double> modulated;
     // constant carrier frequency
-    double fc;
+    double fc = 0;
     // constant sampling frequency
-    double fs;
+    double fs = 0;
     // changeable carrier amplitude
     double ac = 1.0;
     // changeable FM constant
