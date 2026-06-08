@@ -5,7 +5,7 @@
 
 #include "block1.h"
 
-using std::numbers::pi;
+constexpr double pi = 3.14159265358979;
 
 
 // utility functions
