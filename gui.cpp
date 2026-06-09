@@ -5,11 +5,9 @@
 #include <wx/sizer.h>
 #include <valarray>
 #include <wx/wx.h>
-//#include <matplot/matplot.h>
 #include <mathplot.h>
 
 #include "block1.h"
-#include "wx/toplevel.h"
 
 class MyApp : public wxApp
 {
@@ -88,17 +86,6 @@ MyFrame::MyFrame()
 void MyFrame::OnExit(wxCommandEvent& event)
 {
     Close(true);
-}
-
-void MyFrame::OnAbout(wxCommandEvent& event)
-{
-    wxMessageBox("This is a wxWidgets Hello World example",
-                 "About Hello World", wxOK | wxICON_INFORMATION);
-}
-
-void MyFrame::OnHello(wxCommandEvent& event)
-{
-    wxLogMessage("Hello world from wxWidgets!");
 }
 
 void MyFrame::OnPlot(wxCommandEvent& event) {
