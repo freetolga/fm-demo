@@ -10,7 +10,7 @@ constexpr double pi = 3.14159265358979;
 
 // utility functions
 [[gnu::always_inline]]
-bool triple_max(double a, double b, double c) {
+inline double triple_max(double a, double b, double c) {
     return std::max(std::max(a,b),c);
 }
 
