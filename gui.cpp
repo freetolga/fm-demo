@@ -76,8 +76,6 @@ MyFrame::MyFrame()
     SetSizer(main_sizer); 
     SetAutoLayout(TRUE);
 
-    Bind(wxEVT_MENU, &MyFrame::OnHello, this, ID_Hello);
-    Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
     Bind(wxEVT_SIZE, &MyFrame::OnResize, this, ID_Hello);
