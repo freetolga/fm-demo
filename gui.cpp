@@ -8,6 +8,7 @@
 #include <mathplot.h>
 
 #include "block1.h"
+#include "wx/gtk/stattext.h"
 
 class MyApp : public wxApp
 {
@@ -42,7 +43,11 @@ enum
     BUTTON_plot = wxID_HIGHEST + 1,
     SLIDER_FM1,
     SLIDER_FM2,
-    SLIDER_FM3
+    SLIDER_FM3,
+    LABEL_FM1,
+    LABEL_FM2,
+    LABEL_FM3,
+
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -55,24 +60,29 @@ bool MyApp::OnInit()
 }
 
 MyFrame::MyFrame()
-    : wxFrame(NULL, wxID_ANY, "FM Demo")
+    : wxFrame(NULL, wxID_ANY, "Block1 GUI")
 {
     wxBoxSizer *main_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxGridSizer *plots_sizer = new wxGridSizer(2, 2, 0 ,0);
     wxBoxSizer *controls_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate and Plot");
-    this->fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 0, 2000);
-    this->fm2_slider = new wxSlider(this, SLIDER_FM2, 20, 0, 2000);
-    this->fm3_slider = new wxSlider(this, SLIDER_FM3, 20, 0, 2000);
-    controls_sizer->Add(plotButton, 0, wxSHAPED, 0);
-    controls_sizer->Add(fm1_slider, 0, wxSHAPED, 0);
-    controls_sizer->Add(fm2_slider, 0, wxSHAPED, 0);
-    controls_sizer->Add(fm3_slider, 0, wxSHAPED, 0);
-    plots_sizer->Add(m_plot, 1, wxEXPAND, 0);
-    plots_sizer->Add(f_plot, 1, wxEXPAND, 0);
-    main_sizer->Add(controls_sizer, 2, wxEXPAND, 0);
-    main_sizer->Add(plots_sizer, 10, wxEXPAND, 0);
+    wxButton *saveButton = new wxButton(this, BUTTON_plot, "Save result to file");
+    this->fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 1, 2000);
+    wxStaticText fm1Text(this, LABEL_FM1, "fm1(Hz)");
+    this->fm2_slider = new wxSlider(this, SLIDER_FM2, 200, 1, 2000);
+    wxStaticText fm2Text(this, LABEL_FM2, "fm2(Hz)");
+    this->fm3_slider = new wxSlider(this, SLIDER_FM3, 2000, 1, 2000);
+    wxStaticText fm3Text(this, LABEL_FM3, "fm3(Hz)");
+    controls_sizer->Add(plotButton, 0, wxSHAPED | wxCENTER, 1);
+    controls_sizer->Add(fm1_slider, 0, wxSHAPED | wxCENTER, 1);
+    controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 1);
+    controls_sizer->Add(fm3_slider, 0, wxSHAPED | wxCENTER, 1);
+    controls_sizer->Add(saveButton, 0, wxSHAPED | wxCENTER, 1);
+    plots_sizer->Add(m_plot, 1, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(f_plot, 1, wxEXPAND | wxCENTER, 0);
+    main_sizer->Add(controls_sizer, 3, wxEXPAND | wxCENTER, 0);
+    main_sizer->Add(plots_sizer, 9, wxEXPAND | wxCENTER, 0);
     SetSizer(main_sizer); 
     SetAutoLayout(TRUE);
 
