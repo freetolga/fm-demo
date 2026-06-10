@@ -1,6 +1,6 @@
 # FM Demo
 
-this is me applying what i learned in signals and systems to a wxwidgets c++ project
+this is me applying what i learned in signals and systems to a wxwidgets c++ project in order to visualize FM(Frequency Modulation)
 
 ## current status
 - plotting a 3 tone controlled message
