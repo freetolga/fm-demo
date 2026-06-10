@@ -1,6 +1,4 @@
 #include <cmath>
-#include <numbers>
-#include <numeric>
 #include <valarray>
 
 #include "block1.h"
@@ -22,6 +20,14 @@ message_signal::message_signal(double fm1, double fm2, double fm3, double fc, st
         this->fc = fc;
         // calculate fs and set it
         this->fs = 2*(fc + triple_max(fm1, fm2,fm3));
+
+        // calculate frequency axis based on given data
+        freq.resize(time.size(), 0);
+        for(int i = 0; i < freq.size(); ++i) {
+            freq[i] = -time.size()/2 + i;
+        }
+        // normalize this new vector
+        freq*(-fs/time.size());
 
         original.resize(time.size(), 0);
         modulated.resize(time.size(), 0);
@@ -45,3 +51,4 @@ void message_signal::modulate() {
     // finish FM
     modulated = cos(2*pi*fc*time + inst_freq);
 }
+
