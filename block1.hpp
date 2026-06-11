@@ -6,7 +6,7 @@ public:
     // time vector
     std::valarray<double> time;
     // frequency vector
-    std::valarray<double> freq;
+    std::valarray<long> freq;
     // original and modulated signal
     std::valarray<double> original;
     std::valarray<double> modulated;

@@ -38,7 +38,6 @@ private:
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
     void OnPlot(wxCommandEvent& event);
-    void OnResize(wxSizeEvent& event);
     void OnSliderChange(wxCommandEvent& event);
     void CleanAllPlots(void);
     mpWindow *m_plot = new mpWindow(this, -1, wxDefaultPosition);
@@ -46,12 +45,12 @@ private:
     mpWindow *s_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *sf_plot = new mpWindow(this, -1, wxDefaultPosition);
     wxSlider *fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 1, 2000);
-    wxSlider *fm2_slider =  new wxSlider(this, SLIDER_FM2, 20, 1, 2000);
-    wxSlider *fm3_slider = new wxSlider(this, SLIDER_FM3, 20, 1, 2000);
+    wxSlider *fm2_slider =  new wxSlider(this, SLIDER_FM2, 200, 1, 2000);
+    wxSlider *fm3_slider = new wxSlider(this, SLIDER_FM3, 2000, 1, 2000);
     double fm1 = 20;
     double fm2 = 200;
     double fm3 = 2000;
-    double fc = 1000;
+    double fc = 10000;
 };
 
 
@@ -89,7 +88,6 @@ MyFrame::MyFrame()
 
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
-    Bind(wxEVT_SIZE, &MyFrame::OnResize, this, ID_Hello);
     Bind(wxEVT_SLIDER, &MyFrame::OnSliderChange, this);
 }
 
@@ -135,9 +133,11 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     // read as: for(typename variable in iterable)
     // : means "in keyword" in python
     for(double d: m1.freq) {
+        std::cout << d;
         x2.push_back(d);
     }
     for(std::complex<double> d: m1.original_f) {
+        std::cout << d;
         y2.push_back(abs(d));
     }
 
@@ -192,14 +192,6 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     sf_plot->Fit();
 
 
-}
-
-void MyFrame::OnResize(wxSizeEvent& event) {
-    this->Refresh();
-    m_plot->UpdateAll();
-    mf_plot->UpdateAll();
-    s_plot->UpdateAll();
-    sf_plot->UpdateAll();
 }
 
 void MyFrame::OnSliderChange(wxCommandEvent& event) {

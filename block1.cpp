@@ -1,5 +1,6 @@
 #include <cmath>
 #include <valarray>
+#include <iostream>
 
 #include "block1.hpp"
 #include "fft.hpp"
@@ -25,10 +26,11 @@ message_signal::message_signal(double fm1, double fm2, double fm3, double fc, st
         // calculate frequency axis based on given data
         freq.resize(time.size(), 0);
         for(int i = 0; i < freq.size(); ++i) {
-            freq[i] = -time.size()/2.0 + i;
+            freq[i] = -time.size()/2 + i;
         }
         // normalize this new vector
-        freq*(-fs/time.size());
+        std::cout << fs;
+        freq*=(-fs/time.size());
 
         original.resize(time.size(), 0);
         modulated.resize(time.size(), 0);
