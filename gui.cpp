@@ -7,10 +7,10 @@
 #include <wx/wx.h>
 #include <mathplot.h>
 
-#include "block1.h"
+#include "block1.hpp"
 #include "wx/gtk/stattext.h"
 
-class MyApp : public wxApp
+class MyApp final : public wxApp
 {
 public:
     virtual bool OnInit();

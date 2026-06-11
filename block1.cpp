@@ -1,8 +1,8 @@
 #include <cmath>
 #include <valarray>
 
-#include "block1.h"
-#include "fft.h"
+#include "block1.hpp"
+#include "fft.hpp"
 
 constexpr double pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
 
