@@ -120,6 +120,7 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer1->SetDrawOutsideMargins(false);
     m_plot->AddLayer(vectorLayer1);
     m_plot->Fit();
+    m_plot->SetMargins(0, 0, 0,0);
 
     m1.take_fft_message();
 
@@ -144,6 +145,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetDrawOutsideMargins(false);
     mf_plot->AddLayer(vectorLayer2);
     mf_plot->Fit();
+    mf_plot->SetMargins(0, 0, 0,0);
+
 
     m1.modulate();
     if(this->add_noise) m1.add_noise();
@@ -165,6 +168,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer3->SetDrawOutsideMargins(false);
     s_plot->AddLayer(vectorLayer3);
     s_plot->Fit();
+    s_plot->SetMargins(0, 0, 0,0);
+
 
     m1.take_fft_modulated();
 
@@ -186,6 +191,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer4->SetDrawOutsideMargins(false);
     sf_plot->AddLayer(vectorLayer4);
     sf_plot->Fit();
+    sf_plot->SetMargins(0, 0, 0,0);
+
 
 
 }
