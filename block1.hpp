@@ -20,7 +20,7 @@ public:
     double ac = 1.0;
     // changeable FM constant
     double kf = 1.0;
-    message_signal(double fm1, double fm2, double fm3, double fc, std::valarray<double> time);
+    message_signal(double fm1, double fm2, double fm3, double fc);
     void set_ac(double newac);
     void modulate();
     void take_fft_message();

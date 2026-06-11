@@ -98,16 +98,8 @@ void MyFrame::OnExit(wxCommandEvent& event)
 
 void MyFrame::OnPlot(wxCommandEvent& event) {
     this->CleanAllPlots();
-    std::valarray<double> time;
-    double t1 = 0;
-    double t2 = 0.1;
-    double dt = 0.001;
-    int size = (t2-t1)/dt;
-    time.resize((t2-t1)/dt, 0);
-    for(int i = 0; i < size; ++i) {
-        time[i] = dt*i;
-    }
-    message_signal m1(this->fm1, this->fm2, this->fm3, this->fc, time);
+
+    message_signal m1(this->fm1, this->fm2, this->fm3, this->fc);
     std::vector<double> x;
     std::vector<double> y;
     for(double d: m1.time) {

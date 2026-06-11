@@ -15,13 +15,18 @@ inline double triple_max(double a, double b, double c) {
 }
 
 
-message_signal::message_signal(double fm1, double fm2, double fm3, double fc, std::valarray<double> time) {
-        // set the time valarray passed in
-        this->time = time;
-        // set the constant fc given
+message_signal::message_signal(double fm1, double fm2, double fm3, double fc) {
+
         this->fc = fc;
-        // calculate fs and set it
         this->fs = 2*(fc + triple_max(fm1, fm2,fm3));
+
+        double t2 = 0.1;
+        double dt = 1/fs;
+        int size = (t2-0)/dt;
+        time.resize((t2-0)/dt, 0);
+        for(int i = 0; i < size; ++i) {
+            time[i] = dt*i;
+        }
 
         // calculate frequency axis based on given data
         freq.resize(time.size(), 0);
@@ -46,14 +51,23 @@ void message_signal::set_ac(double newac) {
 }
 
 void message_signal::modulate() {
-    // calculate the cumulative sum for every element in this new vector
+    // calculate the instantaneous frequency
     std::valarray<double> inst_freq;
     inst_freq.resize(original.size(), 0);
-    for(int i = 0; i < original.size(); ++i) {
-        inst_freq[i] = 2*pi*kf*original[i];
+    for(int i = 0; i < inst_freq.size(); ++i) {
+        inst_freq[i] = 2*pi*fc*time[i] + 2*pi*kf*original[i];
+    }
+
+    // calculate the final angle for cosine
+    std::valarray<double> final_angle;
+    final_angle.resize(inst_freq.size(), 0);
+    double total = 0.0;
+    for(int i = 0; i < final_angle.size(); ++i) {
+        total += inst_freq[i];
+        final_angle[i] = total/fs;
     }
     // finish FM
-    modulated = cos(2*pi*fc*time + inst_freq);
+    modulated = cos(final_angle);
 }
 
 void message_signal::take_fft_message() {
