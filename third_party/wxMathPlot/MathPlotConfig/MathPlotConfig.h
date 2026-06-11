@@ -3,7 +3,7 @@
  * Purpose:   Defines Application Frame
  * Author:    Lionel ()
  * Created:   2021-01-24
- * Last edit: 2026-03-27
+ * Last edit: 2026-04-18
  * Copyright: Lionel ()
  * License:
  **************************************************************/
@@ -238,6 +238,8 @@ class MathPlotConfigDialog: public wxDialog
     void OnbDelLinesClick(wxCommandEvent& event);
     void OnbDelAxisClick(wxCommandEvent& event);
     void OncbSeriesShowNameClick(wxCommandEvent& event);
+    void OnbApplyAndFitClick(wxCommandEvent& event);
+    void OncbAutoStepClick(wxCommandEvent& event);
     //*)
 
     //(*Identifiers(MathPlotConfigDialog)
@@ -251,6 +253,7 @@ class MathPlotConfigDialog: public wxDialog
     wxButton* bAddXAxis;
     wxButton* bAddYAxis;
     wxButton* bApply;
+    wxButton* bApplyAndFit;
     wxButton* bAxisPenColor;
     wxButton* bBGColor;
     wxButton* bClose;
@@ -267,9 +270,11 @@ class MathPlotConfigDialog: public wxDialog
     wxButton* bSeriesBrushColor;
     wxButton* bSeriesPenColor;
     wxCheckBox* cbAutoScale;
+    wxCheckBox* cbAutoStep;
     wxCheckBox* cbAxisOutside;
     wxCheckBox* cbAxisVisible;
     wxCheckBox* cbBar;
+    wxCheckBox* cbCoordDefaultVisibility;
     wxCheckBox* cbCoordOutside;
     wxCheckBox* cbCoordVisible;
     wxCheckBox* cbCoordinates;
@@ -282,6 +287,7 @@ class MathPlotConfigDialog: public wxDialog
     wxCheckBox* cbLinesVisible;
     wxCheckBox* cbLogAxis;
     wxCheckBox* cbMagnetize;
+    wxCheckBox* cbMouseCoordVisible;
     wxCheckBox* cbSeriesContinuity;
     wxCheckBox* cbSeriesLegend;
     wxCheckBox* cbSeriesOutside;
@@ -314,6 +320,7 @@ class MathPlotConfigDialog: public wxDialog
     wxChoice* cbSeriesPenStyle;
     wxChoice* cbSeriesPenWidth;
     wxChoice* cbSeriesSymbolType;
+    wxFlexGridSizer* sizerSeriesStep;
     wxNotebook* nbConfig;
     wxNotebook* nbPenAxisGrid;
     wxPanel* Panel1;
@@ -325,8 +332,8 @@ class MathPlotConfigDialog: public wxDialog
     wxPanel* Panel7;
     wxPanel* pLines;
     wxRadioButton* rbLinesDirection;
-    wxSpinCtrl* cbSeriesStep;
     wxSpinCtrl* cbSeriesSymbolSize;
+    wxSpinCtrl* spinSeriesStep;
     wxStaticText* StaticText10;
     wxStaticText* StaticText11;
     wxStaticText* StaticText12;
@@ -336,7 +343,6 @@ class MathPlotConfigDialog: public wxDialog
     wxStaticText* StaticText16;
     wxStaticText* StaticText17;
     wxStaticText* StaticText18;
-    wxStaticText* StaticText19;
     wxStaticText* StaticText1;
     wxStaticText* StaticText20;
     wxStaticText* StaticText21;
@@ -372,6 +378,7 @@ class MathPlotConfigDialog: public wxDialog
     wxStaticText* StaticText8;
     wxStaticText* StaticText9;
     wxStaticText* stLinesYIndexLabel;
+    wxStaticText* stStepChoice;
     wxTextCtrl* edAxisName;
     wxTextCtrl* edExtraMargin;
     wxTextCtrl* edFormat;
@@ -392,6 +399,7 @@ class MathPlotConfigDialog: public wxDialog
     void UpdateSelectedLine(void);
     void UpdateAxis(void);
     void FillYAxisList(wxChoice* yChoice, bool clearChoice = true);
+    void UpdateSeriesStep(void);
 
     void DoButtonColour(wxButton* button, const wxColour& colour);
     void DoApplyColour(const wxColour& colour);

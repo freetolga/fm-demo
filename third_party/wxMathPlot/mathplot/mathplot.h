@@ -6,7 +6,7 @@
 // Contributors:    Jose Luis Blanco, Val Greene, Lionel Reynaud, Dave Nadler, MortenMacFly,
 //                  Oskar Waldemarsson (for multi Y axis and corrections)
 // Created:         21/07/2003
-// Last edit:       30/03/2026
+// Last edit:       18/04/2026
 // Copyright:       (c) David Schalig, Davide Rondini
 // Licence:         wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
@@ -51,6 +51,14 @@
  https://sourceforge.net/projects/wxmathplot<br>
  Contributors:<br>
  Jose Luis Blanco, Val Greene, Lionel Reynaud, Dave Nadler, MortenMacFly, Oskar Waldemarsson<br>
+
+ @section ENABLE_MP_CONFIG Optional configuration window
+ Define the preprocessor symbol `ENABLE_MP_CONFIG` to have a configuration window. In this dialog box window,
+ the user can modify most of the plot properties like title, legend, scale, ...
+ @sa MathPlotConfigDialog
+
+ @section ENABLE_MP_NAMESPACE Optional namespace
+ Define the preprocessor symbol `ENABLE_MP_NAMESPACE` to have a MathPlot namespace
 
  @section MP_USER_INCLUDE Optional user include configuration hook
  Define the preprocessor symbol `MP_USER_INCLUDE` to the base name of a
@@ -254,31 +262,42 @@ class MathPlotConfigDialog;
 #endif // ENABLE_MP_CONFIG
 
 /// A rectangle structure in several (integer) flavors
-typedef union
+struct mpRect
 {
-    struct
-    {
-        wxCoord startPx;
-        wxCoord endPx;
-        wxCoord startPy;
-        wxCoord endPy;
+    union {
+        struct
+        {
+            wxCoord startPx;
+            wxCoord startPy;
+            wxCoord endPx;
+            wxCoord endPy;
+        };
+        struct
+        {
+            wxCoord left;
+            wxCoord top;
+            wxCoord right;
+            wxCoord bottom;
+        };
+        struct
+        {
+            wxCoord x1;
+            wxCoord y1;
+            wxCoord x2;
+            wxCoord y2;
+        };
+        wxCoord tab[4];  //!< Alternate array-style access to the rectangle coordinates.
     };
-    struct
+    /**
+     * Create rectangular area defined by start and end points
+     * @return wxRect object
+     */
+    wxRect GetRect(void)
     {
-        wxCoord left;
-        wxCoord top;
-        wxCoord right;
-        wxCoord bottom;
-    };
-    struct
-    {
-        wxCoord x1;
-        wxCoord y1;
-        wxCoord x2;
-        wxCoord y2;
-    };
-    wxCoord tab[4];  //!< Alternate array-style access to the rectangle coordinates.
-} mpRect;
+      return wxRect(startPx, startPy, endPx - startPx, endPy - startPy);
+    }
+};
+static_assert(sizeof(mpRect) == 4 * sizeof(wxCoord));
 
 /**
  * @brief Represents a numeric range with minimum and maximum values.
@@ -482,7 +501,7 @@ struct [[deprecated("Deprecated! No longer used as X and Y are now separated")]]
    * Is point inside this bounding box?
    * @param px x-coordinate
    * @param py y-coordinate
-   * @param yAxisID: the y-axis ID (default 0, the first y axis)
+   * @param yAxisID the y-axis ID (default 0, the first y axis)
    */
   bool PointIsInside(double px, double py, size_t yAxisID = 0) const {
     if (yAxisID < y.size())
@@ -505,7 +524,7 @@ struct [[deprecated("Deprecated! No longer used as X and Y are now separated")]]
    * Update bounding box to include this point
    * @param px x-coordinate
    * @param py y-coordinate
-   * @param yAxisID: the y-axis ID (default 0, the first y axis)
+   * @param yAxisID the y-axis ID (default 0, the first y axis)
    */
   void UpdateBoundingBoxToInclude(double px, double py, size_t yAxisID = 0) {
     assert(yAxisID < y.size());
@@ -522,7 +541,7 @@ struct [[deprecated("Deprecated! No longer used as X and Y are now separated")]]
    * Initialize bounding box with an initial point
    * @param px x-coordinate
    * @param py y-coordinate
-   * @param yAxisID: the y-axis ID (default 0, the first y axis)
+   * @param yAxisID the y-axis ID (default 0, the first y axis)
    */
   void InitializeBoundingBox(double px, double py, size_t yAxisID = 0) {
     assert(yAxisID < y.size());
@@ -653,7 +672,7 @@ typedef enum __mp_Location_Type
   mpMarginBottomLeft,    //!< Align the info in margin bottom-left
   mpMarginBottomCenter,  //!< Align the info in margin center-bottom
   mpMarginBottomRight,   //!< Align the info in margin bottom-right
-  mpMarginNone,          //!< No alignment
+  mpMarginUser,          //!< User defined position. Can be change by mouse drag
   mpCursor               //!< only for mpInfoCoords
 } mpLocation;
 
@@ -1045,7 +1064,7 @@ class WXDLLIMPEXP_MATHPLOT mpLayer: public wxObject
     }
 
     /** Get pen set for this layer.
-     @return Pen
+     @return const current Pen
      */
     const wxPen& GetPen() const
     {
@@ -1062,8 +1081,17 @@ class WXDLLIMPEXP_MATHPLOT mpLayer: public wxObject
         m_brush = brush;
     }
 
+    /** Set layer brush
+     @param colour colour of the brush
+     @param style style among wxBrushStyle enumeration. Default solid */
+    void SetBrush(const wxColour &colour, enum wxBrushStyle style = wxBRUSHSTYLE_SOLID)
+    {
+      m_brush.SetColour(colour);
+      m_brush.SetStyle(style);
+    }
+
     /** Get brush set for this layer.
-     @return brush. */
+     @return const current brush. */
     const wxBrush& GetBrush() const
     {
       return m_brush;
@@ -1234,10 +1262,10 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLayer: public mpLayer
     mpInfoLayer();
 
     /** Complete constructor.
-     @param rect Sets the initial size rectangle of the layer.
+     @param pos Sets the initial position in percent of the rectangle of the layer.
      @param brush pointer to a fill brush. Default is transparent
      @param location to place in the margin or free */
-    mpInfoLayer(wxRect rect, const wxBrush &brush = *wxTRANSPARENT_BRUSH, mpLocation location = mpMarginNone);
+    mpInfoLayer(wxPoint pos, const wxBrush &brush = *wxTRANSPARENT_BRUSH, mpLocation location = mpMarginUser);
 
     /** Destructor */
     virtual ~mpInfoLayer();
@@ -1259,10 +1287,10 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLayer: public mpLayer
       return false;
     }
 
-    /**
-     * Just delete the bitmap of the info
-     */
-    virtual void ErasePlot(wxDC &dc, mpWindow &w);
+    /** Just delete the bitmap of the info. Not used since background bitmap is no longer needed
+     * Just keep to not break compatability with overridden functions*/
+    [[deprecated("Use Show() instead")]]
+    virtual void ErasePlot(wxDC&, mpWindow&) {};
 
     /** Is given point inside the info box rectangle?
      @param point The point to be checked
@@ -1270,8 +1298,9 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLayer: public mpLayer
     virtual bool Inside(const wxPoint &point);
 
     /** Move the layer rectangle by given pixel deltas.
-     @param delta The wxPoint container for delta coordinates along x and y. Units are in pixels. */
-    virtual void Move(wxPoint delta);
+     @param delta The wxPoint container for delta coordinates along x and y. Units are in pixels.
+     @param w Parent mpWindow from which to obtain information */
+    virtual void Move(wxPoint delta, mpWindow &w);
 
     /** Update the rectangle reference point. Used by internal methods of mpWindow to correctly move mpInfoLayers. */
     virtual void UpdateReference();
@@ -1281,6 +1310,14 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLayer: public mpLayer
     wxPoint GetPosition() const
     {
       return m_dim.GetPosition();
+    }
+
+    /** Set the position in percent of the upper left corner of the box
+     @param pos the position in pourcent of the upper left corner of the box */
+    void SetInitialPosition(wxPoint pos)
+    {
+      m_relX = pos.x / 100.0;
+      m_relY = pos.y / 100.0;
     }
 
     /** Get the size of the box (in pixels)
@@ -1313,11 +1350,10 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLayer: public mpLayer
 
   protected:
     wxRect m_dim;           //!< The bounding rectangle of the mpInfoLayer box (may be resized dynamically by the Plot method).
-    wxRect m_oldDim;        //!< Keep the old values of m_dim
     wxBitmap* m_info_bmp;   //!< The bitmap that contain the info
     wxPoint m_reference;    //!< Holds the reference point for movements
-    int m_winX;             //!< Cached mpWindow width, used to rescale the info box position when the window is resized.
-    int m_winY;             //!< Cached mpWindow height, used to rescale the info box position when the window is resized.
+    double m_relX;          //!< Box X position relative window, used to rescale the info box position when the window is resized.
+    double m_relY;          //!< Box Y position relative window, used to rescale the info box position when the window is resized.
     mpLocation m_location;  //!< Location of the box in the margin. Default mpMarginNone = use coordinates
 
     /** Plot method. Can be overridden by derived classes.
@@ -1331,6 +1367,8 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLayer: public mpLayer
     void SetInfoRectangle(mpWindow &w, int width = 0, int height = 0);
 
   private:
+    double clamp(double v, double min, double max);
+
     DECLARE_DYNAMIC_CLASS_MATHPLOT(mpInfoLayer);
 };
 
@@ -1348,10 +1386,10 @@ class WXDLLIMPEXP_MATHPLOT mpInfoCoords: public mpInfoLayer
     mpInfoCoords(mpLocation location);
 
     /** Complete constructor, setting initial rectangle and background brush.
-     @param rect The initial bounding rectangle.
+     @param pos The initial position in percent of the rectangle.
      @param brush The wxBrush to be used for box background: default is transparent
      @param location to place in the margin or free */
-    mpInfoCoords(wxRect rect, const wxBrush &brush = *wxTRANSPARENT_BRUSH, mpLocation location = mpMarginNone);
+    mpInfoCoords(wxPoint pos, const wxBrush &brush = *wxTRANSPARENT_BRUSH, mpLocation location = mpMarginUser);
 
     /** Default destructor */
     ~mpInfoCoords()
@@ -1364,7 +1402,33 @@ class WXDLLIMPEXP_MATHPLOT mpInfoCoords: public mpInfoLayer
      @param event The event which called the update. */
     virtual void UpdateInfo(mpWindow &w, wxEvent &event);
 
-    virtual void ErasePlot(wxDC &dc, mpWindow &w);
+    /** Just delete the bitmap of the info. Not used since background bitmap is no longer needed
+     * Just keep to not break compatability with overridden functions*/
+    [[deprecated("Use Show() instead")]]
+    virtual void ErasePlot(wxDC&, mpWindow&) {};
+
+    /** Set if info coords shall be shown or hidden
+    @param show Set if shall be shown */
+    void Show(bool show)
+    {
+      m_show = show;
+    }
+
+    /** Get shown status
+     @return Indicate if shall be shown */
+    bool IsShown()
+    {
+      return m_show;
+    }
+
+    /** Check conditions if info coords shall be shown or not
+    @param plotArea Area where info coors is allowed to be rendered
+    @param mousePos Position of mouse in plot window
+    @return Indicate if shall be shown */
+    bool ShouldBeShown(wxRect plotArea, wxPoint mousePos)
+    {
+      return IsVisible() && (GetDrawOutsideMargins() || plotArea.Contains(mousePos));
+    }
 
     /** Set X axis label view mode.
      @param mode mpLabel_AUTO for normal labels, mpLabel_TIME for time axis in hours, minutes, seconds.
@@ -1403,7 +1467,13 @@ class WXDLLIMPEXP_MATHPLOT mpInfoCoords: public mpInfoLayer
       m_penSeries = pen;
     }
 
+    /** Draw the content of info coords to plot
+     @param dc the device context where to plot
+     @param w the window to plot */
+    void DrawContent(wxDC &dc, mpWindow &w);
+
   protected:
+    bool m_show;              //!< Indicates if magnet shall be shown in plot
     wxString m_content;       //!< string holding the coordinates to be drawn.
     mpLabelType m_labelType;  //!< Label formatting mode used for the X coordinate display.
     unsigned int m_timeConv;  //!< Time conversion mode used when formatting date/time X values.
@@ -1419,6 +1489,8 @@ class WXDLLIMPEXP_MATHPLOT mpInfoCoords: public mpInfoLayer
     virtual void DoPlot(wxDC &dc, mpWindow &w);
 
   private:
+    std::unordered_map<int, double> m_yValList; //!< a list of plot layer id.
+
     DECLARE_DYNAMIC_CLASS_MATHPLOT(mpInfoCoords);
 };
 
@@ -1433,11 +1505,11 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLegend: public mpInfoLayer
     mpInfoLegend();
 
     /** Complete constructor, setting initial rectangle and background brush.
-     @param rect The initial bounding rectangle.
+     @param pos The initial position in percent of the rectangle.
      @param brush The wxBrush to be used for box background: default is transparent
      @param location to place in the margin or free
      @sa mpInfoLayer::mpInfoLayer */
-    mpInfoLegend(wxRect rect, const wxBrush &brush = *wxWHITE_BRUSH, mpLocation location = mpMarginNone);
+    mpInfoLegend(wxPoint pos, const wxBrush &brush = *wxWHITE_BRUSH, mpLocation location = mpMarginUser);
 
     /**  Default destructor */
     ~mpInfoLegend() {}
@@ -1476,15 +1548,62 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLegend: public mpInfoLayer
       m_needs_update = true;
     }
 
-    /// Return the index of visible layer whose legend is pointed at...
-    int GetPointed(mpWindow &w, wxPoint eventPoint);
+    /** Set if dragged series shall be shown or hidden
+    @param active Set if shall be shown */
+    void ShowDraggedSeries(bool active)
+    {
+      m_showDraggedSeries = active;
+    }
+
+    /** Get shown status of dragged series
+     @return Indicate if dragged series shall be shown */
+    bool IsDraggedSeriesShown() const
+    {
+      return m_showDraggedSeries;
+    }
+
+    /** Checks if mouse is inside legend and if it hovers the header or any of the series
+     * If a series is hovered, return its index. If the header is hovered, return HitHeader,
+     * otherwise return HitNone
+     * @param mousePos The mouse position
+     * @return Index of series or header hit. Return -1 if we are outside the legend */
+    int GetLegendHitRegion(wxPoint mousePos);
+
+    /** When a series is being dragged, draw a rectangle with its name at the mouse cursor.
+     *  Will draw directly to dc via Blit to make it responsive, and also makes sure that
+     *  no dragging tail stays by always storing and restoring a clean background
+     *  @param dc the device context where to plot
+     *  @param w Parent mpWindow from which to obtain information
+     */
+    void DrawDraggedSeries(wxDC& dc, mpWindow &w);
+
+    /** Draw the content of info legend to plot
+     * @param dc the device context where to plot
+     * @param w Parent mpWindow from which to obtain information */
+    void DrawContent(wxDC &dc, mpWindow &w);
+
+    /** Clear the dragged series rectangle from the plot and restores axis hovering indication
+     * @param w the window to plot */
+    void RestoreAxisHighlighting(mpWindow &w);
+
+    /// Return codes for GetLegendHitRegion() if no series was hit
+    enum HitCode : int
+    {
+      HitNone   = -1,
+      HitHeader = -2
+    };
+
+    mpFunction* m_selectedSeries = nullptr;               //!< the series currently selected/clicked by the user
+    mpOptional_int m_lastHoveredAxisID = MP_OPTNULL_INT;  //!< last axis ID that was hovered when dragging series
 
   protected:
     mpLegendStyle m_item_mode;          //!< Visual style used for each legend entry.
     mpLegendDirection m_item_direction; //!< Layout direction used when arranging legend entries.
+    bool m_showDraggedSeries;           //!< Indicate if series that has been gripped with mouse shall be drawn
+    wxString m_headerString = wxString::FromUTF8("≡");  //!< "Hamburger" symbol used for grip the legend
 
     /** Plot method.
-     @param dc the device content where to plot
+     @param dc the device context where to plot
      @param w the window to plot
      @sa mpLayer::Plot */
     virtual void DoPlot(wxDC &dc, mpWindow &w);
@@ -1493,11 +1612,12 @@ class WXDLLIMPEXP_MATHPLOT mpInfoLegend: public mpInfoLayer
     /// Detail of legend component for an individual plot
     struct LegendDetail
     {
-        unsigned int layerIdx; //!< index of the mpPlot in the layer list
-        wxCoord legendEnd;     //!< right side (if horizontal) or bottom side (if vertical) of the
-                               //!< area occupied by the function name and decoration
+      unsigned int layerIdx; //!< index of the mpPlot in the layer list
+      wxCoord legendEnd;     //!< right side (if horizontal) or bottom side (if vertical) of the
+                             //!< area occupied by the function name and decoration
     };
     std::vector<LegendDetail> m_LegendDetailList; //!< list (well, vector) of details for each individual plot's legend component
+    wxCoord m_headerEnd; //!< End position of header row in box, used to check if header has been clicked
     bool m_needs_update; //!< Do we need to redraw the legend bitmap? Set when a plot function changes (name, visibility, add or remove)
     /**
      * Create/update the bitmap image of this legend.
@@ -1585,7 +1705,6 @@ class WXDLLIMPEXP_MATHPLOT mpFunction: public mpLayer
     void SetSymbolSize(int size)
     {
       m_symbolSize = size;
-      m_symbolSize2 = size / 2;
     }
 
     /** Get symbol size.
@@ -1610,6 +1729,7 @@ class WXDLLIMPEXP_MATHPLOT mpFunction: public mpLayer
 
     /**
      * Set the ID of the Y axis used by the function
+     * @param yAxisID: the y-axis ID
      */
     void SetYAxisID(unsigned int yAxisID)
     {
@@ -1632,14 +1752,45 @@ class WXDLLIMPEXP_MATHPLOT mpFunction: public mpLayer
       return m_LegendIsAlwaysVisible;
     }
 
+    /** Enables auto step which is used to plot a maximum nuber of
+     * points at a time to the plot no matter zoom level
+     * @param enable Enables auto step */
+    void SetAutoStep(bool enable)
+    {
+      m_autoStep = enable;
+    }
+
+    /** Get if auto stop is enabled
+     * @return True if auto step is enabled */
+    bool GetAutoStep() const
+    {
+      return m_autoStep;
+    }
+
+    /** Set how many points that is allowed to be drawn at a time.
+     * Reduce to speed up plotting
+     * @param nOfPoints The maximum number of points to plot */
+    void SetMaxNOfPoints(size_t nOfPoints)
+    {
+      m_maxNOfPoints = nOfPoints;
+    }
+
+    /** Get maximum number of points to plot
+     * @return Maximum number of points */
+    size_t GetMaxNOfPoints() const
+    {
+      return m_maxNOfPoints;
+    }
+
   protected:
     bool m_continuous;            //!< Specify if the layer will be plotted as a continuous line or a set of points. Default false
     mpSymbol m_symbol;            //!< A symbol for the plot in place of point. Default mpNone
     int m_symbolSize;             //!< Size of the symbol. Default 6
-    int m_symbolSize2;            //!< Size of the symbol div 2.
     unsigned int m_step;          //!< Step to get point to be draw. Default : 1
     int m_yAxisID;                //!< The ID of the Y axis used by the function. Equal 0 if no axis.
-    bool m_LegendIsAlwaysVisible; //!< If true, the name is visible in the legend despite the visibility of the function. Default true
+    bool m_LegendIsAlwaysVisible; //!< If true, the name is visible in the legend despite the visibility of the function. Default false
+    bool m_autoStep;              //!< Calculates m_step automatically based on how many points you want to draw
+    size_t m_maxNOfPoints;        //!< Maximum number of points to draw to screen
 
   private:
     DECLARE_DYNAMIC_CLASS_MATHPLOT(mpFunction);
@@ -2047,13 +2198,13 @@ class WXDLLIMPEXP_MATHPLOT mpFXYVector: public mpFXY
     /** Clears all the data, leaving the layer empty.
      * @sa SetData
      */
-    void Clear();
+    void Clear() override;
 
     /**
      * Return the number of points in the series
      * We assume that size of m_xs equals size of m_ys
      */
-    virtual int GetSize()
+    virtual int GetSize() override
     {
       return m_xs.size();
     }
@@ -2089,31 +2240,22 @@ class WXDLLIMPEXP_MATHPLOT mpFXYVector: public mpFXY
     }
 
   protected:
-    /** The internal copy of the set of data to draw.
-     */
-    std::vector<double> m_xs;  //!< internal copy of the set of data on x direction
-    std::vector<double> m_ys;  //!< internal copy of the set of data on y direction
-
-    /** Memory reserved for m_xs and m_ys. Default 1000
-     */
-    int m_reserveXY;
-
-    /** The internal counter for the "GetNextXY" interface
-     */
-    size_t m_index;
-
+    std::vector<double> m_xs;    //!< internal copy of the set of data on x direction
+    std::vector<double> m_ys;    //!< internal copy of the set of data on y direction
+    bool m_isMonotonicX;         //!< Indicates if all all X values are monotonic, i.e increasing, which enables binary search
+    int m_reserveXY;             //!< Memory reserved for m_xs and m_ys. Default 1000
+    size_t m_index;              //!< The internal counter for the "GetNextXY" interface
+    size_t m_endIndex;           //!< The end index indicating the last point inside plot area
     mpRange<double> m_rangeX;    //!< Range min and max on x axis
     double m_lastX;              //!< Last x-coordinate point added
     mpRange<double> m_rangeY;    //!< Range min and max on y axis
     double m_lastY;              //!< Last y-coordinate point added
 
-    /** Rewind value enumeration with mpFXY::GetNextXY.
-     Overridden in this implementation.
+    /**
+     * Calculates the start and end index which shall be used when iterating the data. If all X values
+     * are monotonic (like a time series), the indices can be calculated using binary search
      */
-    inline void Rewind()
-    {
-      m_index = 0;
-    }
+    virtual void Rewind() override;
 
     /** Get locus value for next N.
      Overridden in this implementation.
@@ -2121,7 +2263,7 @@ class WXDLLIMPEXP_MATHPLOT mpFXYVector: public mpFXY
      @param y Returns Y value
      @returns false when there are no more points (normally true)
      */
-    virtual bool GetNextXY(double *x, double *y);
+    virtual bool GetNextXY(double *x, double *y) override;
 
     /** Draw the point added if there is in bound
      * @param x X value
@@ -2131,7 +2273,7 @@ class WXDLLIMPEXP_MATHPLOT mpFXYVector: public mpFXY
 
     /** Returns the actual minimum X data (loaded in SetData).
      */
-    virtual double GetMinX()
+    virtual double GetMinX()override
     {
       if (m_ViewAsBar)
       {
@@ -2146,14 +2288,14 @@ class WXDLLIMPEXP_MATHPLOT mpFXYVector: public mpFXY
 
     /** Returns the actual minimum Y data (loaded in SetData).
      */
-    virtual double GetMinY()
+    virtual double GetMinY() override
     {
       return m_rangeY.min;
     }
 
     /** Returns the actual maximum X data (loaded in SetData).
      */
-    virtual double GetMaxX()
+    virtual double GetMaxX() override
     {
       if(m_ViewAsBar)
       {
@@ -2168,7 +2310,7 @@ class WXDLLIMPEXP_MATHPLOT mpFXYVector: public mpFXY
 
     /** Returns the actual maximum Y data (loaded in SetData).
      */
-    virtual double GetMaxY()
+    virtual double GetMaxY() override
     {
       return m_rangeY.max;
     }
@@ -2795,6 +2937,14 @@ class WXDLLIMPEXP_MATHPLOT mpScale: public mpLayer
       return mpRange<double>(m_axisRange);
     }
 
+    /** Set if axis shall be highlighted when a series is dragged over it
+     * @param hover true if shall be highlighted
+     */
+    void SetHovering(bool hover)
+    {
+      m_hover = hover;
+    }
+
     /** Get if we are in Logarithmic mode
      * @return true if we are in Logarithmic mode
      */
@@ -2811,6 +2961,22 @@ class WXDLLIMPEXP_MATHPLOT mpScale: public mpLayer
       m_isLog = log;
     }
 
+    /** Set the visibility of the mouse coordinates in the info coordinates despite the visibility of the axis
+     * @param alwaysVisible if true, mouse coordinates is always visible in the info coordinates
+     */
+    void SetCoordIsAlwaysVisible(bool alwaysVisible)
+    {
+      m_CoordIsAlwaysVisible = alwaysVisible;
+    }
+
+    /** Get the visibility of the mouse coordinates in the info coordinates.
+     * @return the visibility of the mouse coordinates
+     */
+    bool GetCoordIsAlwaysVisible() const
+    {
+      return m_CoordIsAlwaysVisible;
+    }
+
   protected:
     static const wxCoord kTickSize = 4;       //!< Length of tick line
     static const wxCoord kAxisExtraSpace = 6; //!< Extra space for axis to make it look good
@@ -2825,6 +2991,8 @@ class WXDLLIMPEXP_MATHPLOT mpScale: public mpLayer
     unsigned int m_timeConv;     //!< Selects if time has to be converted to local time or not.
     wxString m_labelFormat;      //!< Format string used to print labels
     bool m_isLog;                //!< Is the axis a log axis ?
+    bool m_hover = false;        //!< Indicate if axis is hovered by mouse while dragging a series onto it
+    bool m_CoordIsAlwaysVisible; //!< If true, the mouse coordinates is visible in the info coordinates despite the visibility of the axis. Default true
 
     /// virtual function to compute origin of the axis
     /// @param w Current window
@@ -2941,6 +3109,11 @@ class WXDLLIMPEXP_MATHPLOT mpScaleX: public mpScale
     }
 
   protected:
+    /**
+     * The y origin coordinate of the X axis
+     * We declare it static so we can access to it in mpScaleY
+     */
+    static int m_orgy;
 
     /** Layer plot handler.
      This implementation will plot the ruler adjusted to the visible area. */
@@ -2951,6 +3124,11 @@ class WXDLLIMPEXP_MATHPLOT mpScaleX: public mpScale
 
   private:
     DECLARE_DYNAMIC_CLASS_MATHPLOT(mpScaleX);
+
+    /**
+     * mpScaleY need to access to the Y origin coordinate to not overwrite X axis when grid is drawn
+     */
+    friend mpScaleY;
 };
 
 /** Plot layer implementing a y-scale ruler.
@@ -3070,7 +3248,7 @@ struct mpAxisData
 };
 
 /** Define the type for the list of axis */
-typedef std::unordered_map<int, mpAxisData> mpAxisList;
+typedef std::map<int, mpAxisData> mpAxisList;
 
 /**
  * Define the axis we want to update. Could be:
@@ -3112,55 +3290,57 @@ class mpMagnet
   public:
     mpMagnet()
     {
-      m_IsDrawn = false;
-      m_rightClick = false;
-      m_IsWasDrawn = false;
+      m_enable = false;
+      m_show = false;
     }
     ~mpMagnet()
     {
       ;
     }
-    /// Update the drawable magnet area from raw rectangle coordinates.
-    void UpdateBox(wxCoord left, wxCoord top, wxCoord width, wxCoord height)
-    {
-      m_domain = wxRect(left, top, width, height);
-      m_plot_size = wxRect(left, top, width + left, height + top);
-    }
+
     /// Update the drawable magnet area from a wxRect.
-    void UpdateBox(const wxRect &size)
+    void UpdateBox(const wxRect &plotArea)
     {
-      m_domain = size;
-      m_plot_size = wxRect(size.GetLeft(), size.GetTop(),
-          size.GetWidth() + size.GetLeft(), size.GetHeight() + size.GetTop());
-    }
-    /// Draw the magnet cross at the given mouse position.
-    void Plot(wxClientDC &dc, const wxPoint &mousePos);
-    /// Erase the currently drawn magnet cross from the device context.
-    void ClearPlot(wxClientDC &dc);
-     /// Update the magnet cross to a new mouse position.
-    void UpdatePlot(wxClientDC &dc, const wxPoint &mousePos);
-    /// Save whether the magnet was drawn before a full repaint.
-    void SaveDrawState(void)
-    {
-      m_IsWasDrawn = m_IsDrawn;
-      // In any cases, set to false because we erase and repaint all the plot
-      m_IsDrawn = false;
+      m_domain = plotArea;
     }
 
-    /// Mark that the magnet update originated from a right-click.
-    void SetRightClick(void)
+    /// Enables the magnet
+    void Enable(bool enable)
     {
-      m_rightClick = true;
+      m_enable = enable;
+    }
+
+    /// Check if magnet is enabled
+    bool IsEnabled() const
+    {
+      return m_enable;
+    }
+
+     /// Update the magnet cross to a new mouse position.
+    void DrawCross(wxDC &dc, mpWindow &w);
+
+    /// Check conditions if magnet shall be shown
+    bool ShouldBeShown(wxPoint mousePos)
+    {
+      return m_enable && m_domain.Contains(mousePos);
+    }
+
+    /// Set if magnet shall be shown or hidden
+    void Show(bool show)
+    {
+      m_show = show;
+    }
+
+    /// Get shown status
+    bool IsShown()
+    {
+      return m_show;
     }
 
   private:
+    bool m_enable;             //!< Indicats if magnet is enabled
+    bool m_show;               //!< Indicates if magnet shall be shown in plot
     wxRect m_domain;           //!< The area delimited by axis (m_margin.left, m_margin.top, m_plotWidth, m_plotHeight)
-    wxRect m_plot_size;        //!< The coordinates for the cross (xmin, xmax), (ymin,ymax)
-    wxPoint m_mousePosition;   //!< The last position of the mouse
-    bool m_IsDrawn;            //!< Is that the cross is drawn ?
-    bool m_IsWasDrawn;         //!< Is that the cross was drawn before the OnPaint event ?
-    bool m_rightClick;         //!< Is the mouse right click ?
-    void DrawCross(wxClientDC &dc) const;
 };
 
 /** Canvas for plotting mpLayer implementations.
@@ -3332,11 +3512,18 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
      */
     void RefreshLegend(void);
 
-    /*! Check if a specific Y-axis exists or is used by any function
+    /*! Check if a specific Y-axis exists and is visible or is used by any function
      @param yAxisID ID of Y axis to check
      @return True if specified Y-axis is used, false otherwise
      */
     bool IsYAxisUsed(int yAxisID);
+
+    /*! Check if a specific Y-axis is used by at least one function
+     @param yAxisID ID of Y axis to check
+     @param position get the position in the list of function if found
+     @return True if specified Y-axis is used, false otherwise
+     */
+    bool IsYAxisUsedByFunction(int yAxisID, int *position);
 
     /*! Get the first scale X layer (X axis).
      @return A pointer to the mpScaleX object, or NULL if not found.
@@ -3519,14 +3706,6 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
       return m_AxisDataYList;
     }
 
-    /** Get a sorted version of the Y-axis data map
-     @return A sorted Y-axis data map
-     */
-    std::map<int, mpAxisData> GetSortedAxisDataYList(void) const
-    {
-      return std::map<int, mpAxisData>(m_AxisDataYList.begin(), m_AxisDataYList.end());
-    }
-
     /** Set current view's dimensions in device context units.
      Needed by plotting functions. It doesn't refresh display.
      @param scrX New position that corresponds to the center point of the view.
@@ -3621,11 +3800,18 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
       return (wxCoord)((m_AxisDataYList[yAxisID].pos - y) * m_AxisDataYList[yAxisID].scale);
     }
 
-    /** Enable/disable the double-buffering of the window, eliminating the flicker (default=enabled).
-     */
+    /** Deprecated: Enable/disable the double-buffering of the window, eliminating the flicker (default=enabled). */
+    [[deprecated("Deprecated - use EnableBufferedPaintDC??")]]
     void EnableDoubleBuffer(const bool enabled)
     {
-      m_enableDoubleBuffer = enabled;
+        EnableBufferedPaintDC(enabled);
+    };
+
+    /** Enable/disable the auto buffering of PaintDC. Use dto further elimitate flickering of overlays (see RenderOverlays())
+     */
+    void EnableBufferedPaintDC(const bool enabled)
+    {
+      m_enableBufferedPaintDC = enabled;
     }
 
     /** Enable/disable the feature of pan/zoom with the mouse (default=enabled)
@@ -3649,15 +3835,6 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
     inline bool IsAspectLocked() const
     {
       return m_lockaspect;
-    }
-
-    /** Checks if we are repainting.
-     @retval TRUE
-     @retval FALSE
-     */
-    inline bool IsRepainting() const
-    {
-      return m_repainting;
     }
 
     /** Set view to fit global bounding box of all plot layers and refresh display with UpdateAll().
@@ -3748,7 +3925,6 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
      *  in the plot. Used primarily during frame resizing via OnSize so that the data
      *  stays in the same place when resizing the frame. Needs to be updated whenever
      *  m_posX, m_scaleX, m_posY or m_scaleY is updated.
-     *  Check if there is some changes
      *  @param update the axis to be updated
      */
     void UpdateDesiredBoundingBox(mpAxisUpdate update)
@@ -3824,7 +4000,11 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
       return m_AxisDataYList[yAxisID].desired.max;
     }
 
-    /** Return the bounding box coordinates for the Y axis of ID yAxisID */
+    /** Return the bounding box coordinates for the Y axis of ID yAxisID
+     * @param boundX range over x axis
+     * @param boundY range over y axis located by its ID
+     * @param yAxisID the y-axis ID
+     */
     bool GetBoundingBox(mpRange<double> *boundX, mpRange<double> *boundY, int yAxisID)
     {
       if (m_AxisDataYList.count(yAxisID) == 0)
@@ -3834,7 +4014,11 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
       return true;
     }
 
-    /// Is the given point inside the current bounding box for the selected Y axis?
+    /** Is the given point inside the current bounding box for the selected Y axis?
+     * @param px x-coordinates
+     * @param py y-coordinates
+     * @param yAxisID the y-axis ID
+     */
     bool PointIsInsideBound(double px, double py, int yAxisID)
     {
       if (m_AxisDataYList.count(yAxisID) == 0)
@@ -3844,9 +4028,9 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
     }
 
     /** Ensure the bounding box includes the given point for the selected Y axis.
-     * @param px: point on x-axis
-     * @param py: point on y-axis
-     * @param yAxisID: the y-axis ID
+     * @param px point on x-axis
+     * @param py point on y-axis
+     * @param yAxisID the y-axis ID
      */
     void UpdateBoundingBoxToInclude(double px, double py, int yAxisID)
     {
@@ -3858,9 +4042,9 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
     }
 
     /* Initialize bounding box with an initial point
-     * @param px: point on x-axis
-     * @param py: point on y-axis
-     * @param yAxisID: the y-axis ID
+     * @param px point on x-axis
+     * @param py point on y-axis
+     * @param yAxisID the y-axis ID
      */
     /// Initialize the bounding box from a first point for the selected Y axis.
     void InitializeBoundingBox(double px, double py, int yAxisID)
@@ -3951,6 +4135,21 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
     void SetDefaultLegendIsAlwaysVisible(bool visible)
     {
       m_DefaultLegendIsAlwaysVisible = visible;
+    }
+
+    /** This value sets the default behaviour when an axis is not visible for the mouse info coordinates display.
+     *  If true (default) the mouse coordinates is always displayed.
+     */
+    static bool m_DefaultCoordIsAlwaysVisible;
+
+
+    /**
+     * Set if plot shall be auto fitted when hiding or showing axis and series via mouse
+     * @param autoFit Sets auto fit
+     */
+    void SetAutoFit(bool autoFit)
+    {
+      m_autoFit = autoFit;
     }
 
     /** Set window margins, creating a blank area where some kinds of layers cannot draw.
@@ -4213,6 +4412,7 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
 
     /**
      * Get the log property (true or false) Y layer (Y axis) with a specific Y ID or false if not found
+     * @param yAxisID the y-axis ID
      */
     bool IsLogYaxis(int yAxisID)
     {
@@ -4224,7 +4424,10 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
         return false;
     }
 
-    /// Enable or disable logarithmic scaling on the X axis.
+    /**
+     * Enable or disable logarithmic scaling on the X axis.
+     * @param log if true, y-axis is logarithmic
+     */
     void SetLogXaxis(bool log)
     {
       if (m_AxisDataX.axis)
@@ -4233,6 +4436,8 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
 
     /**
      * Set the log property (true or false) for a Y layer (Y axis) given by is ID
+     * @param yAxisID the y-axis ID
+     * @param log if true, y-axis is logarithmic
      */
     void SetLogYaxis(int yAxisID, bool log)
     {
@@ -4247,13 +4452,13 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
      */
     bool GetMagnetize() const
     {
-      return m_magnetize;
+      return m_magnet.IsEnabled();
     }
 
     /// Enable or disable mouse-position magnet lines (cross-hairs) in the plot area.
     void SetMagnetize(bool mag)
     {
-      m_magnetize = mag;
+      m_magnet.Enable(mag);
     }
 
     /**
@@ -4274,22 +4479,72 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
       return m_mouseLeftDownAction;
     }
 
+    /**
+     * Returns current mouse position in window
+     * @return Mouse position
+     */
+    wxPoint GetMousePosition()
+    {
+      return m_mousePos;
+    }
+
+    /**
+     * Returns moving info layer
+     * @return Moving info layer
+     */
+    mpInfoLayer* GetMovingInfoLayer()
+    {
+      return m_movingInfoLayer;
+    }
+
 #ifdef ENABLE_MP_CONFIG
-    void RefreshConfigWindow();
     /**
      * Give access to the config dialog window
      * @param : Create. Create the dialog if not exist (default false)
      */
     MathPlotConfigDialog* GetConfigWindow(bool Create = false);
+#endif // ENABLE_MP_CONFIG
+
+    /**
+     * Refresh the config window if present
+     * @param layerType the type of layer to see the good page in the window
+     * @param param specific parameter for the page
+     * @param show if true, the window is shown in any cases
+     */
+    void RefreshConfigWindow(mpLayerType layerType, int param = 0, bool show = false);
+
     /**
      * Opens configuration window
      */
-    void OpenConfiguration();
+    void OpenConfigWindow();
+
     /**
      * Deletes configuration window
      */
     void DeleteConfigWindow(void);
-#endif // ENABLE_MP_CONFIG
+
+    /**
+     * Paint handler which plot all attached layers, with possibility to chose type of DC
+     * @param dc Either wxPaintDC or wxAutoBufferedPaintDC
+     */
+    void Paint(wxDC& dc);
+
+    /**
+     * Draw fast moving objects as a overlay on top of the buffered DC,
+     * without having to re-draw all layers
+     */
+    void RenderOverlays(wxDC& dc);
+
+    /**
+     * Give a direct access to the memory DC to draw in the buffered bitmap
+     * You need release the bitmap after use
+     * @return the memory DC
+     */
+    wxMemoryDC *GetMemoryDC(void)
+    {
+      m_buff_dc.SelectObject(m_buff_bmp);
+      return &m_buff_dc;
+    }
 
   protected:
     virtual void BindEvents(void);                                //!< Connect all events
@@ -4330,8 +4585,8 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
 
     /** Zoom in or out X around a X position. Is the position is not set, it will zoom around center.
      * @param zoomIn Zoom in or zoom out boolean
-     * @param staticXpixel Optional center position
-     * */
+     * @param staticXpixel Optional center position (default MP_ZOOM_AROUND_CENTER)
+     */
     void DoZoomXCalc(bool zoomIn, wxCoord staticXpixel = MP_ZOOM_AROUND_CENTER);
 
     /** Zoom in or out Y around a Y position. Is the position is not set, it will zoom around center.
@@ -4339,31 +4594,36 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
      * @param zoomIn Zoom in or zoom out boolean
      * @param staticYpixel Optional center position
      * @param yAxisID Optional Y-axis ID used to specify which Y-axis to zoom
-     * */
+     */
     void DoZoomYCalc(bool zoomIn, wxCoord staticYpixel = MP_ZOOM_AROUND_CENTER, mpOptional_int yAxisID = MP_OPTNULL_INT);
 
     /** Set the m_scaleX directly to fixed zoom level, but also adjust m_posX to to make
      * the zoom around center
      * @param scaleX value
-     * */
+     */
     void SetScaleXAndCenter(double scaleX);
 
     /** Set the m_scaleY directly to fixed zoom level, but also adjust m_posY to to make
      * the zoom around center
      * @param scaleY value
      * @param yAxisID ID used to specify which Y-axis to set
-     * */
+     */
     void SetScaleYAndCenter(double scaleY, int yAxisID);
 
     /** zoom action
      * @param zoomIn if true then zoom in else zoom out
      * @param centerPoint the focus point on which we zoom
-     * */
+     */
     void Zoom(bool zoomIn, const wxPoint &centerPoint);
 
     /** Set bounding box 'm_bound' to contain all visible plots of this mpWindow.
-     * \return true if there valid bounding box set in m_bounds. */
+     * @return true if there valid bounding box set in m_bounds. */
     virtual bool UpdateBBox();
+
+    /** Draws the box zoom selection rectangle
+     * @param dc the device content where to plot
+     */
+    void DrawBoxZoom(wxDC& dc);
 
     /** Function to initialize all variables to their default values
      * This function is called in mpWindow constructor and should not be used anymore
@@ -4399,29 +4659,29 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
     mpRect m_plotBoundariesMargin;      //!< The size of the plot with the margins. Calculated
     wxRect m_PlotArea;                  //!< The full size of the plot with m_extraMargin
 
-    bool m_repainting;                  //!< Boolean value indicating that we are in repaint step
     int m_last_lx;                      //!< Last logical X origin, used for double buffering.
     int m_last_ly;                      //!< Last logical Y origin, used for double buffering.
-    wxBitmap* m_buff_bmp;               //!< For double buffering
-    bool m_enableDoubleBuffer;          //!< For double buffering. Default enabled
+    wxBitmap m_buff_bmp;                //!< Bmp for double buffering
+    wxMemoryDC m_buff_dc;               //!< DC for double buffering
+    bool m_cacheDirty;                  //!< Indicate that the cached buffer m_buff_bmp need to be re-created
+    bool m_enableBufferedPaintDC;       //!< For auto DC double buffering
     bool m_enableMouseNavigation;       //!< For pan/zoom with the mouse.
     mpMouseButtonAction m_mouseLeftDownAction;  //!< Type of action for left mouse button
     bool m_mouseMovedAfterRightClick;   //!< If the mouse does not move after a right click, then the context menu is displayed.
+    wxPoint m_mousePos;                 //!< Current mouse position in window
     wxPoint m_mouseRClick;              //!< For the right button "drag" feature
     wxPoint m_mouseLClick;              //!< Starting coords for rectangular zoom selection
     double m_mouseScaleX;               //!< Store current X-scale, used as reference during drag zooming
     std::unordered_map<int, double> m_mouseScaleYList;  //!< Store current Y-scales, used as reference during drag zooming
     mpOptional_int m_mouseYAxisID;      //!< Indicate which ID of Y-axis the mouse was on during zoom/pan
     bool m_enableScrollBars;            //!< Enable scrollbar in plot window (default false)
+    bool m_autoFit;                     //!< Automatically fit plot when hiding / showing axis and series
     mpInfoLayer* m_movingInfoLayer;     //!< For moving info layers over the window area
     mpInfoCoords* m_InfoCoords;         //!< Pointer to the optional info coords layer
     mpInfoLegend* m_InfoLegend;         //!< Pointer to the optional info legend layer
-    bool m_InInfoLegend;                //!< Boolean value indicating that the mouse is moving over the legend area
 
-    wxBitmap* m_zoom_bmp;               //!< For zoom selection
-    wxRect m_zoom_Dim;                  //!< Rectangular area selected for zoom
+    bool m_boxZoomActive;               //!< Indicate if box zoom is active
 
-    bool m_magnetize;                   //!< For mouse magnetization
     mpMagnet m_magnet;                  //!< For mouse magnetization
 
     wxBitmap* m_Screenshot_bmp;         //!< For clipboard, save and print
@@ -4432,6 +4692,8 @@ class WXDLLIMPEXP_MATHPLOT mpWindow: public wxWindow
 #ifdef ENABLE_MP_CONFIG
     MathPlotConfigDialog* m_configWindow = NULL;  //!< For the config dialog
 #endif // ENABLE_MP_CONFIG
+    bool m_openConfigWindowPending = false;  //!< Only used with config window: indicate if user potentialy want to open the config window
+    int m_infoLegendSelectedSeries;          //!< Only used with config window: the selected series in info legend
 
     mpOnDeleteLayer m_OnDeleteLayer = NULL;          //!< Event when we delete a layer
     mpOnUserMouseAction m_OnUserMouseAction = NULL;  //!< Event when we have a mouse click
@@ -4491,7 +4753,7 @@ class WXDLLIMPEXP_MATHPLOT mpText: public mpLayer
       SetName(name);
       m_offsetx = 5;
       m_offsety = 50;
-      m_location = mpMarginNone;
+      m_location = mpMarginUser;
       m_ZIndex = mpZIndex_TEXT;
     }
 

@@ -26,20 +26,9 @@
 #include <wx/statbox.h>
 #include <wx/choice.h>
 #include <wx/panel.h>
+#include <wx/notebook.h>
 #include <wx/spinctrl.h>
 #include <wx/radiobut.h>
-#include <wx/notebook.h>
-
-#include <wx/valnum.h>
-
-// List of string message used
-const wxString MESS_TRANSPARENT = _("Transparent not work on Linux");
-const wxString MESS_COLOUR = _("Please choose the background colour");
-const wxString MESS_AXIS_DELETE = _("Delete the selected axis ?");
-const wxString MESS_DELETE = _("Delete the serie ?");
-const wxString MESS_LINES_ADD = _("Add horizontal line (vertical if No) ?");
-const wxString MESS_LINES_DELETE = _("Delete the line ?");
-const wxString MESS_CONFIRM = _("Confirmation");
 #include <wx/dialog.h>
 
 ///////////////////////////////////////////////////////////////////////////
@@ -76,6 +65,7 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxCheckBox* cbCoordOutside;
 		wxCheckBox* cbCoordinates;
 		wxCheckBox* cbMagnetize;
+		wxCheckBox* cbCoordDefaultVisibility;
 		wxStaticText* StaticText22;
 		wxButton* bCoordBrushColor;
 		wxStaticText* StaticText23;
@@ -90,6 +80,7 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxStaticText* StaticText25;
 		wxChoice* cbLegendDirection;
 		wxCheckBox* cbLegendVisible;
+		wxCheckBox* cbLegendDefaultVisibility;
 		wxButton* bFontLegend;
 		wxStaticText* StaticText20;
 		wxButton* bLegendBrushColor;
@@ -103,12 +94,21 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxStaticText* StaticText8;
 		wxTextCtrl* edAxisName;
 		wxButton* bFontAxis;
+		wxNotebook* nbPenAxisGrid;
+		wxPanel* Panel6;
 		wxStaticText* StaticText12;
 		wxButton* bAxisPenColor;
 		wxStaticText* StaticText13;
 		wxChoice* cbAxisPenWidth;
 		wxStaticText* StaticText14;
 		wxChoice* cbAxisPenStyle;
+		wxPanel* Panel7;
+		wxStaticText* StaticText42;
+		wxButton* bGridPenColor;
+		wxStaticText* StaticText43;
+		wxChoice* cbGridPenWidth;
+		wxStaticText* StaticText44;
+		wxChoice* cbGridPenStyle;
 		wxCheckBox* cbAutoScale;
 		wxStaticText* StaticText27;
 		wxTextCtrl* edScaleMin;
@@ -124,6 +124,7 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxStaticText* StaticText26;
 		wxTextCtrl* edFormat;
 		wxCheckBox* cbLogAxis;
+		wxCheckBox* cbMouseCoordVisible;
 		wxPanel* Panel4;
 		wxStaticText* StaticText1;
 		wxChoice* ChoiceSeries;
@@ -142,7 +143,10 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxCheckBox* cbSeriesContinuity;
 		wxCheckBox* cbSeriesOutside;
 		wxCheckBox* cbSeriesShowName;
+		wxStaticText* StaticText15;
+		wxChoice* cbSeriesNamePosition;
 		wxCheckBox* cbTractable;
+		wxCheckBox* cbSeriesLegend;
 		wxStaticText* StaticText6;
 		wxButton* bSeriesBrushColor;
 		wxStaticText* StaticText7;
@@ -151,8 +155,10 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxChoice* cbSeriesSymbolType;
 		wxStaticText* StaticText10;
 		wxSpinCtrl* cbSeriesSymbolSize;
-		wxStaticText* StaticText19;
-		wxSpinCtrl* cbSeriesStep;
+		wxCheckBox* cbAutoStep;
+		wxFlexGridSizer* sizerSeriesStep;
+		wxStaticText* stStepChoice;
+		wxSpinCtrl* spinSeriesStep;
 		wxCheckBox* cbBar;
 		wxPanel* Panel5;
 		wxChoice* ChoiceLines;
@@ -176,14 +182,8 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		wxCheckBox* cbLinesOutside;
 		wxCheckBox* cbLinesShowName;
 		wxButton* bApply;
+		wxButton* bApplyAndFit;
 		wxButton* bClose;
-
-		// Margin validator
-		unsigned int int_top, int_bottom, int_left, int_right, int_extra;
-		// Scale validator
-		double scale_min, scale_max;
-		// Line position validator
-		double line_value;
 
 		// Virtual event handlers, override them in your derived class
 		virtual void OnnbConfigPageChanged( wxNotebookEvent& event ) { event.Skip(); }
@@ -196,10 +196,13 @@ class MathPlotConfigDialogBuilder : public wxDialog
 		virtual void OncbFormatSelect( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnChoiceSeries( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnbDelSeriesClick( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OncbSeriesShowNameClick( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OncbAutoStepClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnChoiceLinesSelect( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnbAddLinesClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnbDelLinesClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnbApplyClick( wxCommandEvent& event ) { event.Skip(); }
+		virtual void OnbApplyAndFitClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void OnQuit( wxCommandEvent& event ) { event.Skip(); }
 
 

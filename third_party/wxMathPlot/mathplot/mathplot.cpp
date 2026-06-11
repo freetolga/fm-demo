@@ -6,7 +6,7 @@
 // Contributors:    Jose Luis Blanco, Val Greene, Lionel Reynaud, Dave Nadler, MortenMacFly,
 //                  Oskar Waldemarsson (for multi Y axis and corrections)
 // Created:         21/07/2003
-// Last edit:       27/03/2026
+// Last edit:       18/04/2026
 // Copyright:       (c) David Schalig, Davide Rondini
 // Licence:         wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
@@ -146,10 +146,12 @@ static void FillI18NString()
   Help_string.Add(_(" - Wheel + SHIFT: Horizontal scroll"));
   Help_string.Add(_(" - Wheel + CTRL: Vertical scroll"));
   Help_string.Add(_(" - Left-click on the series name: show config window"));
+  Help_string.Add(_(" - Left-click on the series name + DRAG to Y-Axis: change Y-axis for the series"));
   Help_string.Add(_(" - Left-click + SHIFT on the series name: swap visibility"));
+  Help_string.Add(_(" - Left-click + SHIFT on the axis name: swap visibility"));
 
   MESS_LOAD = _("Select file");
-  MESS_WILDCARD = _("Data files (*.dat)|*.dat|Csv files (csv.*)|csv.*|All files (*.*)|*.*");
+  MESS_WILDCARD = _("Data files (*.dat)|*.dat|CSV files (*.csv)|*.csv|All files (*.*)|*.*");
   MESS_CLIPFAIL = _("Failed to copy image to clipboard");
 }
 
@@ -190,6 +192,9 @@ double mpWindow::m_zoomIncrementalFactor = 1.5;
 
 // See doxygen comments.
 bool mpWindow::m_DefaultLegendIsAlwaysVisible = false;
+
+// See doxygen comments.
+bool mpWindow::m_DefaultCoordIsAlwaysVisible = true;
 
 // Delete and null pointer
 #define DeleteAndNull(ptr)  \
@@ -240,7 +245,7 @@ mpLayer::mpLayer(mpLayerType layerType) :
     m_type(layerType)
 {
   // The wxWindow handle is not yet available
-  m_win = NULL;
+  m_win = nullptr;
   // Default pen
   SetPen((wxPen const&)*wxBLACK_PEN);
   // Default font
@@ -295,7 +300,7 @@ wxBitmap mpLayer::GetColourSquare(int side)
 
 void mpLayer::CheckLog(double *x, double *y, int yAxisID)
 {
-  if (m_win == NULL)
+  if (m_win == nullptr)
     return;
   if (m_win->IsLogXaxis())
     *x = log10(*x);
@@ -314,32 +319,38 @@ mpInfoLayer::mpInfoLayer() :
 {
   m_subtype = mpiInfo;
   m_dim = wxRect(0, 0, 1, 1);
-  m_oldDim = m_dim;
-  m_info_bmp = NULL;
+  m_info_bmp = nullptr;
   m_brush = *wxTRANSPARENT_BRUSH;
   m_brush.SetColour(*wxWHITE);
-  m_reference.x = 0;
-  m_reference.y = 0;
-  m_winX = 1;
-  m_winY = 1;
-  m_location = mpMarginNone;
+  m_relX = 0;
+  m_relY = 0;
+  m_location = mpMarginUser;
   m_ZIndex = mpZIndex_INFO;
 }
 
-mpInfoLayer::mpInfoLayer(wxRect rect, const wxBrush &brush, mpLocation location) :
+mpInfoLayer::mpInfoLayer(wxPoint pos, const wxBrush &brush, mpLocation location) :
     mpInfoLayer()
 {
   m_brush = brush;
   if (m_brush.GetStyle() == wxBRUSHSTYLE_TRANSPARENT)
     m_brush.SetColour(*wxWHITE);
-  m_reference.x = rect.x;
-  m_reference.y = rect.y;
   m_location = location;
+  m_relX = pos.x / 100.0;
+  m_relY = pos.y / 100.0;
 }
 
 mpInfoLayer::~mpInfoLayer()
 {
   DeleteAndNull(m_info_bmp);
+}
+
+double mpInfoLayer::clamp(double v, double min, double max)
+{
+#if (defined(__cplusplus) && (__cplusplus > 201402L)) // C++17 or newer
+  return std::clamp(v, min, max);
+#else
+  return std::min(max, std::max(min, v));
+#endif
 }
 
 void mpInfoLayer::SetVisible(bool show)
@@ -362,56 +373,52 @@ bool mpInfoLayer::Inside(const wxPoint &point)
 #endif
 }
 
-void mpInfoLayer::Move(wxPoint delta)
+void mpInfoLayer::Move(wxPoint delta, mpWindow &w)
 {
-  m_dim.SetX(m_reference.x + delta.x);
-  m_dim.SetY(m_reference.y + delta.y);
+  // Calculate new box position a distance relative to stored reference position
+  // and clamp it so it stays within plot window
+  wxCoord x = (m_reference.x + delta.x);
+  wxCoord y = (m_reference.y + delta.y);
+  x = clamp(x, 0, w.GetScreenX() - m_dim.width);
+  y = clamp(y, 0, w.GetScreenY() - m_dim.height);
+
+  // Store the position as a percentage relativ the plot screen and the
+  // center of the box, so that it's position stays relative to the plot
+  // when resizing window
+  m_relX = (x + 0.5 * m_dim.width) / w.GetScreenX();
+  m_relY = (y + 0.5 * m_dim.height) / w.GetScreenY();
 }
 
 void mpInfoLayer::UpdateReference()
 {
-  m_reference.x = m_dim.x;
-  m_reference.y = m_dim.y;
+  m_reference = m_dim.GetPosition();
 }
 
 void mpInfoLayer::SetInfoRectangle(mpWindow &w, int width, int height)
 {
   // Adjust relative position inside the window
-  int scrx = w.GetScreenX();
-  int scry = w.GetScreenY();
+  int screenWidth = w.GetScreenX();
+  int screenHeight = w.GetScreenY();
+
   // Avoid dividing by 0
-  if (scrx == 0)
-    scrx = 1;
-  if (scry == 0)
-    scry = 1;
+  if (screenWidth == 0)
+    screenWidth = 1;
+  if (screenHeight == 0)
+    screenHeight = 1;
 
   if (width != 0)
-    m_dim.width = width;
-  if (m_dim.width > scrx)
-    m_dim.width = scrx;
+    m_dim.width = std::min(width, screenWidth);
   if (height != 0)
-    m_dim.height = height;
-  if (m_dim.height > scry)
-    m_dim.height = scry;
+    m_dim.height = std::min(height, screenHeight);
 
-  if (m_location == mpMarginNone)
+  if (m_location == mpMarginUser)
   {
-    if ((m_winX != scrx) || (m_winY != scry))
-    {
-#ifdef MATHPLOT_DO_LOGGING
-//      wxLogMessage(_T("mpInfoLayer::Plot() screen size has changed from %d x %d to %d x %d"), m_winX, m_winY, scrx, scry);
-#endif
-      if (m_winX != 1)
-        m_dim.x = (int)floor((double)(m_dim.x * scrx / m_winX));
-      if (m_winY != 1)
-      {
-        m_dim.y = (int)floor((double)(m_dim.y * scry / m_winY));
-        UpdateReference();
-      }
-      // Finally update window size
-      m_winX = scrx;
-      m_winY = scry;
-    }
+    // If box has no fixed position or it has been moved, position it as a percentage
+    // relative the screen size
+    m_dim.x = (int)(m_relX * screenWidth - 0.5 * m_dim.width);
+    m_dim.y = (int)(m_relY * screenHeight - 0.5 * m_dim.height);
+    m_dim.x = clamp(m_dim.x, 0, screenWidth - m_dim.width);
+    m_dim.y = clamp(m_dim.y, 0, screenHeight - m_dim.height);
   }
   else
   {
@@ -419,10 +426,8 @@ void mpInfoLayer::SetInfoRectangle(mpWindow &w, int width, int height)
     {
       case mpMarginLeftCenter:
       {
-        m_dim.x = (w.GetMarginLeft(true) - m_dim.width) / 2;
-        m_dim.y = (w.GetScreenY() - m_dim.height) / 2;
-        if (m_dim.x < MARGIN_LEFT_OFFSET)
-          m_dim.x = MARGIN_LEFT_OFFSET;
+        m_dim.x = std::max((w.GetMarginLeft(true) - m_dim.width) / 2, MARGIN_LEFT_OFFSET);
+        m_dim.y = (screenHeight - m_dim.height) / 2;
         break;
       }
       case mpMarginTopLeft:
@@ -433,51 +438,51 @@ void mpInfoLayer::SetInfoRectangle(mpWindow &w, int width, int height)
       }
       case mpMarginTopCenter:
       {
-        m_dim.x = (w.GetScreenX() - m_dim.width) / 2;
+        m_dim.x = (screenWidth - m_dim.width) / 2;
         m_dim.y = (w.GetMarginTop(true) - m_dim.height) / 2;
         break;
       }
       case mpMarginTopRight:
       {
-        m_dim.x = w.GetScreenX() - m_dim.width - MARGIN_BOTTOM_OFFSET;
+        m_dim.x = screenWidth - m_dim.width - MARGIN_BOTTOM_OFFSET;
         m_dim.y = (w.GetMarginTop(true) - m_dim.height) / 2;
         break;
       }
       case mpMarginRightCenter:
       {
-        m_dim.x = w.GetScreenX() - (w.GetMarginRight(true) + m_dim.width) / 2;
-        m_dim.y = (w.GetScreenY() - m_dim.height) / 2;
-        if ((m_dim.x + m_dim.width) > w.GetScreenX())
-          m_dim.x = w.GetScreenX() - m_dim.width - MARGIN_RIGHT_OFFSET;
+        m_dim.x = screenWidth - (w.GetMarginRight(true) + m_dim.width) / 2;
+        m_dim.y = (screenHeight - m_dim.height) / 2;
+        if ((m_dim.x + m_dim.width) > screenWidth)
+          m_dim.x = screenWidth - m_dim.width - MARGIN_RIGHT_OFFSET;
         break;
       }
       case mpMarginBottomLeft:
       {
         m_dim.x = MARGIN_LEFT_OFFSET;
-        m_dim.y = w.GetScreenY() - (w.GetMarginBottom(true) + m_dim.height) / 2;
+        m_dim.y = screenHeight - (w.GetMarginBottom(true) + m_dim.height) / 2;
         break;
       }
       case mpMarginBottomCenter:
       {
-        m_dim.x = (w.GetScreenX() - m_dim.width) / 2;
-        m_dim.y = w.GetScreenY() - (w.GetMarginBottom(true) + m_dim.height) / 2;
+        m_dim.x = (screenWidth - m_dim.width) / 2;
+        m_dim.y = screenHeight - (w.GetMarginBottom(true) + m_dim.height) / 2;
         break;
       }
       case mpMarginBottomRight:
       {
-        m_dim.x = w.GetScreenX() - m_dim.width - MARGIN_BOTTOM_OFFSET;
-        m_dim.y = w.GetScreenY() - (w.GetMarginBottom(true) + m_dim.height) / 2;
+        m_dim.x = screenWidth - m_dim.width - MARGIN_BOTTOM_OFFSET;
+        m_dim.y = screenHeight - (w.GetMarginBottom(true) + m_dim.height) / 2;
         break;
       }
       case mpCursor:
-      case mpMarginNone:
+      case mpMarginUser:
       default:
         ;
     }
     if (m_dim.y < MARGIN_TOP_OFFSET)
       m_dim.y = MARGIN_TOP_OFFSET;
-    else if ((m_dim.y + m_dim.height) > w.GetScreenY())
-      m_dim.y = w.GetScreenY() - m_dim.height - MARGIN_BOTTOM_OFFSET;
+    else if ((m_dim.y + m_dim.height) > screenHeight)
+      m_dim.y = screenHeight - m_dim.height - MARGIN_BOTTOM_OFFSET;
   }
 }
 
@@ -485,18 +490,6 @@ void mpInfoLayer::DoPlot(wxDC &dc, mpWindow &w)
 {
   SetInfoRectangle(w);
   dc.DrawRectangle(m_dim);
-}
-
-void mpInfoLayer::ErasePlot(wxDC &dc, mpWindow &WXUNUSED(w))
-{
-  if (m_info_bmp)
-  {
-    wxMemoryDC m_info_dc(&dc);
-    m_info_dc.SelectObject(*m_info_bmp);
-    dc.Blit(m_oldDim.x, m_oldDim.y, m_oldDim.width, m_oldDim.height, &m_info_dc, 0, 0);
-    m_info_dc.SelectObject(wxNullBitmap);
-    DeleteAndNull(m_info_bmp);
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -508,6 +501,7 @@ wxIMPLEMENT_DYNAMIC_CLASS(mpInfoCoords, mpInfoLayer);
 mpInfoCoords::mpInfoCoords() :
     mpInfoLayer()
 {
+  m_show = false;
   m_subtype = mpiCoords;
   m_labelType = mpLabel_AUTO;
   m_timeConv = 0;
@@ -518,31 +512,29 @@ mpInfoCoords::mpInfoCoords() :
   m_series_coord = false;
   // Default pen
   SetPenSeries((wxPen const&)*wxBLACK_PEN);
+  m_content = _T("");
 }
 
 mpInfoCoords::mpInfoCoords(mpLocation location) :
-    mpInfoLayer()
+    mpInfoCoords()
 {
-  m_subtype = mpiCoords;
-  m_labelType = mpLabel_AUTO;
-  m_timeConv = 0;
-  m_mouseX = m_mouseY = 0;
   m_location = location;
-  m_series_coord = false;
-  wxBrush coord(wxColour(232, 232, 232), wxBRUSHSTYLE_SOLID);
-  SetBrush(coord);
-  m_content = _T("");
+  if (m_location == mpMarginUser)
+    m_drawOutsideMargins = true;
 }
 
-mpInfoCoords::mpInfoCoords(wxRect rect, const wxBrush &brush, mpLocation location) :
-    mpInfoLayer(rect, brush, location)
+mpInfoCoords::mpInfoCoords(wxPoint pos, const wxBrush &brush, mpLocation location) :
+    mpInfoLayer(pos, brush, location)
 {
+  m_show = false;
   m_subtype = mpiCoords;
   m_labelType = mpLabel_AUTO;
   m_timeConv = 0;
   m_mouseX = m_mouseY = 0;
   m_series_coord = false;
   m_content = _T("");
+  if (m_location == mpMarginUser)
+    m_drawOutsideMargins = true;
 }
 
 void mpInfoCoords::UpdateInfo(mpWindow &w, wxEvent &event)
@@ -552,7 +544,6 @@ void mpInfoCoords::UpdateInfo(mpWindow &w, wxEvent &event)
   if (event.GetEventType() == wxEVT_MOTION)
   {
     double xVal = 0.0, yVal = 0.0;
-    std::unordered_map<int, double> yValList;
 
     m_mouseX = ((wxMouseEvent&)event).GetX();
     m_mouseY = ((wxMouseEvent&)event).GetY();
@@ -560,7 +551,7 @@ void mpInfoCoords::UpdateInfo(mpWindow &w, wxEvent &event)
     if (m_series_coord)
     {
       mpLayer* layer = w.GetClosestPlot(m_mouseX, m_mouseY, &xVal, &yVal);
-      yValList[0] = yVal;
+      m_yValList[0] = yVal;
       if (layer)
       {
         // Just change the colour
@@ -575,21 +566,22 @@ void mpInfoCoords::UpdateInfo(mpWindow &w, wxEvent &event)
       for (MP_LOOP_ITER : w.GetAxisDataYList())
       {
         yVal = w.p2y(m_mouseY, m_yID);
-        yValList[m_yID] = yVal;
+        m_yValList[m_yID] = yVal;
       }
     }
 
     // Log axis
+    assert(m_win);
     if (m_win->IsLogXaxis())
       xVal = pow(10, xVal);
 
     for (const MP_LOOP_ITER : w.GetAxisDataYList())
     {
       if (m_win->IsLogYaxis(m_yID))
-        yValList[m_yID] = pow(10, yValList[m_yID]);
+        m_yValList[m_yID] = pow(10, m_yValList[m_yID]);
     }
 
-    m_content = GetInfoCoordsText(w, xVal, yValList);
+    m_content = GetInfoCoordsText(w, xVal, m_yValList);
   }
 }
 
@@ -635,63 +627,63 @@ wxString mpInfoCoords::GetInfoCoordsText(mpWindow &w, double xVal, std::unordere
   }
 
   // Format Y part
-  if (m_series_coord)
+  // If we show the nearest plotted series value or we have just one Y axis (Visible or not)
+  if ((m_series_coord) || (w.GetAxisDataYList().size() == 1))
   {
     result.Printf(_T("%s\ny = %g"), result, yValList[0]);
   }
   else
   {
-    wxString yAxisDataWithName = _T("");
-    wxString yAxisDataWithoutName = _T("");
-    int nOfUsedYAxes = 0;
-    for (const MP_LOOP_ITER : w.GetSortedAxisDataYList())
+    wxString yAxisDataName = _T("");
+    for (const MP_LOOP_ITER : w.GetAxisDataYList())
     {
-      if (w.IsYAxisUsed(m_yID))
+      int pos;
+      // If the Y-Axis is not used, don't display its coordinates
+      if (w.IsYAxisUsedByFunction(m_yID, &pos))
       {
-        nOfUsedYAxes++;
+        mpScaleY* yAxis = (mpScaleY*) m_yData.axis;
         wxString axisName = wxString::Format(_T("y%d"), m_yID);
-        mpScaleY* yAxis = w.GetLayerYAxis(m_yID);
-        if (yAxis != nullptr)
+        if (yAxis)
         {
-          axisName += wxString::Format(_T(" - %s"), yAxis->GetName());
+          if (yAxis->GetCoordIsAlwaysVisible() || yAxis->IsVisible())
+          {
+            axisName += wxString::Format(_T(" - %s"), yAxis->GetName());
+            yAxisDataName += wxString::Format(_T("\n%s = %g"), axisName, yValList[m_yID]);
+          }
         }
-        yAxisDataWithName += wxString::Format(_T("\n%s = %g"), axisName, yValList[m_yID]);
-        yAxisDataWithoutName.Printf(_T("\ny = %g"), yValList[m_yID]);
+        else
+        {
+          yAxisDataName += wxString::Format(_T("\n%s = %g"), axisName, yValList[m_yID]);
+        }
       }
     }
 
-    if (nOfUsedYAxes > 1)
-    {
-      result += yAxisDataWithName;
-    }
+    // If we have no Y-Axis name, use the first Y-Axis
+    if (yAxisDataName.IsEmpty())
+      result.Printf(_T("%s\ny = %g"), result, yValList[0]);
     else
-    {
-      result += yAxisDataWithoutName;
-    }
+      result += yAxisDataName;
   }
 
   return result;
 }
 
-void mpInfoCoords::ErasePlot(wxDC &dc, mpWindow &w)
+void mpInfoCoords::DoPlot(wxDC&, mpWindow&)
 {
-  mpInfoLayer::ErasePlot(dc, w);
-  m_content.Empty();
+  // Will be drawn in RenderOverlays()->DrawContent() instead, so no
+  // need to be drawn as a normal layer
 }
 
-void mpInfoCoords::DoPlot(wxDC &dc, mpWindow &w)
+void mpInfoCoords::DrawContent(wxDC &dc, mpWindow &w)
 {
   if (m_content.IsEmpty())
-  {
-    ErasePlot(dc, w);
     return;
-  }
 
   int textX = 0, textY = 0;
   int width = 0, height = 0;
   int offset = (m_series_coord) ? LEGEND_LINEWIDTH : 0;
 
-// Should be work on Windows and Linux. If no, use GetTextExtent for Linux
+  // Compute text size. Should work on both Windows and Linux. If not, use GetTextExtent for Linux
   dc.GetMultiLineTextExtent(m_content, &textX, &textY);
   if (width < textX + MARGIN_COORD_X2 + offset)
     width = textX + MARGIN_COORD_X2 + offset;
@@ -700,6 +692,8 @@ void mpInfoCoords::DoPlot(wxDC &dc, mpWindow &w)
   textY /= 2;
 
   SetInfoRectangle(w, width, height);
+
+  // Position rectangle near cursor if needed
   if (m_location == mpCursor)
   {
     m_dim.x = m_mouseX + 2 * MARGIN_BOTTOM_OFFSET;
@@ -710,39 +704,19 @@ void mpInfoCoords::DoPlot(wxDC &dc, mpWindow &w)
       m_dim.y = m_mouseY - m_dim.height - 5;
   }
 
-  // Don't use stored bitmap when we repaint all
-  if (w.IsRepainting())
-    DeleteAndNull(m_info_bmp);
-
-  // First : restore stored bitmap
-  if (m_info_bmp)
-  {
-    wxMemoryDC m_coord_dc(&dc);
-    m_coord_dc.SelectObject(*m_info_bmp);
-    dc.Blit(m_oldDim.x, m_oldDim.y, m_oldDim.width, m_oldDim.height, &m_coord_dc, 0, 0);
-    m_coord_dc.SelectObject(wxNullBitmap);
-    DeleteAndNull(m_info_bmp);
-  }
-
-  // Second : store new bitmap
-  m_info_bmp = new wxBitmap(m_dim.width, m_dim.height, dc);
-  wxMemoryDC m_coord_dc(&dc);
-  m_coord_dc.SelectObject(*m_info_bmp);
-  m_coord_dc.Blit(0, 0, m_dim.width, m_dim.height, &dc, m_dim.x, m_dim.y);
-  m_coord_dc.SelectObject(wxNullBitmap);
-  m_oldDim = m_dim;
-
-  // Third : draw the coordinate
+  // Draw background rectangle and text
+  dc.SetBrush(m_brush);
+  dc.SetPen(m_penSeries);
   dc.DrawRectangle(m_dim);
   dc.DrawText(m_content, m_dim.x + MARGIN_COORD + offset, m_dim.y + MARGIN_COORD);
+
+  // Draw series square if needed
   if (m_series_coord)
   {
-    textY = m_dim.y + MARGIN_COORD + textY + (textY / 2) + 2;
-    dc.SetPen(m_penSeries);
+    int sqrY = m_dim.y + MARGIN_COORD + textY + (textY / 2) + 2;
     wxBrush sqrBrush(m_penSeries.GetColour(), wxBRUSHSTYLE_SOLID);
     dc.SetBrush(sqrBrush);
-    dc.DrawRectangle(m_dim.x + 2, textY - (LEGEND_LINEWIDTH / 2),
-    LEGEND_LINEWIDTH, LEGEND_LINEWIDTH);
+    dc.DrawRectangle(m_dim.x + 2, sqrY - (LEGEND_LINEWIDTH / 2), LEGEND_LINEWIDTH, LEGEND_LINEWIDTH);
   }
 }
 
@@ -761,15 +735,19 @@ mpInfoLegend::mpInfoLegend() :
   m_item_direction = mpVertical;
   m_location = mpMarginBottomCenter;
   m_needs_update = true;
+  m_headerEnd = 0;
+  m_showDraggedSeries = false;
 }
 
-mpInfoLegend::mpInfoLegend(wxRect rect, const wxBrush &brush, mpLocation location) :
-    mpInfoLayer(rect, brush, location)
+mpInfoLegend::mpInfoLegend(wxPoint pos, const wxBrush &brush, mpLocation location) :
+    mpInfoLayer(pos, brush, location)
 {
   m_subtype = mpiLegend;
   m_item_mode = mpLegendLine;
   m_item_direction = mpVertical;
   m_needs_update = true;
+  m_headerEnd = 0;
+  m_showDraggedSeries = false;
 }
 
 void mpInfoLegend::UpdateBitmap(wxDC &dc, mpWindow &w)
@@ -782,16 +760,40 @@ void mpInfoLegend::UpdateBitmap(wxDC &dc, mpWindow &w)
   buff_dc.SetFont(m_font);
   buff_dc.SetTextForeground(m_fontcolour);
 
-  buff_dc.SetPen(*wxTRANSPARENT_PEN);
   if (m_brush.GetStyle() == wxBRUSHSTYLE_TRANSPARENT)
     buff_dc.SetBrush(*wxWHITE_BRUSH);
   else
     buff_dc.SetBrush(m_brush);
   buff_dc.DrawRectangle(0, 0, w.GetScreenX(), w.GetScreenY());
 
-  int posX = 0, posY = 0; // position of the current label
-  int width = 0, height = 0; // accumulated dimensions of complete legend
-  bool first = true;
+  // Height of the font
+  wxSize FontHeight = dc.GetTextExtent("H");
+
+  // Position of the label text
+  int posX = MARGIN_LEGEND;
+  int posY = 0;
+
+  // Final size of the bitmap
+  int height = 0;
+  int width = 0;
+
+  // Draw header to grip the legend
+  if (GetLocation() == mpMarginUser)
+  {
+    // Start with a header with a drag symbol used to move legend with mouse
+    m_headerEnd = FontHeight.y;
+    buff_dc.DrawText(m_headerString, posX, posY);
+
+    // Move Y down so legend items start below header
+    posY = (3 * m_headerEnd) / 2;
+    height = posY + m_headerEnd;
+  }
+  else
+  {
+    m_headerEnd = 0;
+    posY = FontHeight.y;
+    height = 2 * FontHeight.y;
+  }
 
   // Get plot series names and create new bitmap legend
   m_LegendDetailList.clear();
@@ -815,25 +817,14 @@ void mpInfoLegend::UpdateBitmap(wxDC &dc, mpWindow &w)
         buff_dc.SetFont(lfont);
         buff_dc.GetTextExtent(label, &labelWidth, &labelHeight);
 
-        if (first)
-        {
-          posX = MARGIN_LEGEND;
-          posY = MARGIN_LEGEND + (labelHeight / 2);
-          // Since labelHeight is constant (all label layers use same legend font), we can initialise height of the legend bitmap
-          height = posY + labelHeight;
-          first = false;
-        }
-
         // Draw the decoration
         switch (m_item_mode)
         {
           case mpLegendSquare:
           {
-            wxBrush sqrBrush(*wxWHITE, wxBRUSHSTYLE_SOLID);
-            sqrBrush.SetColour(lpen.GetColour());
+            wxBrush sqrBrush(lpen.GetColour(), wxBRUSHSTYLE_SOLID);
             buff_dc.SetBrush(sqrBrush);
-            buff_dc.DrawRectangle(posX, posY - (LEGEND_LINEWIDTH / 2) + 1,
-            LEGEND_LINEWIDTH, LEGEND_LINEWIDTH);
+            buff_dc.DrawRectangle(posX, posY - (LEGEND_LINEWIDTH / 2) + 1, LEGEND_LINEWIDTH, LEGEND_LINEWIDTH);
             break;
           }
 
@@ -924,6 +915,16 @@ void mpInfoLegend::UpdateBitmap(wxDC &dc, mpWindow &w)
 
 void mpInfoLegend::DoPlot(wxDC &dc, mpWindow &w)
 {
+  // If this infoLegend is being moved, don't render it as a normal layer which is stored to cache bmp.
+  // Instead it will be rendered as a overlay in RenderOverlays(), which is designed for moving objects
+  if (this != w.GetMovingInfoLayer())
+  {
+    DrawContent(dc, w);
+  }
+}
+
+void mpInfoLegend::DrawContent(wxDC &dc, mpWindow &w)
+{
   if (m_needs_update)
     UpdateBitmap(dc, w);
   else
@@ -940,33 +941,68 @@ void mpInfoLegend::DoPlot(wxDC &dc, mpWindow &w)
 #ifdef _WIN32
     // Windows code
     if (m_brush.GetStyle() == wxBRUSHSTYLE_TRANSPARENT)
-      dc.Blit(m_dim.x, m_dim.y, m_dim.width, m_dim.height, &buff_dc, 0, 0, wxAND);
+      dc.Blit(m_dim.GetPosition(), m_dim.GetSize(), &buff_dc, wxPoint(0, 0), wxAND);
     else
-      dc.Blit(m_dim.x, m_dim.y, m_dim.width, m_dim.height, &buff_dc, 0, 0);
+      dc.Blit(m_dim.GetPosition(), m_dim.GetSize(), &buff_dc, wxPoint(0, 0));
 #else
-    dc.Blit(m_dim.x, m_dim.y, m_dim.width, m_dim.height, &buff_dc, 0, 0);
+    dc.Blit(m_dim.GetPosition(), m_dim.GetSize(), &buff_dc, wxPoint(0, 0));
 #endif
     buff_dc.SelectObject(wxNullBitmap);
   }
 }
 
-int mpInfoLegend::GetPointed(mpWindow &WXUNUSED(w), wxPoint eventPoint)
+void mpInfoLegend::DrawDraggedSeries(wxDC& dc, mpWindow &w)
 {
+  wxSize textSize = dc.GetTextExtent(m_selectedSeries->GetName());
+  wxRect newRect(w.GetMousePosition().x - 5, w.GetMousePosition().y - 18, textSize.x, textSize.y);
+
+  dc.SetBrush(*wxWHITE_BRUSH);
+  dc.SetPen(*wxLIGHT_GREY_PEN);
+  dc.SetTextForeground(*wxBLACK);
+  dc.DrawRectangle(newRect);
+  dc.DrawText(m_selectedSeries->GetName(), newRect.x, newRect.y);
+}
+
+void mpInfoLegend::RestoreAxisHighlighting(mpWindow &w)
+{
+  // Clear all axis selection
+  for (MP_LOOP_ITER : w.GetAxisDataYList())
+  {
+    if (m_yData.axis)
+    {
+      m_yData.axis->SetHovering(false);
+    }
+  }
+}
+
+int mpInfoLegend::GetLegendHitRegion(wxPoint mousePos)
+{
+  if (!Inside(mousePos))
+    return HitNone;
+
+  // First check if mouse hovers header
+  wxCoord mouseY = mousePos.y - m_dim.y;
+  if (GetLocation() == mpMarginUser)
+  {
+    if (mouseY >= 0 && mouseY < m_headerEnd)
+      return HitHeader;
+  }
+
   // Adjust clicked point coordinates for legend bitmap's offset within plot area
   wxCoord side;
   if (m_item_direction == mpVertical)
-    side = eventPoint.y - m_dim.y;
+    side = mousePos.y - m_dim.y;
   else
-    side = eventPoint.x - m_dim.x;
+    side = mousePos.x - m_dim.x;
+
   // Find which series legend we have clicked
   // We only need test against right or bottom side of the rectangle (stored in UpdateBitmap function).
-  for (std::vector<LegendDetail>::iterator it = m_LegendDetailList.begin(); it != m_LegendDetailList.end(); it++)
+  for (LegendDetail& ld : m_LegendDetailList)
   {
-    const LegendDetail& ld = *it;
     if (side < ld.legendEnd)
       return ld.layerIdx;
   }
-  return -1;
+  return HitNone;
 }
 
 //-----------------------------------------------------------------------------
@@ -982,11 +1018,12 @@ mpFunction::mpFunction(mpLayerType layerType /*=mpLAYER_PLOT*/, const wxString &
   SetName(name);
   m_symbol = mpsNone;
   m_symbolSize = 6;
-  m_symbolSize2 = 3;
   m_continuous = false; // Default
   m_step = 1;
+  m_autoStep = false;
+  m_maxNOfPoints = 3000;  // 3000 points at a time can be handled without too much lag
   SetYAxisID(yAxisID);
-  m_LegendIsAlwaysVisible = mpWindow::m_DefaultLegendIsAlwaysVisible; // preserve prior library behavior!
+  m_LegendIsAlwaysVisible = mpWindow::m_DefaultLegendIsAlwaysVisible;
   m_ZIndex = mpZIndex_PLOT;
 }
 
@@ -999,7 +1036,7 @@ bool mpFunction::DrawSymbol(wxDC &dc, wxCoord x, wxCoord y)
       break;
 
     case mpsSquare:
-      dc.DrawRectangle(x - m_symbolSize2, y - m_symbolSize2, m_symbolSize, m_symbolSize);
+      dc.DrawRectangle(x - (m_symbolSize/2), y - (m_symbolSize/2), m_symbolSize, m_symbolSize);
       break;
 
     case mpsUpTriangle:
@@ -1068,6 +1105,7 @@ mpHorizontalLine::mpHorizontalLine(double yvalue, const wxPen &pen, unsigned int
 
 void mpHorizontalLine::DoPlot(wxDC &dc, mpWindow &w)
 {
+  assert(m_win);
   // Get boundaries
   m_plotBoundaries = w.GetPlotBoundaries(!m_drawOutsideMargins);
 
@@ -1123,6 +1161,7 @@ mpVerticalLine::mpVerticalLine(double xvalue, const wxPen &pen) :
 
 void mpVerticalLine::DoPlot(wxDC &dc, mpWindow &w)
 {
+  assert(m_win);
   // Get boundaries
   m_plotBoundaries = w.GetPlotBoundaries(!m_drawOutsideMargins);
 
@@ -1192,6 +1231,7 @@ double mpFX::LogDoGetY(double x)
 
 void mpFX::DefineDoGetY(void)
 {
+  assert(m_win);
   if (m_win->IsLogYaxis(m_yAxisID))
     pDoGetY = &mpFX::LogDoGetY;
   else
@@ -1217,9 +1257,7 @@ void mpFX::DoPlot(wxDC &dc, mpWindow &w)
 
   if (!m_drawOutsideMargins)
   {
-    wxRect rect(m_plotBoundaries.startPx, m_plotBoundaries.startPy, m_plotBoundaries.endPx - m_plotBoundaries.startPx,
-        m_plotBoundaries.endPy - m_plotBoundaries.startPy);
-    dc.SetClippingRegion(rect);
+    dc.SetClippingRegion(m_plotBoundaries.GetRect());
   }
 
   if (m_continuous || (m_pen.GetWidth() > 1))
@@ -1321,6 +1359,7 @@ double mpFY::LogDoGetX(double y)
 
 void mpFY::DefineDoGetX(void)
 {
+  assert(m_win);
   if (m_win->IsLogXaxis())
     pDoGetX = &mpFY::LogDoGetX;
   else
@@ -1346,9 +1385,7 @@ void mpFY::DoPlot(wxDC &dc, mpWindow &w)
 
   if (!m_drawOutsideMargins)
   {
-    wxRect rect(m_plotBoundaries.startPx, m_plotBoundaries.startPy, m_plotBoundaries.endPx - m_plotBoundaries.startPx,
-        m_plotBoundaries.endPy - m_plotBoundaries.startPy);
-    dc.SetClippingRegion(rect);
+    dc.SetClippingRegion(m_plotBoundaries.GetRect());
   }
 
   if (m_continuous || (m_pen.GetWidth() > 1))
@@ -1485,9 +1522,7 @@ void mpFXY::DoPlot(wxDC &dc, mpWindow &w)
 
   if (!m_drawOutsideMargins)
   {
-    wxRect rect(m_plotBoundaries.startPx, m_plotBoundaries.startPy, m_plotBoundaries.endPx - m_plotBoundaries.startPx,
-        m_plotBoundaries.endPy - m_plotBoundaries.startPy);
-    dc.SetClippingRegion(rect);
+    dc.SetClippingRegion(m_plotBoundaries.GetRect());
   }
 
   if (!m_ViewAsBar)
@@ -1577,8 +1612,8 @@ void mpFXY::DoPlot(wxDC &dc, mpWindow &w)
   if (m_showName && !m_name.IsEmpty())
   {
     // Test if series is always visible, if no don't show name
-    if ((m_drawX.min < m_plotBoundaries.top) && (m_drawX.max > m_plotBoundaries.left) &&
-        (m_drawY.min < m_plotBoundaries.bottom) && (m_drawY.max > m_plotBoundaries.right))
+    if ((m_drawX.min < m_plotBoundaries.right) && (m_drawX.max > m_plotBoundaries.left) &&
+        (m_drawY.min < m_plotBoundaries.bottom) && (m_drawY.max > m_plotBoundaries.top))
     {
       wxCoord tx, ty, tw, th;
       dc.GetTextExtent(m_name, &tw, &th);
@@ -1614,10 +1649,10 @@ void mpFXY::DoPlot(wxDC &dc, mpWindow &w)
       if (tx < m_plotBoundaries.left)
         tx = m_plotBoundaries.left;
       else
-        if (tx + tw > m_plotBoundaries.top)
-          tx = m_plotBoundaries.top - tw;
-      if (ty < m_plotBoundaries.right)
-        ty = m_plotBoundaries.right;
+        if (tx + tw > m_plotBoundaries.right)
+          tx = m_plotBoundaries.right - tw;
+      if (ty < m_plotBoundaries.top)
+        ty = m_plotBoundaries.top;
       else
         if (ty + th > m_plotBoundaries.bottom)
           ty = m_plotBoundaries.bottom - th;
@@ -1637,24 +1672,69 @@ mpFXYVector::mpFXYVector(const wxString &name, int flags, bool viewAsBar, unsign
     mpFXY(name, flags, viewAsBar, yAxisID)
 {
   m_subtype = mpfFXYVector;
-  m_index = 0;
-  m_rangeX.Set(-1, 1);
-  m_rangeY.Set(-1, 1);
-  m_xs.clear();
-  m_ys.clear();
+  Clear();
   SetReserve(1000);
 }
 
 bool mpFXYVector::GetNextXY(double *x, double *y)
 {
-  if (m_index >= m_xs.size())
+  if (m_index >= m_endIndex)
     return false;
   else
   {
     *x = m_xs[m_index];
     *y = m_ys[m_index];
-    m_index += m_step;
-    return m_index <= m_xs.size();
+    if (m_index == m_endIndex - 1)
+    {
+      // Last point has been drawn. Force exit in next call
+      m_index = m_endIndex;
+    }
+    else
+    {
+      // Make sure that last point is always drawn
+      m_index = std::min(m_index + m_step, m_endIndex - 1);
+    }
+    return true;
+  }
+}
+
+void mpFXYVector::Rewind()
+{
+  if (m_isMonotonicX && m_win && (!m_win->IsLogXaxis()))
+  {
+    // If X values are monotonic (e.g. time series), we can find the start and end X indices inside the plot
+    // boundary via binary search, which significantly increases plotting speed for large series
+    auto begin = m_xs.begin();
+    auto end   = m_xs.end();
+
+    // Find start and end indices within bound via binary search
+    mpRange<double> xRange = m_win->GetDesiredBoundX();
+    auto itStart = std::lower_bound(begin, end, xRange.min);
+    auto itEnd = std::upper_bound(begin, end, xRange.max);
+    m_index = std::distance(begin, itStart);
+    m_endIndex = std::distance(begin, itEnd);
+
+    // Increase range with one point so that first and last line also is drawn
+    if (m_index > 0)
+      m_index--;
+    if (m_endIndex < m_xs.size())
+      m_endIndex++;
+
+    if (m_autoStep && (m_maxNOfPoints != 0))
+      m_step = std::max((m_endIndex - m_index) / m_maxNOfPoints, (size_t)1);
+
+    // Make sure you always start and end on even step
+    m_index = (m_index / m_step) * m_step;
+    m_endIndex = ((m_endIndex + m_step - 1) / m_step) * m_step;
+    m_endIndex = std::min(m_endIndex, m_xs.size());
+  }
+  else
+  {
+    // If X values are not monotonic we need to iterate all data
+    m_index = 0;
+    m_endIndex = m_xs.size();
+    if (m_autoStep && (m_maxNOfPoints != 0))
+      m_step = std::max((m_endIndex - m_index) / m_maxNOfPoints, (size_t)1);
   }
 }
 
@@ -1669,62 +1749,75 @@ void mpFXYVector::DrawAddedPoint(double x, double y)
     return;
 
   // Direct access to the dc
-  wxClientDC dc(m_win);
-  dc.SetPen(m_pen);
-  dc.SetBrush(m_brush);
+  assert(m_win);
+  wxMemoryDC *dc = m_win->GetMemoryDC();
+  dc->SetPen(m_pen);
+  dc->SetBrush(m_brush);
 
   CheckLog(&x, &y, m_yAxisID);
   wxCoord ix = m_win->x2p(x);
   wxCoord iy = m_win->y2p(y, m_yAxisID);
 
+  // Last index of the inserted point
+  size_t index = m_xs.size() - 1;
+
   if (!m_ViewAsBar)
   {
     if (m_continuous)
     {
-      if (m_index > 0)
+      if (index > 0)
       { // Do not draw continuous-mode line unless there is a prior point
         // Last point coordinates
-        size_t lastPtIdx = m_index - 1; // we assume that m_step = 1 in this context
+        size_t lastPtIdx = index - 1; // we assume that m_step = 1 in this context
         double xlast = m_xs[lastPtIdx];
         double ylast = m_ys[lastPtIdx];
         CheckLog(&xlast, &ylast, m_yAxisID);
         wxCoord ixlast = m_win->x2p(xlast);
         wxCoord iylast = m_win->y2p(ylast, m_yAxisID);
-        dc.DrawLine(ixlast, iylast, ix, iy);
+        dc->DrawLine(ixlast, iylast, ix, iy);
       };
 
       if (m_symbol != mpsNone)
-        DrawSymbol(dc, ix, iy);
+        DrawSymbol(*dc, ix, iy);
     }
     else
     {
       if (m_symbol == mpsNone)
       {
         if (m_pen.GetWidth() > 1)
-          dc.DrawLine(ix, iy, ix, iy);
+          dc->DrawLine(ix, iy, ix, iy);
         else
-          dc.DrawPoint(ix, iy);
+          dc->DrawPoint(ix, iy);
       }
       else
-        DrawSymbol(dc, ix, iy);
+        DrawSymbol(*dc, ix, iy);
     }
   }
   else
   {
     wxCoord iybase = m_win->y2p(0, m_yAxisID);
-    dc.DrawRectangle(ix - m_BarWidth, iy, 2 * m_BarWidth, iybase - iy);
+    dc->DrawRectangle(ix - m_BarWidth, iy, 2 * m_BarWidth, iybase - iy);
   }
+
+  // Release the bitmap, then refresh
+  dc->SelectObject(wxNullBitmap);
+  m_win->Refresh();
 }
 
 void mpFXYVector::Clear()
 {
   m_xs.clear();
   m_ys.clear();
+  // Also release allocated memory by forcing destructor
+  std::vector<double>().swap(m_xs);
+  std::vector<double>().swap(m_ys);
   // Default min max
   m_rangeX.Set(-1, 1);
   m_rangeY.Set(-1, 1);
   m_deltaX = m_deltaY = 1e+308; // Big number
-  Rewind();
+  m_index = 0;
+  m_endIndex = 0;
+  m_isMonotonicX = true;
 }
 
 void mpFXYVector::First_Point(double x, double y)
@@ -1736,6 +1829,10 @@ void mpFXYVector::First_Point(double x, double y)
   m_rangeY.Set(y);
   m_lastY = y;
   m_deltaY = 1e+308; // Big number
+
+  m_index = 0;
+  m_endIndex = 0;
+  m_isMonotonicX = true;
 }
 
 void mpFXYVector::Check_Limit(double val, mpRange<double> *range, double *last, double *delta)
@@ -1753,6 +1850,7 @@ void mpFXYVector::SetData(const std::vector<double> &xs, const std::vector<doubl
     wxLogError(_T("wxMathPlot error: X and Y vector are not of the same length!"));
     return;
   }
+
   // Copy the data:
   m_xs = xs;
   m_ys = ys;
@@ -1762,22 +1860,19 @@ void mpFXYVector::SetData(const std::vector<double> &xs, const std::vector<doubl
   {
     First_Point(xs[0], ys[0]);
 
-    std::vector<double>::const_iterator it;
-
     // X scale
-    it = xs.begin();
-    it++;
-    for (; it != xs.end(); it++)
+    for (size_t i = 1; i < xs.size(); ++i)
     {
-      Check_Limit((double)(*it), &m_rangeX, &m_lastX, &m_deltaX);
+      Check_Limit(xs[i], &m_rangeX, &m_lastX, &m_deltaX);
+      // Check if all X values are monotonic, i.e. always increasing
+      if (m_isMonotonicX && (xs[i] < xs[i - 1]))
+        m_isMonotonicX = false;
     }
 
     // Y scale
-    it = ys.begin();
-    it++;
-    for (; it != ys.end(); it++)
+    for (size_t i = 1; i < ys.size(); ++i)
     {
-      Check_Limit((double)(*it), &m_rangeY, &m_lastY, &m_deltaY);
+      Check_Limit(ys[i], &m_rangeY, &m_lastY, &m_deltaY);
     }
     Rewind();
   }
@@ -1807,6 +1902,9 @@ bool mpFXYVector::AddData(const double x, const double y, bool updatePlot)
   {
     // X scale
     Check_Limit(x, &m_rangeX, &m_lastX, &m_deltaX);
+    // Check if all X values are monotonic, i.e. always increasing
+    if (m_isMonotonicX && (m_xs[m_xs.size() - 1] < m_xs[m_xs.size() - 2]))
+      m_isMonotonicX = false;
 
     // Y scale
     Check_Limit(y, &m_rangeY, &m_lastY, &m_deltaY);
@@ -2024,8 +2122,7 @@ void mpBarChart::DoPlot(wxDC &dc, mpWindow &w)
 void mpBarChart::SetBarColour(const wxColour &colour)
 {
   m_barColour = colour;
-  wxBrush brush(m_barColour, wxBRUSHSTYLE_SOLID);
-  SetBrush(brush);
+  SetBrush(m_barColour, wxBRUSHSTYLE_SOLID);
 }
 
 void mpBarChart::SetBarLabelPosition(int position)
@@ -2182,6 +2279,8 @@ mpScale::mpScale(const wxString &name, int flags, bool grids, mpLabelType labelT
   m_timeConv = MP_X_RAWTIME;
   m_labelFormat = _T("");
   m_isLog = false;
+  m_CoordIsAlwaysVisible = mpWindow::m_DefaultCoordIsAlwaysVisible;
+
   m_ZIndex = mpZIndex_AXIS;
 }
 
@@ -2388,6 +2487,9 @@ int mpScale::GetDecimalDigits(double step)
 
 wxIMPLEMENT_DYNAMIC_CLASS(mpScaleX, mpScale);
 
+/// y origin coordinate of the X axis
+int mpScaleX::m_orgy = -1;
+
 /**
  * Get the origin of axis and initialize the plot boundaries
  */
@@ -2489,14 +2591,14 @@ void mpScaleX::DrawScaleName(wxDC &dc, mpWindow &w, int origin, int labelSize)
 
 void mpScaleX::DoPlot(wxDC &dc, mpWindow &w)
 {
-  int orgy = GetOrigin(w);
+  m_orgy = GetOrigin(w);
 
   // Draw nothing if we are outside margins
-  if (orgy == -1)
+  if (m_orgy == -1)
     return;
 
   // Draw X axis
-  dc.DrawLine(m_plotBoundaries.startPx, orgy, m_plotBoundaries.endPx, orgy);
+  dc.DrawLine(m_plotBoundaries.startPx, m_orgy, m_plotBoundaries.endPx, m_orgy);
 
   const double scaleX = w.GetScaleX();
   double step = GetStep(scaleX, MIN_X_AXIS_LABEL_SEPARATION);
@@ -2517,18 +2619,17 @@ void mpScaleX::DoPlot(wxDC &dc, mpWindow &w)
   ComputeScaleConstraints(step, maxAxisValue);
 
   double n0 = floor(w.GetPosX() / step) * step;
-  double n = 0;
 #if defined(MATHPLOT_DO_LOGGING) && defined(MATHPLOT_LOG_SCALE)
-  wxLogMessage(_T("mpScaleX::Plot: step: %f, end: %f, n: %f"), step, end, n0);
+  wxLogMessage(_T("mpScaleX::Plot: step: %f, end: %f, n0: %f"), step, end, n0);
 #endif
 
   int labelH = 0; // Control labels height to decide where to put axis name (below labels or on top of axis)
-  wxCoord tx, ty;
   wxString s;
 
   // Draw grid, ticks and compute max label length
-  for (n = n0; n < end; n += step)
+  for (int i = 0; i < (int)round((end - n0) / step); i++)
   {
+    const double n = n0 + i * step;
     const int p = w.x2p(n);
 #if defined(MATHPLOT_DO_LOGGING) && defined(MATHPLOT_LOG_SCALE)
     wxLogMessage(_T("mpScaleX::Plot: n: %f -> p = %d"), n, p);
@@ -2547,23 +2648,24 @@ void mpScaleX::DoPlot(wxDC &dc, mpWindow &w)
       {
         dc.SetPen(m_pen);
         if (m_flags == mpALIGN_BORDER_BOTTOM)
-          dc.DrawLine(p, orgy, p, orgy - kTickSize);
+          dc.DrawLine(p, m_orgy, p, m_orgy - kTickSize);
         else
-          dc.DrawLine(p, orgy, p, orgy + kTickSize);
+          dc.DrawLine(p, m_orgy, p, m_orgy + kTickSize);
       }
 
       // Write ticks labels in s string : compute size
       s = FormatLabelValue(n);
 
+      wxCoord tx = 0, ty = 0;
       dc.GetTextExtent(s, &tx, &ty);
 
       if ((m_flags == mpALIGN_BORDER_BOTTOM) || (m_flags == mpALIGN_TOP))
       {
-        dc.DrawText(s, p - tx / 2, orgy - ty - kTickSize);
+        dc.DrawText(s, p - tx / 2, m_orgy - ty - kTickSize);
       }
       else
       {
-        dc.DrawText(s, p - tx / 2, orgy + kTickSize);
+        dc.DrawText(s, p - tx / 2, m_orgy + kTickSize);
       }
 
       labelH = (labelH <= ty) ? ty : labelH;
@@ -2571,7 +2673,7 @@ void mpScaleX::DoPlot(wxDC &dc, mpWindow &w)
   }
 
   // Draw axis name
-  DrawScaleName(dc, w, orgy, labelH);
+  DrawScaleName(dc, w, m_orgy, labelH);
 }
 
 //-----------------------------------------------------------------------------
@@ -2677,6 +2779,20 @@ void mpScaleY::DoPlot(wxDC &dc, mpWindow &w)
   if (orgx == -1)
     return;
 
+  // Highlight if hovered when dragging a series over the axis
+  if (m_hover)
+  {
+    wxPen oldPen = dc.GetPen();
+    wxBrush oldBrush = dc.GetBrush();
+
+    dc.SetPen(wxPen(wxColour(47, 120, 214), 2));        // blue, thickness = 2
+    dc.SetBrush(wxBrush(wxColour(204, 232, 255, 128))); // semi-transparent blue
+    dc.DrawRoundedRectangle(m_xPos, m_plotBoundaries.startPy, m_axisWidth, m_plotBoundaries.endPy - m_plotBoundaries.startPy, 3);
+
+    dc.SetPen(oldPen);
+    dc.SetBrush(oldBrush);
+  }
+
   // Draw Y axis
   dc.DrawLine(orgx + 1, m_plotBoundaries.startPy, orgx + 1, m_plotBoundaries.endPy);
 
@@ -2687,23 +2803,29 @@ void mpScaleY::DoPlot(wxDC &dc, mpWindow &w)
   // Compute scale constraint
   ComputeScaleConstraints(step, maxAxisValue);
 
-  double n = floor(start / step) * step;
+  double n0 = floor(start / step) * step;
+#if defined(MATHPLOT_DO_LOGGING) && defined(MATHPLOT_LOG_SCALE)
+  wxLogMessage(_T("mpScaleY::Plot: step: %f, end: %f, n0: %f"), step, end, n0);
+#endif
 
   wxCoord labelWidth = 0;
   // Before starting cycle, calculate label height
-  wxString s = FormatLabelValue(n);
+  wxString s = FormatLabelValue(n0);
   wxCoord labelHeight = dc.GetTextExtent(s).GetHeight() / 2;
 
-  wxCoord tx = 0, ty = 0;
-
   // Draw grid, ticks and label
-  for (; n < end; n += step)
+  wxCoord startPy = m_plotBoundaries.startPy + labelHeight;
+  wxCoord endPy = m_plotBoundaries.endPy - labelHeight;
+  for (int i = 0; i < (int)round((end - n0)/step); i++)
   {
+    const double n = n0 + i * step;
     const wxCoord p = w.y2p(n, GetAxisID());
-    if ((p > m_plotBoundaries.startPy + labelHeight) && (p < m_plotBoundaries.endPy - labelHeight))
+    if ((p > startPy) && (p < endPy))
     {
       // Draw axis grids
-      if (m_grids)
+      // We take care if we are over the X axis. This work because we plot in order X axis and Y axis after.
+      // Note that we consider that we have only one X axis
+      if ((m_grids) && (mpScaleX::m_orgy != p))
       {
         dc.SetPen(m_gridpen);
         dc.DrawLine(m_plotBoundaries.startPx + 1, p, m_plotBoundaries.endPx - 1, p);
@@ -2727,6 +2849,7 @@ void mpScaleY::DoPlot(wxDC &dc, mpWindow &w)
       s = FormatLabelValue(n);
 
       // Print ticks labels
+      wxCoord tx = 0, ty = 0;
       dc.GetTextExtent(s, &tx, &ty);
 #if defined(MATHPLOT_DO_LOGGING) && defined(MATHPLOT_LOG_SCALE)
       if (ty != labelHeight)
@@ -2853,15 +2976,12 @@ mpWindow::mpWindow(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 mpWindow::~mpWindow()
 {
-#ifdef ENABLE_MP_CONFIG
-  DeleteAndNull(m_configWindow);
-#endif // ENABLE_MP_CONFIG
+  // Delete Config window if present
+  DeleteConfigWindow();
 
   // Free all the layers:
   DelAllLayers(mpForceDelete, false);
 
-  DeleteAndNull(m_buff_bmp);
-  DeleteAndNull(m_zoom_bmp);
   DeleteAndNull(m_Screenshot_bmp);
 }
 
@@ -2917,21 +3037,18 @@ void mpWindow::InitParameters()
   m_AxisDataYList.emplace(std::make_pair(0, mpAxisData()));
 #endif
 
-  m_repainting = false;
-  m_buff_bmp = NULL;
   m_Screenshot_bmp = NULL;
-  m_enableDoubleBuffer = true;
+  m_enableBufferedPaintDC = true;
   m_enableMouseNavigation = true;
   m_mouseMovedAfterRightClick = false;
   m_mouseYAxisID = MP_OPTNULL_INT;
-  m_movingInfoLayer = NULL;
+  m_movingInfoLayer = nullptr;
   m_InfoCoords = NULL;
   m_InfoLegend = NULL;
-  m_InInfoLegend = false;
-  m_zoom_bmp = NULL;
-  m_magnetize = false;
   m_enableScrollBars = false;
   m_mouseLeftDownAction = mpMouseBoxZoom;
+  m_boxZoomActive = false;
+  m_autoFit = true;
 
   m_extraMargin = MP_EXTRA_MARGIN;
   // Set all margins to 50
@@ -2962,8 +3079,13 @@ bool mpWindow::CheckUserMouseAction(wxMouseEvent &event)
 
 void mpWindow::OnMouseLeftDown(wxMouseEvent &event)
 {
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
+
+#ifdef MATHPLOT_DO_LOGGING
+  wxLogMessage(_T("mpWindow::OnMouseLeftDown() X = %d , Y = %d"), event.GetX(), event.GetY());
+#endif
 
   // Store current position
   m_mouseLClick = event.GetPosition();
@@ -2976,55 +3098,85 @@ void mpWindow::OnMouseLeftDown(wxMouseEvent &event)
     m_mouseScaleYList[m_yID] = m_yData.scale;
   }
 
-  // Indicate if mouse was inside a specific Y-axis
-  m_mouseYAxisID = IsInsideYAxis(m_mouseLClick);
-
-#ifdef MATHPLOT_DO_LOGGING
-  wxLogMessage(_T("mpWindow::OnMouseLeftDown() X = %d , Y = %d"), event.GetX(), event.GetY());
-#endif
+  // Check if we are inside an Info layer and if we can move it. Could be an Info Legend or an Info Coord
   m_movingInfoLayer = IsInsideInfoLayer(m_mouseLClick);
+  if (m_movingInfoLayer)
+  {
 #ifdef MATHPLOT_DO_LOGGING
-  if (m_movingInfoLayer != NULL)
-  {
     wxLogMessage(_T("mpWindow::OnMouseLeftDown() started moving layer %p"), m_movingInfoLayer);
-  }
 #endif
-#ifdef ENABLE_MP_CONFIG
-  if (m_InInfoLegend)
+    // Check if we can move the info layer
+    if (m_movingInfoLayer->GetLocation() == mpMarginUser)
+    {
+      m_movingInfoLayer->UpdateReference();
+      UpdateAll();
+    }
+    else
+      m_movingInfoLayer = nullptr;
+  }
+
+  // Now check if we are over an InfoLegend and if we have selected a series
+  int selectInfoLegend = -1;
+  if (m_InfoLegend)
   {
-    int select = m_InfoLegend->GetPointed(*this, m_mouseLClick);
-    if (select != -1)
+    // Check if mouse is inside info legend and has selected a series
+    selectInfoLegend = m_InfoLegend->GetLegendHitRegion(m_mouseLClick);
+    if (selectInfoLegend >= 0)
     {
       // If shift is pressed, we just swap visibility of the series
       // @sa m_DefaultLegendIsAlwaysVisible
       if (event.m_shiftDown)
       {
-        mpFunction* CurrentSerie = (mpFunction*)GetLayerPlot(select);
+        mpFunction* CurrentSerie = (mpFunction*)GetLayerPlot(selectInfoLegend);
         if (CurrentSerie)
         {
           CurrentSerie->SetVisible(!CurrentSerie->IsVisible());
           m_InfoLegend->SetNeedUpdate();
-          Fit();
-          if ((m_configWindow != NULL) && (m_configWindow->IsVisible()))
-          {
-            m_configWindow->Initialize(mpcpiSeries);
-            m_configWindow->SelectChoiceSerie(select);
-          }
+          if(m_autoFit)
+            Fit();
+          else
+            UpdateAll();
+          RefreshConfigWindow(mpLAYER_PLOT, selectInfoLegend);
+          m_movingInfoLayer = nullptr;  // Do not allow moving
         }
       }
       else
       {
-        // Show config window
-        if (m_configWindow == NULL)
-          m_configWindow = new MathPlotConfigDialog(this);
-
-        m_configWindow->Initialize(mpcpiSeries);
-        m_configWindow->SelectChoiceSerie(select);
-        m_configWindow->Show();
+        // Either the user wants to drag a series to an axis, or open the configuration.
+        // If mouse starts moving after left down, assume dragging series. If button is
+        // released without moving, assume configuration
+        m_InfoLegend->m_selectedSeries = (mpFunction*)GetLayerPlot(selectInfoLegend);
+        m_openConfigWindowPending = true;
+        m_infoLegendSelectedSeries = selectInfoLegend;
+        m_movingInfoLayer = nullptr;  // Do not allow moving
       }
     }
   }
-#endif // ENABLE_MP_CONFIG
+
+  // Finally check if we are over an axis
+  m_mouseYAxisID = MP_OPTNULL_INT;
+  if ((m_movingInfoLayer == nullptr) && (selectInfoLegend == -1))
+  {
+    // Indicate if mouse was inside a specific Y-axis
+    m_mouseYAxisID = IsInsideYAxis(m_mouseLClick);
+
+    // We are inside an Y-axis, no need to continue test
+    if (MP_OPTTEST(m_mouseYAxisID))
+    {
+      // If shift is pressed, we just set the axis not visible
+      if (event.m_shiftDown)
+      {
+        mpScaleY* yAxis = (mpScaleY*)GetLayerYAxis(MP_OPTGET(m_mouseYAxisID));
+        yAxis->SetVisible(false);
+        if (m_autoFit)
+          Fit();
+        else
+          UpdateAll();
+
+        RefreshConfigWindow(mpLAYER_AXIS);
+      }
+    }
+  }
 
   event.Skip();
 }
@@ -3033,23 +3185,31 @@ void mpWindow::OnMouseLeftDown(wxMouseEvent &event)
 // JLB
 void mpWindow::OnMouseRightDown(wxMouseEvent &event)
 {
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
 
   m_mouseMovedAfterRightClick = false;
   m_mouseRClick = wxPoint(event.GetX(), event.GetY());
   m_mouseYAxisID = IsInsideYAxis(m_mouseRClick);
-  if (m_magnetize)
-    m_magnet.SetRightClick();
 
   if (m_enableMouseNavigation)
     SetCursor(*wxCROSS_CURSOR);
 }
 
-// If the user "drags" with the right button pressed, do "pan"
-// JLB
+/**
+ * Mouse is moving
+ * Check if we are over an info layer (coordinates or legend)
+ * If true, for coordinates we can drag. For legend, several actions are possible: drag or click to open config
+ * window or swap visibility of a series.
+ * If false, other actions are possible if we are left/right chicked: pan, move or rectangular zoom
+ */
 void mpWindow::OnMouseMove(wxMouseEvent &event)
 {
+  // The current mouse position
+  m_mousePos = event.GetPosition();
+
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
 
@@ -3059,19 +3219,20 @@ void mpWindow::OnMouseMove(wxMouseEvent &event)
     return;
   }
 
-  // The current mouse position
-  wxPoint eventPoint = wxPoint(event.GetX(), event.GetY());
+  bool requestRefresh = false;
+  bool showMagnet = false;
+  bool showInfoCoord = false;
 
-  // pan
+  // Rigth down click: pan
   if (event.m_rightDown)
   {
     m_mouseMovedAfterRightClick = true; // Hides the popup menu after releasing the button!
 
     // The change:
-    wxPoint Axy = m_mouseRClick - eventPoint;
+    wxPoint Axy = m_mouseRClick - m_mousePos;
 
     // For the next event, use relative to this coordinates.
-    m_mouseRClick = eventPoint;
+    m_mouseRClick = m_mousePos;
 
     if (MP_OPTTEST(m_mouseYAxisID))
     {
@@ -3099,152 +3260,198 @@ void mpWindow::OnMouseMove(wxMouseEvent &event)
     wxLogMessage(_T("[mpWindow::OnMouseMove] Ax:%i Ay:%i m_posX:%f m_posY:%f"), Axy.x, Axy.y, m_AxisDataX.pos, m_AxisDataYList[0].pos);
 #endif
   }
-  else
+  // Left down click: move info layer or swap visisility (legend) or rectangular zoom
+  else if (event.m_leftDown)
   {
-    wxClientDC dc(this);
+    wxPoint moveVector = m_mousePos - m_mouseLClick;
 
-    // First need to clean the plot.
-    if (m_magnetize && (!m_repainting))
-      m_magnet.ClearPlot(dc);
-
-    // zoom select rectangle
-    if (event.m_leftDown)
+    if (m_InfoLegend && m_InfoLegend->m_selectedSeries)
     {
-      wxPoint moveVector = eventPoint - m_mouseLClick;
-      if (m_movingInfoLayer == NULL)
+      // If a series from the legend has been clicked on, it can be drag and dropped
+      // onto an Y-axis. Indicate that it shall be shown and request a refresh to draw it
+      m_InfoLegend->ShowDraggedSeries(true);
+      requestRefresh = true;
+
+      // Since mouse has started to move, assume user wants to drag a series and not open configuration
+      m_openConfigWindowPending = false;
+
+      // If the series rectangle is dragged over a Y-axis, indicate this hovering by marking the
+      // axis in a slight blue color
+      mpOptional_int newAxisID = IsInsideYAxis(m_mousePos);
+      mpOptional_int lastAxisID = m_InfoLegend->m_lastHoveredAxisID;
+      if (newAxisID != lastAxisID)
       {
-        if (m_mouseLeftDownAction == mpMouseBoxZoom)
+        if (MP_OPTTEST(lastAxisID))
         {
-          // Zoom by creating a rectangle and zoom into that when button is released
-
-          // First : restore stored bitmap
-          if (m_zoom_bmp)
-          {
-            wxMemoryDC m_coord_dc(&dc);
-            m_coord_dc.SelectObject(*m_zoom_bmp);
-            dc.Blit(m_zoom_Dim.x, m_zoom_Dim.y, m_zoom_Dim.width, m_zoom_Dim.height, &m_coord_dc, 0, 0);
-            m_coord_dc.SelectObject(wxNullBitmap);
-            DeleteAndNull(m_zoom_bmp);
-          }
-
-          // Second : store new bitmap
-          // Rectangular area selected for zoom
-          wxRect zoom_dim = wxRect(m_mouseLClick, wxSize(moveVector.x, moveVector.y));
-          if ((zoom_dim.width != 0) && (zoom_dim.height != 0))
-          {
-            if (zoom_dim.width < 0)
-            {
-              zoom_dim.x += zoom_dim.width;
-              zoom_dim.width = abs(zoom_dim.width);
-            }
-            if (zoom_dim.height < 0)
-            {
-              zoom_dim.y += zoom_dim.height;
-              zoom_dim.height = abs(zoom_dim.height);
-            }
-
-            m_zoom_bmp = new wxBitmap(zoom_dim.width, zoom_dim.height, dc);
-            wxMemoryDC m_coord_dc(&dc);
-            m_coord_dc.SelectObject(*m_zoom_bmp);
-            m_coord_dc.Blit(0, 0, zoom_dim.width, zoom_dim.height, &dc, zoom_dim.x, zoom_dim.y);
-            m_coord_dc.SelectObject(wxNullBitmap);
-            m_zoom_Dim = zoom_dim;
-
-            // Draw the rectangle that focus the selected region
-            wxPen pen(*wxBLACK, 1, wxPENSTYLE_DOT);
-            dc.SetPen(pen);
-            dc.SetBrush(*wxTRANSPARENT_BRUSH);
-            dc.DrawRectangle(zoom_dim);
-          }
+          m_AxisDataYList[MP_OPTGET(lastAxisID)].axis->SetHovering(false);
         }
-        else if (m_mouseLeftDownAction == mpMouseDragZoom)
+        if (MP_OPTTEST(newAxisID))
         {
-          // Continously zoom in or out by dragging the mouse across the plot
-          // The amount of zoom is proportional to the moved distance and
-          // scaled in a logarithmic fashion for more natural feel
-          double xPercent = (double)moveVector.x / (double)GetPlotWidth();
-          double yPercent = -(double)moveVector.y / (double)GetPlotHeight();
-          double zoomExponentX = xPercent * std::log(ZOOM_FACTOR_DRAG);
-          double zoomExponentY = yPercent * std::log(ZOOM_FACTOR_DRAG);
-          double zoomFactorX = std::exp(zoomExponentX);
-          double zoomFactorY = std::exp(zoomExponentY);
-
-          if (MP_OPTTEST(m_mouseYAxisID))
-          {
-            // Mouse is inside a Y-axis. Only zoom on that
-            SetScaleYAndCenter(m_mouseScaleYList[MP_OPTGET(m_mouseYAxisID)] * zoomFactorY, MP_OPTGET(m_mouseYAxisID));
-          }
-          else
-          {
-            // Zoom on all X and Y axes
-            SetScaleXAndCenter(m_mouseScaleX * zoomFactorX);
-            // Here, the correct name for m_yData should be scaleY, but we use MP_LOOP_ITER define for c++14 compatibility
-            for (const MP_LOOP_ITER : m_mouseScaleYList)
-            {
-              SetScaleYAndCenter(m_yData * zoomFactorY, m_yID);
-            }
-          }
-
-          UpdateAll();
+          m_AxisDataYList[MP_OPTGET(newAxisID)].axis->SetHovering(true);
         }
+        // Need a complete re-draw in order to highlight the axis properly
+        UpdateAll();
+      }
+      m_InfoLegend->m_lastHoveredAxisID = newAxisID;
+    }
+    else if (m_movingInfoLayer)
+    {
+      m_movingInfoLayer->Move(moveVector, *this);
+      showInfoCoord = true;
+      requestRefresh = true;
+    }
+    else if (m_mouseLeftDownAction == mpMouseBoxZoom)
+    {
+      m_boxZoomActive = true;
+      showMagnet = true;
+      requestRefresh = true;
+    }
+    else if (m_mouseLeftDownAction == mpMouseDragZoom)
+    {
+      // Continously zoom in or out by dragging the mouse across the plot
+      // The amount of zoom is proportional to the moved distance and
+      // scaled in a logarithmic fashion for more natural feel
+      double xPercent = (double)moveVector.x / (double)GetPlotWidth();
+      double yPercent = -(double)moveVector.y / (double)GetPlotHeight();
+      double zoomExponentX = xPercent * std::log(ZOOM_FACTOR_DRAG);
+      double zoomExponentY = yPercent * std::log(ZOOM_FACTOR_DRAG);
+      double zoomFactorX = std::exp(zoomExponentX);
+      double zoomFactorY = std::exp(zoomExponentY);
 
-        if (m_magnetize && (!m_repainting))
-          m_magnet.Plot(dc, eventPoint);
+      if (MP_OPTTEST(m_mouseYAxisID))
+      {
+        // Mouse is inside a Y-axis. Only zoom on that
+        SetScaleYAndCenter(m_mouseScaleYList[MP_OPTGET(m_mouseYAxisID)] * zoomFactorY, MP_OPTGET(m_mouseYAxisID));
       }
       else
-        m_movingInfoLayer->Move(moveVector);
-    }
-    else
-    {
-      // Mouse move coordinate
-      if (m_InfoCoords && m_InfoCoords->IsVisible())
       {
-        if ((m_InfoCoords->GetDrawOutsideMargins()) || (m_PlotArea.Contains(eventPoint)))
+        // Zoom on all X and Y axes
+        SetScaleXAndCenter(m_mouseScaleX * zoomFactorX);
+        // Here, the correct name for m_yData should be scaleY, but we use MP_LOOP_ITER define for c++14 compatibility
+        for (const MP_LOOP_ITER : m_mouseScaleYList)
         {
-          m_InfoCoords->UpdateInfo(*this, event);
-          m_InfoCoords->Plot(dc, *this);
+          SetScaleYAndCenter(m_yData * zoomFactorY, m_yID);
         }
-        else
-          m_InfoCoords->ErasePlot(dc, *this);
       }
 
-      // Mouse move on legend
-      if (m_InfoLegend && m_InfoLegend->IsVisible())
-      {
-        m_InInfoLegend = m_InfoLegend->Inside(eventPoint);
-        if (m_InInfoLegend)
-          SetCursor(wxCursor(wxCURSOR_HAND));
-        else
-          SetCursor(*wxSTANDARD_CURSOR);
-      }
-
-      if (m_magnetize && (!m_repainting) && (event.GetEventType() == wxEVT_MOTION))
-        m_magnet.Plot(dc, eventPoint);
+      showMagnet = true;
+      UpdateAll();
     }
   }
+  // No click: mouse is moving
+  else
+  {
+    // Check if we are moving over an info layer
+    mpInfoLayer* movingInfoLayer = IsInsideInfoLayer(m_mousePos);
+    if (movingInfoLayer)
+    {
+      int select = -1;
+      // Mouse move on legend
+      if (m_InfoLegend)
+      {
+        select = m_InfoLegend->GetLegendHitRegion(m_mousePos);
+        if(select == m_InfoLegend->HitHeader)
+          SetCursor(wxCursor(wxCURSOR_SIZING));
+        else if(select >= 0)
+          SetCursor(wxCursor(wxCURSOR_HAND));
+      }
+      // Mouse move on coord
+      if ((select == -1) && m_InfoCoords && (m_InfoCoords->GetLocation() == mpMarginUser))
+      {
+        SetCursor(wxCursor(wxCURSOR_SIZING));
+      }
+    }
+    else
+      SetCursor(*wxSTANDARD_CURSOR);
+    showMagnet = true;
+    showInfoCoord = true;
+  }
+
+  // Check if magnet shall be shown
+  if (showMagnet && m_magnet.ShouldBeShown(m_mousePos))
+  {
+    m_magnet.Show(true);
+    requestRefresh = true;
+  }
+  else if (m_magnet.IsShown())
+  {
+    m_magnet.Show(false);
+    requestRefresh = true;
+  }
+
+  // Check if info coords shall be shown
+  if (m_InfoCoords)
+  {
+    if (showInfoCoord && m_InfoCoords->ShouldBeShown(m_PlotArea, m_mousePos))
+    {
+      m_InfoCoords->Show(true);
+      m_InfoCoords->UpdateInfo(*this, event);
+      requestRefresh = true;
+    }
+    else if (m_InfoCoords->IsShown())
+    {
+      m_InfoCoords->Show(false);
+      requestRefresh = true;
+    }
+  }
+
+  if (requestRefresh)
+  {
+    // Calling Refresh() without setting m_cacheDirty and without going through UpdateAll() results
+    // in a very lightweight and quick OnPaint event where only mouse-related overlays are rendered
+    Refresh();
+  }
+
   event.Skip();
 }
 
 void mpWindow::OnMouseLeftRelease(wxMouseEvent &event)
 {
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
 
-  if (m_movingInfoLayer != NULL)
+  if (m_movingInfoLayer)
   {
-    m_movingInfoLayer->UpdateReference();
-    m_movingInfoLayer = NULL;
+    RefreshConfigWindow(mpLAYER_INFO, m_movingInfoLayer->GetLayerSubType());
+    m_movingInfoLayer = nullptr;
+    UpdateAll();
   }
-  else if (m_mouseLeftDownAction == mpMouseBoxZoom)
+  else if (m_mouseLeftDownAction == mpMouseBoxZoom && m_boxZoomActive)
   {
-    DeleteAndNull(m_zoom_bmp);
-    wxPoint release(event.GetX(), event.GetY());
+    m_boxZoomActive = false;
+    wxPoint release(event.GetPosition());
     // Zoom if we have a real rectangle
-    if ((release.x != m_mouseLClick.x) && (release.y != m_mouseLClick.y))
+    if (release != m_mouseLClick)
     {
       ZoomRect(m_mouseLClick, release);
     }
   }
+
+  if (m_InfoLegend && m_InfoLegend->m_selectedSeries)
+  {
+    // Switch Y-axis of series if it was dropped on a axis
+    mpOptional_int yAxisID = IsInsideYAxis(event.GetPosition());
+    if (MP_OPTTEST(yAxisID))
+    {
+      m_InfoLegend->m_selectedSeries->SetYAxisID(MP_OPTGET(yAxisID));
+    }
+    m_InfoLegend->m_selectedSeries = nullptr;
+    m_InfoLegend->ShowDraggedSeries(false);
+
+    // Clear the series dragging animation
+    m_InfoLegend->RestoreAxisHighlighting(*this);
+    UpdateAll();
+  }
+
+  if (m_openConfigWindowPending)
+  {
+    // Legend was left clicked. Open config when released
+    m_openConfigWindowPending = false;
+    // Show config window
+    RefreshConfigWindow(mpLAYER_PLOT, m_infoLegendSelectedSeries, true);
+  }
+
   event.Skip();
 }
 
@@ -3252,6 +3459,7 @@ void mpWindow::OnMouseLeftRelease(wxMouseEvent &event)
 // JLB
 void mpWindow::OnMouseWheel(wxMouseEvent &event)
 {
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
 
@@ -3312,26 +3520,49 @@ void mpWindow::OnMouseWheel(wxMouseEvent &event)
  */
 void mpWindow::OnMouseLeave(wxMouseEvent &event)
 {
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
 
-  wxClientDC dc(this);
+  // Check if we need a refresh or a full update
+  bool needRefresh = false;
+  bool needUpdateAll = false;
   if (m_InfoCoords && m_InfoCoords->IsVisible())
   {
-    m_InfoCoords->ErasePlot(dc, *this);
+    m_InfoCoords->Show(false);
+    needRefresh = true;
   }
-  if (m_zoom_bmp)
+  if (m_boxZoomActive)
   {
-    wxMemoryDC m_coord_dc(&dc);
-    m_coord_dc.SelectObject(*m_zoom_bmp);
-    dc.Blit(m_zoom_Dim.x, m_zoom_Dim.y, m_zoom_Dim.width, m_zoom_Dim.height, &m_coord_dc, 0, 0);
-    m_coord_dc.SelectObject(wxNullBitmap);
-    DeleteAndNull(m_zoom_bmp);
+    m_boxZoomActive = false;
+    needRefresh = true;
   }
-  if (m_magnetize)
+  if (m_magnet.IsShown())
   {
-    m_magnet.ClearPlot(dc);
+    m_magnet.Show(false);
+    needRefresh = true;
   }
+
+  // For InfoLegend, we need a full update
+  if (m_InfoLegend && m_InfoLegend->m_selectedSeries)
+  {
+    m_InfoLegend->m_selectedSeries = nullptr;
+    m_InfoLegend->ShowDraggedSeries(false);
+    m_InfoLegend->RestoreAxisHighlighting(*this);
+    needUpdateAll = true;
+  }
+
+  if (m_movingInfoLayer)
+  {
+    m_movingInfoLayer = nullptr;
+    needUpdateAll = true;
+  }
+
+  // Finally, refresh or update all if needed
+  if (needUpdateAll)
+    UpdateAll();
+  else if (needRefresh)
+    Refresh();
 }
 
 /**
@@ -3350,11 +3581,6 @@ void mpWindow::Fit()
 void mpWindow::Fit(const mpRange<double> &rangeX, std::unordered_map<int, mpRange<double>> rangeY, wxCoord *printSizeX, wxCoord *printSizeY)
 { // JL
   bool weArePrinting = printSizeX != NULL && printSizeY != NULL;
-  if (m_magnetize)
-  {
-    // Avoid paint cross if mouse move
-    m_repainting = true;
-  }
 
   // Save desired borders:
   m_AxisDataX.desired = rangeX;
@@ -3656,6 +3882,7 @@ void mpWindow::LockAspect(bool enable)
 
 void mpWindow::OnShowPopupMenu(wxMouseEvent &event)
 {
+  // Check if the user has defined a special action for this mouse event
   if (CheckUserMouseAction(event))
     return;
 
@@ -3742,13 +3969,6 @@ void mpWindow::OnLoadFile(wxCommandEvent &WXUNUSED(event))
 {
   LoadFile();
 }
-
-#ifdef ENABLE_MP_CONFIG
-void mpWindow::OnConfiguration(wxCommandEvent &WXUNUSED(event))
-{
-  OpenConfiguration();
-}
-#endif // ENABLE_MP_CONFIG
 
 void mpWindow::OnCenter(wxCommandEvent &WXUNUSED(event))
 {
@@ -3843,8 +4063,10 @@ bool mpWindow::AddLayer(mpLayer *layer, bool refreshDisplay, bool refreshConfig)
     }
   }
 
-  // add the layer to the layer list
+  // add the layer to the layer list and sort according to Z index
   m_layers.push_back(layer);
+  std::sort(m_layers.begin(), m_layers.end(),
+    [](auto a, auto b) { return a->GetZIndex() < b->GetZIndex(); });
 
   // We just add a function, so we need to update the legend and verify the axis
   if (layer->GetLayerType() == mpLAYER_PLOT)
@@ -3869,12 +4091,9 @@ bool mpWindow::AddLayer(mpLayer *layer, bool refreshDisplay, bool refreshConfig)
   // Fit and refresh display
   if (refreshDisplay)
     Fit();
-#ifdef ENABLE_MP_CONFIG
+
   if (refreshConfig)
-    RefreshConfigWindow();
-#else
-  (void) refreshConfig; // For compiler happy
-#endif // ENABLE_MP_CONFIG
+    RefreshConfigWindow(mpLAYER_UNDEF);
 
   return true;
 }
@@ -3958,12 +4177,10 @@ bool mpWindow::DelLayer(mpLayer *layer, mpDeleteAction alsoDeleteObject, bool re
     RefreshLegend();
     if (refreshDisplay)
       UpdateAll();
-#ifdef ENABLE_MP_CONFIG
+
     if (refreshConfig)
-      RefreshConfigWindow();
-#else
-    (void) refreshConfig; // For compiler happy
-#endif // ENABLE_MP_CONFIG
+      RefreshConfigWindow(mpLAYER_UNDEF);
+
     break;
   } // end for mpLayerList
 
@@ -3984,14 +4201,14 @@ void mpWindow::DelAllLayers(mpDeleteAction alsoDeleteObject, bool refreshDisplay
   }
   m_InfoCoords = NULL;
   m_InfoLegend = NULL;
-  m_movingInfoLayer = NULL;
+  m_movingInfoLayer = nullptr;
   m_AxisDataX.axis = NULL;
   m_AxisDataYList.clear();
   if (refreshDisplay)
     UpdateAll();
-#ifdef ENABLE_MP_CONFIG
-  DeleteAndNull(m_configWindow);
-#endif // ENABLE_MP_CONFIG
+
+  // Delete Config window if present
+  DeleteConfigWindow();
 }
 
 void mpWindow::DelAllPlot(mpDeleteAction alsoDeleteObject, mpFunctionType func, bool refreshDisplay)
@@ -4015,9 +4232,8 @@ void mpWindow::DelAllPlot(mpDeleteAction alsoDeleteObject, mpFunctionType func, 
   RefreshLegend();
   if (refreshDisplay)
     UpdateAll();
-#ifdef ENABLE_MP_CONFIG
-  RefreshConfigWindow();
-#endif // ENABLE_MP_CONFIG
+
+  RefreshConfigWindow(mpLAYER_PLOT, -1);
 }
 
 void mpWindow::DelAllYAxisAfterID(mpDeleteAction alsoDeleteObject, int yAxisID, bool refreshDisplay)
@@ -4042,24 +4258,31 @@ void mpWindow::DelAllYAxisAfterID(mpDeleteAction alsoDeleteObject, int yAxisID, 
 
   if (refreshDisplay)
     UpdateAll();
-#ifdef ENABLE_MP_CONFIG
-  RefreshConfigWindow();
-#endif // ENABLE_MP_CONFIG
+
+  RefreshConfigWindow(mpLAYER_AXIS);
 }
 
 void mpWindow::OnPaint(wxPaintEvent &WXUNUSED(event))
 {
-#ifdef _WIN32
-  wxPaintDC dc(this);
-#else
-  wxAutoBufferedPaintDC dc(this);
-#endif
+  if (m_enableBufferedPaintDC)
+  {
+    wxAutoBufferedPaintDC dc(this);
+    Paint(dc);
+  }
+  else
+  {
+    wxPaintDC dc(this);
+    Paint(dc);
+  }
+}
+
+void mpWindow::Paint(wxDC& dc)
+{
   int h, w;
-  dc.GetSize(&w, &h);   // This is the size of the visible area only!
+  GetClientSize(&w, &h);
   if (w == 0 || h == 0)
     return;
   SetScreen(w, h);
-  wxMemoryDC* m_buff_dc = NULL;
 
 #ifdef MATHPLOT_DO_LOGGING
   {
@@ -4069,69 +4292,70 @@ void mpWindow::OnPaint(wxPaintEvent &WXUNUSED(event))
   }
 #endif
 
-  m_repainting = true;
-
-  // Selects direct or buffered draw:
-  wxDC* trgDc;
-
-  // J.L.Blanco @ Aug 2007: Added double buffer support
-  if (m_enableDoubleBuffer)
+  // Recreate Bitmap if sizes have changed
+  if (m_last_lx != m_scrX || m_last_ly != m_scrY)
   {
-    // Recreate Bitmap if sizes have changed
-    if (m_last_lx != m_scrX || m_last_ly != m_scrY)
-    {
-      DeleteAndNull(m_buff_bmp);
-      m_buff_bmp = new wxBitmap(m_scrX, m_scrY, dc);
-      m_last_lx = m_scrX;
-      m_last_ly = m_scrY;
-    }
-    m_buff_dc = new wxMemoryDC(&dc);
-    m_buff_dc->SelectObject(*m_buff_bmp);
-    trgDc = m_buff_dc;
+    m_cacheDirty = true;
+    m_buff_bmp = wxBitmap(m_scrX, m_scrY);
+    m_last_lx = m_scrX;
+    m_last_ly = m_scrY;
   }
-  else
+  m_buff_dc.SelectObject(m_buff_bmp);
+
+  // Only re-draw every layer if cached buffer is considered dirty, i.e. if major
+  // part of the plot has changed via e.g. zoom, resize or paning operation
+  if (m_cacheDirty)
   {
-    trgDc = &dc;
-  }
+    m_cacheDirty = false;
+    // Draw background
+    // Clean the screen
+    m_buff_dc.Clear();
+    if (m_drawBox)
+      m_buff_dc.SetPen(*wxBLACK);
+    else
+      m_buff_dc.SetPen(*wxTRANSPARENT_PEN);
+    m_buff_dc.SetBrush(*wxWHITE_BRUSH);
+    m_buff_dc.DrawRectangle(0, 0, m_scrX, m_scrY);
 
-  // Draw background
-  // Clean the screen
-  trgDc->Clear();
-  if (m_drawBox)
-    trgDc->SetPen(*wxBLACK);
-  else
-    trgDc->SetPen(*wxTRANSPARENT_PEN);
-  trgDc->SetBrush(*wxWHITE_BRUSH);
-  trgDc->DrawRectangle(0, 0, m_scrX, m_scrY);
+    // Draw background plot area
+    m_buff_dc.SetBrush(m_bgColour);
+    m_buff_dc.SetTextForeground(m_fgColour);
+    m_buff_dc.DrawRectangle(m_PlotArea);
 
-  // Draw background plot area
-  trgDc->SetBrush(m_bgColour);
-  trgDc->SetTextForeground(m_fgColour);
-  trgDc->DrawRectangle(m_PlotArea);
-
-  // Draw all the layers in Z order
-  for (int i = mpZIndex_BACKGROUND; i < mpZIndex_END; i++)
-  {
-    for (mpLayerList::iterator it = m_layers.begin(); it != m_layers.end(); it++)
-    {
-      if ((*it)->GetZIndex() == i)
-        (*it)->Plot(*trgDc, *this);
-    }
+    // Draw all the layers in Z order
+    for (auto& layer : m_layers)
+      layer->Plot(m_buff_dc, *this);
   }
 
-  // If doublebuffer, draw now to the window:
-  if (m_enableDoubleBuffer)
+  dc.Blit(0, 0, m_scrX, m_scrY, &m_buff_dc, 0, 0, wxCOPY);
+  m_buff_dc.SelectObject(wxNullBitmap);
+
+  // Overlays shall be drawn directly to dc after the cached m_buff_bmp has been blitted,
+  // so that they can be drawn at a much higher frequency without having to clear the plot
+  RenderOverlays(dc);
+}
+
+void mpWindow::RenderOverlays(wxDC& dc)
+{
+  // Draw all fast moving stuff that needs to be updated as soon as the mouse is moved:
+  // Magnet cross of the mouse, zooming box, info coordinates and legend
+  if (m_magnet.IsShown())
+    m_magnet.DrawCross(dc, *this);
+
+  if (m_boxZoomActive)
+    DrawBoxZoom(dc);
+
+  if (m_InfoCoords && m_InfoCoords->IsShown())
+    m_InfoCoords->DrawContent(dc, *this);
+
+  if (m_InfoLegend)
   {
-    dc.Blit(0, 0, m_scrX, m_scrY, trgDc, 0, 0, wxCOPY);
-    m_buff_dc->SelectObject(wxNullBitmap);
-    delete m_buff_dc;
+    if (m_InfoLegend->IsDraggedSeriesShown())
+      m_InfoLegend->DrawDraggedSeries(dc, *this);
+
+    if (m_InfoLegend == m_movingInfoLayer)
+      m_InfoLegend->DrawContent(dc, *this);
   }
-
-  // We redraw the cross if necessary. We pass the mouse position if we do a pan operation.
-  if (m_magnetize)
-    m_magnet.UpdatePlot(dc, m_mouseRClick);
-
-  m_repainting = false;
 }
 
 void mpWindow::SetMPScrollbars(bool status)
@@ -4207,8 +4431,9 @@ bool mpWindow::UpdateBBox()
       {
         mpFY* fy = (mpFY*)(f);
         int yAxisID = fy->GetYAxisID();
-        bound.Update(fy->GetX(m_AxisDataYList[yAxisID].axis->GetMinScale()),
-            fy->GetX(m_AxisDataYList[yAxisID].axis->GetMaxScale()));
+        if (m_AxisDataYList[yAxisID].axis)
+          bound.Update(fy->GetX(m_AxisDataYList[yAxisID].axis->GetMinScale()),
+              fy->GetX(m_AxisDataYList[yAxisID].axis->GetMaxScale()));
       }
 
       if (firstX)
@@ -4291,6 +4516,20 @@ bool mpWindow::UpdateBBox()
   return true;
 }
 
+void mpWindow::DrawBoxZoom(wxDC& dc)
+{
+  wxRect newRect(m_mouseLClick, m_mousePos);
+
+  // Normalize
+  if (newRect.width < 0) { newRect.x += newRect.width; newRect.width = abs(newRect.width); }
+  if (newRect.height < 0) { newRect.y += newRect.height; newRect.height = abs(newRect.height); }
+
+  wxPen pen(*wxBLACK, 1, wxPENSTYLE_DOT);
+  dc.SetPen(pen);
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
+  dc.DrawRectangle(newRect);
+}
+
 void mpWindow::UpdateAll()
 {
   // Make sure axis width is up to date
@@ -4302,13 +4541,6 @@ void mpWindow::UpdateAll()
 
   // And margins, which depends on axis width
   UpdateMargins();
-
-  if (m_magnetize)
-  {
-    // To be sure to skip events that may occur before OnPaint
-    m_repainting = true;
-    m_magnet.SaveDrawState();
-  }
 
   if (UpdateBBox())
   {
@@ -4347,6 +4579,8 @@ void mpWindow::UpdateAll()
     }
   }
 
+  // Indicate that the cached buffer need to be re-drawn since major part of the plot has changed
+  m_cacheDirty = true;
   Refresh();
 
   CheckAndReportDesiredBoundsChanges();
@@ -4713,6 +4947,27 @@ void mpWindow::RefreshLegend(void)
     legend->SetNeedUpdate();
 }
 
+bool mpWindow::IsYAxisUsedByFunction(int yAxisID, int *position)
+{
+  // Search if there is at least one series that use this Y-Axis
+  int pos = 0;
+  for (mpLayer* layer : m_layers)
+  {
+    int subType;
+    if (layer->IsLayerType(mpLAYER_PLOT, &subType))
+    {
+      mpFunction* function = dynamic_cast<mpFunction*>(layer);
+      if (function && (function->GetYAxisID() == yAxisID))
+      {
+        *position = pos;
+        return true;
+      }
+      pos++;
+    }
+  }
+  return false;
+}
+
 bool mpWindow::IsYAxisUsed(int yAxisID)
 {
   for (mpLayer* layer : m_layers)
@@ -4782,14 +5037,14 @@ mpOptional_int mpWindow::IsInsideYAxis(const wxPoint &point)
 
 mpInfoLayer* mpWindow::IsInsideInfoLayer(const wxPoint &point)
 {
-  for (mpLayerList::iterator it = m_layers.begin(); it != m_layers.end(); it++)
+  for (mpLayer* layer : m_layers)
   {
 #ifdef MATHPLOT_DO_LOGGING
     wxLogMessage(_T("mpWindow::IsInsideInfoLayer() examinining layer = %p"), (*it));
 #endif // MATHPLOT_DO_LOGGING
-    if ((*it)->GetLayerType() == mpLAYER_INFO)
+    if (layer->GetLayerType() == mpLAYER_INFO)
     {
-      mpInfoLayer* tmpLyr = (mpInfoLayer*)(*it);
+      mpInfoLayer* tmpLyr = (mpInfoLayer*)layer;
 #ifdef MATHPLOT_DO_LOGGING
       wxLogMessage(_T("mpWindow::IsInsideInfoLayer() layer = %p"), (*it));
 #endif // MATHPLOT_DO_LOGGING
@@ -4799,7 +5054,7 @@ mpInfoLayer* mpWindow::IsInsideInfoLayer(const wxPoint &point)
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 void mpWindow::SetLayerVisible(const wxString &name, bool viewable)
@@ -5090,7 +5345,7 @@ void mpWindow::SetColourTheme(const wxColour &bgColour, const wxColour &drawColo
     {
       pen.SetColour(axesColour);
     }
-    if ((type == mpLAYER_INFO) || (type == mpLAYER_TEXT))
+    else if ((type == mpLAYER_INFO) || (type == mpLAYER_TEXT))
     {
       pen.SetColour(drawColour);
     }
@@ -5099,10 +5354,9 @@ void mpWindow::SetColourTheme(const wxColour &bgColour, const wxColour &drawColo
 }
 
 #ifdef ENABLE_MP_CONFIG
-void mpWindow::RefreshConfigWindow()
+void mpWindow::OnConfiguration(wxCommandEvent &WXUNUSED(event))
 {
-  if (m_configWindow)
-    m_configWindow->Initialize(mpcpiGeneral);
+  OpenConfigWindow();
 }
 
 MathPlotConfigDialog* mpWindow::GetConfigWindow(bool Create)
@@ -5112,21 +5366,60 @@ MathPlotConfigDialog* mpWindow::GetConfigWindow(bool Create)
 
   return m_configWindow;
 }
+#endif // ENABLE_MP_CONFIG
 
-void mpWindow::OpenConfiguration()
+void mpWindow::RefreshConfigWindow(mpLayerType layerType, int param, bool show)
 {
+#ifdef ENABLE_MP_CONFIG
+  if (m_configWindow == NULL)
+    m_configWindow = new MathPlotConfigDialog(this);
+
+  switch (layerType)
+  {
+    case mpLAYER_AXIS:
+      m_configWindow->Initialize(mpcpiAxis);
+      break;
+    case mpLAYER_PLOT:
+      m_configWindow->Initialize(mpcpiSeries);
+      m_configWindow->SelectChoiceSerie(param);
+      break;
+    case mpLAYER_INFO:
+      if (param == mpiLegend)
+        m_configWindow->Initialize(mpcpiLegend);
+      else if (param == mpiCoords)
+        m_configWindow->Initialize(mpcpiGeneral);
+      break;
+    case mpLAYER_UNDEF:
+    default:
+      m_configWindow->Initialize(mpcpiGeneral);
+  }
+
+  if (show)
+    m_configWindow->Show();
+#else
+  (void) layerType;
+  (void) param;
+  (void) show;
+#endif // ENABLE_MP_CONFIG
+}
+
+void mpWindow::OpenConfigWindow()
+{
+#ifdef ENABLE_MP_CONFIG
   if (m_configWindow == NULL)
     m_configWindow = new MathPlotConfigDialog(this);
 
   m_configWindow->Initialize();
   m_configWindow->Show();
+#endif // ENABLE_MP_CONFIG
 }
 
 void mpWindow::DeleteConfigWindow(void)
 {
+#ifdef ENABLE_MP_CONFIG
   DeleteAndNull(m_configWindow);
-}
 #endif // ENABLE_MP_CONFIG
+}
 
 //-----------------------------------------------------------------------------
 // mpText - provided by Val Greene
@@ -5165,7 +5458,7 @@ void mpText::DoPlot(wxDC &dc, mpWindow &w)
 
   switch (m_location)
   {
-    case mpMarginNone:
+    case mpMarginUser:
     {
       px = m_offsetx * w.GetPlotWidth() / 100;
       py = m_offsety * w.GetPlotHeight() / 100;
@@ -5803,59 +6096,11 @@ void mpBitmapLayer::DoPlot(wxDC &dc, mpWindow &w)
 // mpMagnet
 //-----------------------------------------------------------------------------
 
-void mpMagnet::Plot(wxClientDC &dc, const wxPoint &mousePos)
+void mpMagnet::DrawCross(wxDC &dc, mpWindow &w)
 {
-  if (m_domain.Contains(mousePos))
-  {
-    if ((m_mousePosition.x != mousePos.x) || (m_mousePosition.y != mousePos.y))
-    {
-      // Not draw the cross when we just right click
-      if (m_rightClick)
-      {
-        m_rightClick = false;
-      }
-      else
-      {
-        m_mousePosition = mousePos;
-        DrawCross(dc);
-        m_IsDrawn = true;
-      }
-    }
-  }
-}
-
-void mpMagnet::ClearPlot(wxClientDC &dc)
-{
-  if (m_IsDrawn)
-  {
-    DrawCross(dc);
-    m_IsDrawn = false;
-  }
-  // In any cases
-  m_IsWasDrawn = false;
-}
-
-void mpMagnet::UpdatePlot(wxClientDC &dc, const wxPoint &mousePos)
-{
-  if (m_IsWasDrawn)
-  {
-    // Mouse position has changed when pan operation
-    if (m_rightClick)
-      m_mousePosition = mousePos;
-    DrawCross(dc);
-    m_IsDrawn = true;
-    m_IsWasDrawn = false;
-  }
-}
-
-void mpMagnet::DrawCross(wxClientDC &dc) const
-{
-  // Note : wxINVERT not work on Linux GTK
   dc.SetPen(*wxBLACK_PEN);
-  dc.SetLogicalFunction(wxINVERT);
-  dc.DrawLine(m_mousePosition.x, m_plot_size.y, m_mousePosition.x, m_plot_size.height);
-  dc.DrawLine(m_plot_size.x, m_mousePosition.y, m_plot_size.width, m_mousePosition.y);
-  dc.SetLogicalFunction(wxCOPY);
+  dc.DrawLine(w.GetMousePosition().x, m_domain.GetTop(), w.GetMousePosition().x, m_domain.GetBottom());
+  dc.DrawLine(m_domain.GetLeft(), w.GetMousePosition().y, m_domain.GetRight(), w.GetMousePosition().y);
 }
 
 #ifdef ENABLE_MP_NAMESPACE
