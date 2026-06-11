@@ -19,7 +19,7 @@ enum
     LABEL_FM1,
     LABEL_FM2,
     LABEL_FM3,
-
+    BUTTON_ADD_NOISE,
 };
 
 class MyApp final : public wxApp
@@ -39,6 +39,7 @@ private:
     void OnAbout(wxCommandEvent& event);
     void OnPlot(wxCommandEvent& event);
     void OnSliderChange(wxCommandEvent& event);
+    void OnCheckBoxChange(wxCommandEvent& event);
     void CleanAllPlots(void);
     mpWindow *m_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *mf_plot = new mpWindow(this, -1, wxDefaultPosition);
@@ -47,10 +48,12 @@ private:
     wxSlider *fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 1, 2000);
     wxSlider *fm2_slider =  new wxSlider(this, SLIDER_FM2, 200, 1, 2000);
     wxSlider *fm3_slider = new wxSlider(this, SLIDER_FM3, 2000, 1, 2000);
+    wxCheckBox *addNoise = new wxCheckBox(this, BUTTON_ADD_NOISE, "Add Noise?");
     double fm1 = 20;
     double fm2 = 200;
     double fm3 = 2000;
     double fc = 10000;
+    bool add_noise = false;
 };
 
 
@@ -67,27 +70,29 @@ MyFrame::MyFrame()
     : wxFrame(NULL, wxID_ANY, "Block1 GUI")
 {
     wxBoxSizer *main_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxGridSizer *plots_sizer = new wxGridSizer(2, 2, 0 ,0);
+    wxGridSizer *plots_sizer = new wxGridSizer(2, 2, 10 ,0);
     wxBoxSizer *controls_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate and Plot");
     wxButton *saveButton = new wxButton(this, BUTTON_plot, "Save result to file");
-    controls_sizer->Add(plotButton, 0, wxSHAPED | wxCENTER, 1);
-    controls_sizer->Add(fm1_slider, 0, wxSHAPED | wxCENTER, 1);
-    controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 1);
-    controls_sizer->Add(fm3_slider, 0, wxSHAPED | wxCENTER, 1);
-    controls_sizer->Add(saveButton, 0, wxSHAPED | wxCENTER, 1);
-    plots_sizer->Add(m_plot, 1, wxSHAPED | wxCENTER, 2);
-    plots_sizer->Add(mf_plot, 1, wxSHAPED | wxCENTER, 2);
-    plots_sizer->Add(s_plot, 1, wxSHAPED | wxCENTER, 2);
-    plots_sizer->Add(sf_plot, 1, wxSHAPED | wxCENTER, 2);
-    main_sizer->Add(controls_sizer, 3, wxEXPAND | wxCENTER, 2);
-    main_sizer->Add(plots_sizer, 9, wxEXPAND | wxCENTER, 2);
+    controls_sizer->Add(plotButton, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(fm1_slider, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(fm3_slider, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(saveButton, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(addNoise, 0, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(m_plot, 1, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(mf_plot, 1, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(s_plot, 1, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(sf_plot, 1, wxSHAPED | wxCENTER, 0);
+    main_sizer->Add(controls_sizer, 1, wxEXPAND | wxCENTER, 0);
+    main_sizer->Add(plots_sizer, 10, wxEXPAND | wxCENTER, 0);
     SetSizer(main_sizer); 
     SetAutoLayout(TRUE);
 
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
+    Bind(wxEVT_CHECKBOX, &MyFrame::OnCheckBoxChange, this, BUTTON_ADD_NOISE);
     Bind(wxEVT_SLIDER, &MyFrame::OnSliderChange, this);
 }
 
@@ -143,6 +148,7 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     mf_plot->Fit();
 
     m1.modulate();
+    if(this->add_noise) m1.add_noise();
 
     std::vector<double> x3;
     std::vector<double> y3;
@@ -206,4 +212,8 @@ void MyFrame::CleanAllPlots() {
     mf_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
     s_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
     sf_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
+}
+
+void MyFrame::OnCheckBoxChange(wxCommandEvent &e) {
+    this->add_noise = this->addNoise->GetValue();
 }

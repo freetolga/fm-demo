@@ -1,4 +1,5 @@
 #include <cmath>
+#include <random>
 #include <valarray>
 #include <iostream>
 
@@ -80,8 +81,8 @@ void message_signal::take_fft_message() {
 
     // shift the fft
     for(int i = 0; i < freq.size()/2; ++i) {
-        original_f[freq.size()/2 - i] = original_f[i];
-        original_f[freq.size()/2 + i] = original_f[freq.size() - i];
+        original_f[freq.size()/2 + i] = original_f[i];
+        original_f[freq.size()/2 - i] = original_f[freq.size() - i];
     }
 
 }
@@ -97,5 +98,15 @@ void message_signal::take_fft_modulated() {
     for(int i = 0; i < freq.size()/2; ++i) {
         modulated_f[freq.size()/2 - i] = modulated_f[i];
         modulated_f[freq.size()/2 + i] = modulated_f[freq.size() - i];
+    }
+}
+
+void message_signal::add_noise() {
+    double mean = 0.0;
+    double stddef = 0.1;
+    std::default_random_engine rng(std::random_device{}());
+    std::normal_distribution<double> dist {mean, stddef};
+    for(double &d: modulated) {
+        d += dist(rng);
     }
 }

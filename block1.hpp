@@ -25,4 +25,5 @@ public:
     void modulate();
     void take_fft_message();
     void take_fft_modulated();
+    void add_noise();
 };
