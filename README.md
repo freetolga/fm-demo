@@ -21,3 +21,4 @@ this project was made without AI agents
 - my professors for teaching me signals so well
 - low level game dev for the amazing advice and code review
 - stackoverflow and w3schools for teaching me c++ basics
+- https://github.com/GitHubLionel/wxMathPlot for well working wxmathplot fork
