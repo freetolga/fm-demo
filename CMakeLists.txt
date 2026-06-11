@@ -6,7 +6,7 @@ add_subdirectory(third_party/wxMathPlot)
 add_subdirectory(third_party/portaudio)
 
 # no dependencies on math only code
-add_library(block1 block1.cpp)
+add_library(block1 block1.cpp fft.cpp)
 
 add_executable(gui gui.cpp)
 target_link_libraries(gui PUBLIC wx::core wx::base block1 wxmathplot)

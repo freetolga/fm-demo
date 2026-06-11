@@ -1,5 +1,5 @@
-#include <cmath>
 #include <valarray>
+#include <complex>
 
 struct message_signal {
 public:
@@ -10,6 +10,8 @@ public:
     // original and modulated signal
     std::valarray<double> original;
     std::valarray<double> modulated;
+    std::valarray<std::complex<double>> original_f;
+    std::valarray<std::complex<double>> modulated_f;
     // constant carrier frequency
     double fc = 0;
     // constant sampling frequency
@@ -21,4 +23,6 @@ public:
     message_signal(double fm1, double fm2, double fm3, double fc, std::valarray<double> time);
     void set_ac(double newac);
     void modulate();
+    void take_fft_message();
+    void take_fft_modulated();
 };

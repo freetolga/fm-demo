@@ -29,7 +29,9 @@ private:
     void OnResize(wxSizeEvent& event);
     void OnSliderChange(wxScrollEvent& event);
     mpWindow *m_plot = new mpWindow(this, -1, wxDefaultPosition);
-    mpWindow *f_plot = new mpWindow(this, -1, wxDefaultPosition);
+    mpWindow *mf_plot = new mpWindow(this, -1, wxDefaultPosition);
+    mpWindow *s_plot = new mpWindow(this, -1, wxDefaultPosition);
+    mpWindow *sf_plot = new mpWindow(this, -1, wxDefaultPosition);
     wxSlider *fm1_slider, *fm2_slider, *fm3_slider;
     double fm1 = 20;
     double fm2 = 200;
@@ -79,10 +81,12 @@ MyFrame::MyFrame()
     controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 1);
     controls_sizer->Add(fm3_slider, 0, wxSHAPED | wxCENTER, 1);
     controls_sizer->Add(saveButton, 0, wxSHAPED | wxCENTER, 1);
-    plots_sizer->Add(m_plot, 1, wxSHAPED | wxCENTER, 0);
-    plots_sizer->Add(f_plot, 1, wxEXPAND | wxCENTER, 0);
-    main_sizer->Add(controls_sizer, 3, wxEXPAND | wxCENTER, 0);
-    main_sizer->Add(plots_sizer, 9, wxEXPAND | wxCENTER, 0);
+    plots_sizer->Add(m_plot, 1, wxSHAPED | wxCENTER, 2);
+    plots_sizer->Add(mf_plot, 1, wxSHAPED | wxCENTER, 2);
+    plots_sizer->Add(s_plot, 1, wxSHAPED | wxCENTER, 2);
+    plots_sizer->Add(sf_plot, 1, wxSHAPED | wxCENTER, 2);
+    main_sizer->Add(controls_sizer, 3, wxEXPAND | wxCENTER, 2);
+    main_sizer->Add(plots_sizer, 9, wxEXPAND | wxCENTER, 2);
     SetSizer(main_sizer); 
     SetAutoLayout(TRUE);
 
@@ -115,7 +119,7 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     for(double d: m1.original) {
         y.push_back(d);
     }
-    mpFXYVector *vectorLayer1 = new mpFXYVector("Vector");
+    mpFXYVector *vectorLayer1 = new mpFXYVector("Original signal(time)");
     vectorLayer1->SetData(std::move(x), std::move(y));
     vectorLayer1->SetContinuity(true);
     vectorLayer1->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
@@ -124,30 +128,83 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     m_plot->AddLayer(vectorLayer1);
     m_plot->Fit();
 
-    m1.modulate();
+    m1.take_fft_message();
+
     std::vector<double> x2;
     std::vector<double> y2;
-    for(double d: m1.time) {
+    // sidenote: how for-range works in c++11 and later
+    // for(typename iteration_variable : iterable  )
+    // read as: for(typename variable in iterable)
+    // : means "in keyword" in python
+    for(double d: m1.freq) {
         x2.push_back(d);
     }
-    for(double d: m1.modulated) {
-        y2.push_back(d);
+    for(std::complex<double> d: m1.original_f) {
+        y2.push_back(abs(d));
     }
 
-    mpFXYVector *vectorLayer2 = new mpFXYVector("Vector");
+
+    mpFXYVector *vectorLayer2 = new mpFXYVector("Original signal(freq)");
     vectorLayer2->SetData(std::move(x2), std::move(y2));
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer2->SetDrawOutsideMargins(true);
-    f_plot->DelLayer(vectorLayer2);
-    f_plot->AddLayer(vectorLayer2);
-    f_plot->Fit();
+    mf_plot->DelLayer(vectorLayer2);
+    mf_plot->AddLayer(vectorLayer2);
+    mf_plot->Fit();
+
+    m1.modulate();
+
+    std::vector<double> x3;
+    std::vector<double> y3;
+    for(double d: m1.time) {
+        x3.push_back(d);
+    }
+    for(double d: m1.modulated) {
+        y3.push_back(d);
+    }
+
+
+    mpFXYVector *vectorLayer3 = new mpFXYVector("Modulated signal(time)");
+    vectorLayer2->SetData(std::move(x3), std::move(y3));
+    vectorLayer2->SetContinuity(true);
+    vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+    vectorLayer2->SetDrawOutsideMargins(true);
+    s_plot->DelLayer(vectorLayer3);
+    s_plot->AddLayer(vectorLayer3);
+    s_plot->Fit();
+
+    m1.take_fft_modulated();
+
+    std::vector<double> x4;
+    std::vector<double> y4;
+    for(double d: m1.freq) {
+        x4.push_back(d);
+    }
+    for(auto d: m1.modulated_f) {
+        y4.push_back(abs(d));
+    }
+
+
+
+    mpFXYVector *vectorLayer4 = new mpFXYVector("Modulated signal(freq)");
+    vectorLayer2->SetData(std::move(x4), std::move(y4));
+    vectorLayer2->SetContinuity(true);
+    vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+    vectorLayer2->SetDrawOutsideMargins(true);
+    sf_plot->DelLayer(vectorLayer4);
+    sf_plot->AddLayer(vectorLayer4);
+    sf_plot->Fit();
+
+
 }
 
 void MyFrame::OnResize(wxSizeEvent& event) {
     this->Refresh();
     m_plot->UpdateAll();
-    f_plot->UpdateAll();
+    mf_plot->UpdateAll();
+    s_plot->UpdateAll();
+    sf_plot->UpdateAll();
 }
 
 void MyFrame::OnSliderChange(wxScrollEvent& event) {

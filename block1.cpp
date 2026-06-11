@@ -2,8 +2,9 @@
 #include <valarray>
 
 #include "block1.h"
+#include "fft.h"
 
-constexpr double pi = 3.14159265358979;
+constexpr double pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
 
 
 // utility functions
@@ -24,14 +25,15 @@ message_signal::message_signal(double fm1, double fm2, double fm3, double fc, st
         // calculate frequency axis based on given data
         freq.resize(time.size(), 0);
         for(int i = 0; i < freq.size(); ++i) {
-            freq[i] = -time.size()/2 + i;
+            freq[i] = -time.size()/2.0 + i;
         }
         // normalize this new vector
         freq*(-fs/time.size());
 
         original.resize(time.size(), 0);
         modulated.resize(time.size(), 0);
-
+        original_f.resize(freq.size(), 0 + 0j);
+        modulated_f.resize(freq.size(), 0 + 0j);
         // set the original signal
         original = cos(2*pi*fm1*time) + cos(2*pi*fm2*time) + cos(2*pi*fm3*time);
 }
@@ -52,3 +54,20 @@ void message_signal::modulate() {
     modulated = cos(2*pi*fc*time + inst_freq);
 }
 
+void message_signal::take_fft_message() {
+    // take imaginary part as 0
+    for(int i = 0; i < time.size(); ++i) {
+        original_f[i] = std::complex<double>(original[i],0);
+    }
+    // take the fft
+    fft(original_f);
+}
+
+void message_signal::take_fft_modulated() {
+    // take imaginary part as 0
+    for(int i = 0; i < time.size(); ++i) {
+        modulated_f[i] = std::complex<double>(modulated[i],0);
+    }
+    // take the fft
+    fft(modulated_f);
+}
