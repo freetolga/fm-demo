@@ -38,11 +38,8 @@
     #include "wx/wx.h"
 #endif // WX_PRECOMP
 
-#include <ctype.h>
-
 #include "wx/tokenzr.h"
 #include "wx/mstream.h"
-#include "wx/image.h"
 #include "wx/vlbox.h"
 #include "wx/stack.h"
 #if wxUSE_FFILE
@@ -168,11 +165,6 @@ wxEND_EVENT_TABLE()
 wxIMPLEMENT_CLASS(wxStyledTextCtrl, wxControl);
 wxIMPLEMENT_DYNAMIC_CLASS(wxStyledTextEvent, wxCommandEvent);
 
-#ifdef LINK_LEXERS
-// forces the linking of the lexer modules
-int Scintilla_LinkLexers();
-#endif
-
 //----------------------------------------------------------------------
 // Constructor and Destructor
 
@@ -183,7 +175,7 @@ wxStyledTextCtrl::wxStyledTextCtrl(wxWindow *parent,
                                    long style,
                                    const wxString& name)
 {
-    m_swx = NULL;
+    m_swx = nullptr;
     Create(parent, id, pos, size, style, name);
 }
 
@@ -213,18 +205,13 @@ bool wxStyledTextCtrl::Create(wxWindow *parent,
     if ( !created )
         return false;
 
-#ifdef LINK_LEXERS
-    Scintilla_LinkLexers();
-#endif
     m_swx = new ScintillaWX(this);
     m_stopWatch.Start();
     m_lastKeyDownConsumed = false;
-    m_vScrollBar = NULL;
-    m_hScrollBar = NULL;
-#if wxUSE_UNICODE
+    m_vScrollBar = nullptr;
+    m_hScrollBar = nullptr;
     // Put Scintilla into unicode (UTF-8) mode
     SetCodePage(wxSTC_CP_UTF8);
-#endif
 
     SetInitialSize(size);
 
@@ -249,6 +236,22 @@ bool wxStyledTextCtrl::Create(wxWindow *parent,
     SetFontQuality(wxSTC_EFF_QUALITY_DEFAULT);
 #endif
 
+    // Use colours appropriate for the current system colour theme.
+    auto attr = wxTextCtrl::GetClassDefaultAttributes();
+    StyleSetForeground(wxSTC_STYLE_DEFAULT, attr.colFg);
+    StyleSetBackground(wxSTC_STYLE_DEFAULT, attr.colBg);
+    SetCaretForeground(attr.colFg);
+
+    // We also need to set this one because its foreground is hardcoded as
+    // black in Scintilla sources.
+    StyleSetForeground(wxSTC_STYLE_LINENUMBER, attr.colFg);
+
+    // And foreground for this one is hardcoded as white.
+    StyleSetForeground(wxSTC_STYLE_CALLTIP, attr.colFg);
+
+    SetSelForeground(true, wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
+    SetSelBackground(true, wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+
     return true;
 }
 
@@ -270,7 +273,7 @@ wxIntPtr wxStyledTextCtrl::SendMsg(int msg, wxUIntPtr wp, wxIntPtr lp) const
 // Set the vertical scrollbar to use instead of the one that's built-in.
 void wxStyledTextCtrl::SetVScrollBar(wxScrollBar* bar)  {
     m_vScrollBar = bar;
-    if (bar != NULL) {
+    if (bar != nullptr) {
         // ensure that the built-in scrollbar is not visible
         SetScrollbar(wxVERTICAL, 0, 0, 0);
     }
@@ -280,7 +283,7 @@ void wxStyledTextCtrl::SetVScrollBar(wxScrollBar* bar)  {
 // Set the horizontal scrollbar to use instead of the one that's built-in.
 void wxStyledTextCtrl::SetHScrollBar(wxScrollBar* bar)  {
     m_hScrollBar = bar;
-    if (bar != NULL) {
+    if (bar != nullptr) {
         // ensure that the built-in scrollbar is not visible
         SetScrollbar(wxHORIZONTAL, 0, 0, 0);
     }
@@ -418,6 +421,18 @@ int wxStyledTextCtrl::MarkerLineFromHandle(int markerHandle)
 void wxStyledTextCtrl::MarkerDeleteHandle(int markerHandle)
 {
     SendMsg(SCI_MARKERDELETEHANDLE, markerHandle, 0);
+}
+
+// Retrieve marker handles of a line
+int wxStyledTextCtrl::MarkerHandleFromLine(int line, int which)
+{
+    return SendMsg(SCI_MARKERHANDLEFROMLINE, line, which);
+}
+
+// Retrieve marker number of a marker handle
+int wxStyledTextCtrl::MarkerNumberFromLine(int line, int which)
+{
+    return SendMsg(SCI_MARKERNUMBERFROMLINE, line, which);
 }
 
 // Is undo history being collected?
@@ -558,6 +573,18 @@ int wxStyledTextCtrl::GetTabWidth() const
     return SendMsg(SCI_GETTABWIDTH, 0, 0);
 }
 
+// Set the minimum visual width of a tab.
+void wxStyledTextCtrl::SetTabMinimumWidth(int pixels)
+{
+    SendMsg(SCI_SETTABMINIMUMWIDTH, pixels, 0);
+}
+
+// Get the minimum visual width of a tab.
+int wxStyledTextCtrl::GetTabMinimumWidth() const
+{
+    return SendMsg(SCI_GETTABMINIMUMWIDTH, 0, 0);
+}
+
 // Clear explicit tabstops on a line.
 void wxStyledTextCtrl::ClearTabStops(int line)
 {
@@ -578,13 +605,8 @@ int wxStyledTextCtrl::GetNextTabStop(int line, int x)
 
 // Set the code page used to interpret the bytes of the document as characters.
 void wxStyledTextCtrl::SetCodePage(int codePage) {
-#if wxUSE_UNICODE
     wxASSERT_MSG(codePage == wxSTC_CP_UTF8,
-                 wxT("Only wxSTC_CP_UTF8 may be used when wxUSE_UNICODE is on."));
-#else
-    wxASSERT_MSG(codePage != wxSTC_CP_UTF8,
-                 wxT("wxSTC_CP_UTF8 may not be used when wxUSE_UNICODE is off."));
-#endif
+                 wxT("Only wxSTC_CP_UTF8 may be used."));
     SendMsg(SCI_SETCODEPAGE, codePage);
 }
 
@@ -594,7 +616,7 @@ int wxStyledTextCtrl::GetIMEInteraction() const
     return SendMsg(SCI_GETIMEINTERACTION, 0, 0);
 }
 
-// Choose to display the IME in a winow or inline.
+// Choose to display the IME in a window or inline.
 void wxStyledTextCtrl::SetIMEInteraction(int imeInteraction)
 {
     SendMsg(SCI_SETIMEINTERACTION, imeInteraction, 0);
@@ -611,35 +633,53 @@ void wxStyledTextCtrl::MarkerDefine(int markerNumber, int markerSymbol,
                     MarkerSetForeground(markerNumber, foreground);
                 if (background.IsOk())
                     MarkerSetBackground(markerNumber, background);
+
+                if ( m_mirrorCtrl )
+                    m_mirrorCtrl->MarkerDefine(markerNumber, markerSymbol, foreground, background);
 }
 
 // Set the foreground colour used for a particular marker number.
 void wxStyledTextCtrl::MarkerSetForeground(int markerNumber, const wxColour& fore)
 {
     SendMsg(SCI_MARKERSETFORE, markerNumber, wxColourAsLong(fore));
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerSetForeground(markerNumber, fore);
 }
 
 // Set the background colour used for a particular marker number.
 void wxStyledTextCtrl::MarkerSetBackground(int markerNumber, const wxColour& back)
 {
     SendMsg(SCI_MARKERSETBACK, markerNumber, wxColourAsLong(back));
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerSetBackground(markerNumber, back);
 }
 
 // Set the background colour used for a particular marker number when its folding block is selected.
 void wxStyledTextCtrl::MarkerSetBackgroundSelected(int markerNumber, const wxColour& back)
 {
     SendMsg(SCI_MARKERSETBACKSELECTED, markerNumber, wxColourAsLong(back));
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerSetBackgroundSelected(markerNumber, back);
 }
 
 // Enable/disable highlight for current folding block (smallest one that contains the caret)
 void wxStyledTextCtrl::MarkerEnableHighlight(bool enabled)
 {
     SendMsg(SCI_MARKERENABLEHIGHLIGHT, enabled, 0);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerEnableHighlight(enabled);
 }
 
 // Add a marker to a line, returning an ID which can be used to find or delete the marker.
 int wxStyledTextCtrl::MarkerAdd(int line, int markerNumber)
 {
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerAdd(line, markerNumber);
+
     return SendMsg(SCI_MARKERADD, line, markerNumber);
 }
 
@@ -647,12 +687,18 @@ int wxStyledTextCtrl::MarkerAdd(int line, int markerNumber)
 void wxStyledTextCtrl::MarkerDelete(int line, int markerNumber)
 {
     SendMsg(SCI_MARKERDELETE, line, markerNumber);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerDelete(line, markerNumber);
 }
 
 // Delete all markers with a particular number from all lines.
 void wxStyledTextCtrl::MarkerDeleteAll(int markerNumber)
 {
     SendMsg(SCI_MARKERDELETEALL, markerNumber, 0);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerDeleteAll(markerNumber);
 }
 
 // Get a bit mask of all the markers set on a line.
@@ -676,6 +722,9 @@ int wxStyledTextCtrl::MarkerPrevious(int lineStart, int markerMask)
 
 // Define a marker from a bitmap
 void wxStyledTextCtrl::MarkerDefinePixmap(int markerNumber, const char* const* xpmData) {
+        if ( m_mirrorCtrl )
+            m_mirrorCtrl->MarkerDefinePixmap(markerNumber, xpmData);
+
         SendMsg(SCI_MARKERDEFINEPIXMAP, markerNumber, (sptr_t)xpmData);
 }
 
@@ -683,12 +732,18 @@ void wxStyledTextCtrl::MarkerDefinePixmap(int markerNumber, const char* const* x
 void wxStyledTextCtrl::MarkerAddSet(int line, int markerSet)
 {
     SendMsg(SCI_MARKERADDSET, line, markerSet);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerAddSet(line, markerSet);
 }
 
 // Set the alpha used for a marker that is drawn in the text area, not the margin.
 void wxStyledTextCtrl::MarkerSetAlpha(int markerNumber, int alpha)
 {
     SendMsg(SCI_MARKERSETALPHA, markerNumber, alpha);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->MarkerSetAlpha(markerNumber, alpha);
 }
 
 // Set a margin to be either numeric or symbolic.
@@ -1146,7 +1201,7 @@ void wxStyledTextCtrl::SetWordChars(const wxString& characters)
 // Get the set of characters making up words for when moving or selecting by word.
 wxString wxStyledTextCtrl::GetWordChars() const {
          const int msg = SCI_GETWORDCHARS;
-         int len = SendMsg(msg, 0, (sptr_t)NULL);
+         int len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxMemoryBuffer mbuf(len+1);
@@ -1155,6 +1210,18 @@ wxString wxStyledTextCtrl::GetWordChars() const {
          mbuf.UngetWriteBuf(len);
          mbuf.AppendByte(0);
          return stc2wx(buf);
+}
+
+// Set the number of characters to have directly indexed categories
+void wxStyledTextCtrl::SetCharacterCategoryOptimization(int countCharacters)
+{
+    SendMsg(SCI_SETCHARACTERCATEGORYOPTIMIZATION, countCharacters, 0);
+}
+
+// Get the number of characters to have directly indexed categories
+int wxStyledTextCtrl::GetCharacterCategoryOptimization() const
+{
+    return SendMsg(SCI_GETCHARACTERCATEGORYOPTIMIZATION, 0, 0);
 }
 
 // Start a sequence of actions that is undone and redone as a unit.
@@ -1268,20 +1335,6 @@ int wxStyledTextCtrl::GetWhitespaceSize() const
     return SendMsg(SCI_GETWHITESPACESIZE, 0, 0);
 }
 
-// Divide each styling byte into lexical class bits (default: 5) and indicator
-// bits (default: 3). If a lexer requires more than 32 lexical states, then this
-// is used to expand the possible states.
-void wxStyledTextCtrl::SetStyleBits(int bits)
-{
-    SendMsg(SCI_SETSTYLEBITS, bits, 0);
-}
-
-// Retrieve number of bits in style bytes used to hold the lexical state.
-int wxStyledTextCtrl::GetStyleBits() const
-{
-    return SendMsg(SCI_GETSTYLEBITS, 0, 0);
-}
-
 // Used to hold extra styling information for each line.
 void wxStyledTextCtrl::SetLineState(int line, int state)
 {
@@ -1325,6 +1378,20 @@ void wxStyledTextCtrl::SetCaretLineBackground(const wxColour& back)
     SendMsg(SCI_SETCARETLINEBACK, wxColourAsLong(back), 0);
 }
 
+// Retrieve the caret line frame width.
+// Width = 0 means this option is disabled.
+int wxStyledTextCtrl::GetCaretLineFrame() const
+{
+    return SendMsg(SCI_GETCARETLINEFRAME, 0, 0);
+}
+
+// Display the caret line framed.
+// Set width != 0 to enable this option and width = 0 to disable it.
+void wxStyledTextCtrl::SetCaretLineFrame(int width)
+{
+    SendMsg(SCI_SETCARETLINEFRAME, width, 0);
+}
+
 // Set a style to be changeable or not (read only).
 // Experimental feature, currently buggy.
 void wxStyledTextCtrl::StyleSetChangeable(int style, bool changeable)
@@ -1332,7 +1399,7 @@ void wxStyledTextCtrl::StyleSetChangeable(int style, bool changeable)
     SendMsg(SCI_STYLESETCHANGEABLE, style, changeable);
 }
 
-// Display an auto-completion list.
+// Display a auto-completion list.
 // The lengthEntered parameter indicates how many characters before
 // the caret should be used to provide context.
 void wxStyledTextCtrl::AutoCompShow(int lengthEntered, const wxString& itemList)
@@ -1568,6 +1635,12 @@ int wxStyledTextCtrl::GetColumn(int pos) const
 int wxStyledTextCtrl::CountCharacters(int start, int end)
 {
     return SendMsg(SCI_COUNTCHARACTERS, start, end);
+}
+
+// Count code units between two positions.
+int wxStyledTextCtrl::CountCodeUnits(int start, int end)
+{
+    return SendMsg(SCI_COUNTCODEUNITS, start, end);
 }
 
 // Show or hide the horizontal scroll bar.
@@ -1816,7 +1889,7 @@ wxString wxStyledTextCtrl::GetTextRange(int startPos, int endPos) {
          return stc2wx(buf);
 }
 
-// Draw the selection in normal style or with selection highlighted.
+// Draw the selection either highlighted or in normal (non-highlighted) style.
 void wxStyledTextCtrl::HideSelection(bool hide)
 {
     SendMsg(SCI_HIDESELECTION, hide, 0);
@@ -1991,6 +2064,18 @@ int wxStyledTextCtrl::GetTargetStart() const
     return SendMsg(SCI_GETTARGETSTART, 0, 0);
 }
 
+// Sets the virtual space of the target start
+void wxStyledTextCtrl::SetTargetStartVirtualSpace(int space)
+{
+    SendMsg(SCI_SETTARGETSTARTVIRTUALSPACE, space, 0);
+}
+
+// Get the virtual space of the target start
+int wxStyledTextCtrl::GetTargetStartVirtualSpace() const
+{
+    return SendMsg(SCI_GETTARGETSTARTVIRTUALSPACE, 0, 0);
+}
+
 // Sets the position that ends the target which is used for updating the
 // document without affecting the scroll position.
 void wxStyledTextCtrl::SetTargetEnd(int end)
@@ -2002,6 +2087,18 @@ void wxStyledTextCtrl::SetTargetEnd(int end)
 int wxStyledTextCtrl::GetTargetEnd() const
 {
     return SendMsg(SCI_GETTARGETEND, 0, 0);
+}
+
+// Sets the virtual space of the target end
+void wxStyledTextCtrl::SetTargetEndVirtualSpace(int space)
+{
+    SendMsg(SCI_SETTARGETENDVIRTUALSPACE, space, 0);
+}
+
+// Get the virtual space of the target end
+int wxStyledTextCtrl::GetTargetEndVirtualSpace() const
+{
+    return SendMsg(SCI_GETTARGETENDVIRTUALSPACE, 0, 0);
 }
 
 // Sets both the start and end of the target in one call.
@@ -2053,7 +2150,7 @@ void wxStyledTextCtrl::TargetWholeDocument()
 
 // Search for a counted string in the target and set the target to the found
 // range. Text is counted so it can contain NULs.
-// Returns length of range or -1 for failure in which case target is not moved.
+// Returns start of found range or -1 for failure in which case target is not moved.
 
      int wxStyledTextCtrl::SearchInTarget(const wxString& text) {
          const wxWX2MBbuf buf = wx2stc(text);
@@ -2139,13 +2236,13 @@ void wxStyledTextCtrl::CallTipSetPosition(bool above)
 }
 
 // Find the display line of a document line taking hidden lines into account.
-int wxStyledTextCtrl::VisibleFromDocLine(int docLine)
+int wxStyledTextCtrl::VisibleFromDocLine(int docLine) const
 {
     return SendMsg(SCI_VISIBLEFROMDOCLINE, docLine, 0);
 }
 
 // Find the document line of a display line taking hidden lines into account.
-int wxStyledTextCtrl::DocLineFromVisible(int displayLine)
+int wxStyledTextCtrl::DocLineFromVisible(int displayLine) const
 {
     return SendMsg(SCI_DOCLINEFROMVISIBLE, displayLine, 0);
 }
@@ -2162,6 +2259,9 @@ int wxStyledTextCtrl::WrapCount(int docLine)
 void wxStyledTextCtrl::SetFoldLevel(int line, int level)
 {
     SendMsg(SCI_SETFOLDLEVEL, line, level);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->SetFoldLevel(line, level);
 }
 
 // Retrieve the fold level of a line.
@@ -2210,6 +2310,9 @@ bool wxStyledTextCtrl::GetAllLinesVisible() const
 void wxStyledTextCtrl::SetFoldExpanded(int line, bool expanded)
 {
     SendMsg(SCI_SETFOLDEXPANDED, line, expanded);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->SetFoldExpanded(line, expanded);
 }
 
 // Is a header line expanded?
@@ -2222,30 +2325,65 @@ bool wxStyledTextCtrl::GetFoldExpanded(int line) const
 void wxStyledTextCtrl::ToggleFold(int line)
 {
     SendMsg(SCI_TOGGLEFOLD, line, 0);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->ToggleFold(line);
 }
 
 // Switch a header line between expanded and contracted and show some text after the line.
 void wxStyledTextCtrl::ToggleFoldShowText(int line, const wxString& text)
 {
     SendMsg(SCI_TOGGLEFOLDSHOWTEXT, line, (sptr_t)(const char*)wx2stc(text));
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->ToggleFoldShowText(line, text);
 }
 
-// Set the style of fold display text
+// Set the style of fold display text.
 void wxStyledTextCtrl::FoldDisplayTextSetStyle(int style)
 {
     SendMsg(SCI_FOLDDISPLAYTEXTSETSTYLE, style, 0);
+}
+
+// Get the style of fold display text.
+int wxStyledTextCtrl::FoldDisplayTextGetStyle() const
+{
+    return SendMsg(SCI_FOLDDISPLAYTEXTGETSTYLE, 0, 0);
+}
+
+// Set the default fold display text.
+void wxStyledTextCtrl::SetDefaultFoldDisplayText(const wxString& text)
+{
+    SendMsg(SCI_SETDEFAULTFOLDDISPLAYTEXT, 0, (sptr_t)(const char*)wx2stc(text));
+}
+
+// Get the default fold display text.
+wxString wxStyledTextCtrl::GetDefaultFoldDisplayText() const {
+         const int msg = SCI_GETDEFAULTFOLDDISPLAYTEXT;
+         long len = SendMsg(msg, 0, (sptr_t)nullptr);
+         if (!len) return wxEmptyString;
+
+         wxCharBuffer buf(len);
+         SendMsg(msg, 0, (sptr_t)buf.data());
+         return stc2wx(buf);
 }
 
 // Expand or contract a fold header.
 void wxStyledTextCtrl::FoldLine(int line, int action)
 {
     SendMsg(SCI_FOLDLINE, line, action);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->FoldLine(line, action);
 }
 
 // Expand or contract a fold header and its children.
 void wxStyledTextCtrl::FoldChildren(int line, int action)
 {
     SendMsg(SCI_FOLDCHILDREN, line, action);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->FoldChildren(line, action);
 }
 
 // Expand a fold header and all children. Use the level argument instead of the line's current level.
@@ -2258,6 +2396,9 @@ void wxStyledTextCtrl::ExpandChildren(int line, int level)
 void wxStyledTextCtrl::FoldAll(int action)
 {
     SendMsg(SCI_FOLDALL, action, 0);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->FoldAll(action);
 }
 
 // Ensure a particular line is visible by expanding any header line hiding it.
@@ -2282,6 +2423,9 @@ int wxStyledTextCtrl::GetAutomaticFold() const
 void wxStyledTextCtrl::SetFoldFlags(int flags)
 {
     SendMsg(SCI_SETFOLDFLAGS, flags, 0);
+
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->SetFoldFlags(flags);
 }
 
 // Ensure a particular line is visible by expanding any header line hiding it.
@@ -2476,7 +2620,7 @@ bool wxStyledTextCtrl::GetEndAtLastLine() const
 }
 
 // Retrieve the height of a particular line of text in pixels.
-int wxStyledTextCtrl::TextHeight(int line)
+int wxStyledTextCtrl::TextHeight(int line) const
 {
     return SendMsg(SCI_TEXTHEIGHT, line, 0);
 }
@@ -2497,19 +2641,6 @@ bool wxStyledTextCtrl::GetUseVerticalScrollBar() const
 void wxStyledTextCtrl::AppendText(const wxString& text) {
                     const wxWX2MBbuf buf = wx2stc(text);
                     SendMsg(SCI_APPENDTEXT, wx2stclen(text, buf), (sptr_t)(const char*)buf);
-}
-
-// Is drawing done in two phases with backgrounds drawn before foregrounds?
-bool wxStyledTextCtrl::GetTwoPhaseDraw() const
-{
-    return SendMsg(SCI_GETTWOPHASEDRAW, 0, 0) != 0;
-}
-
-// In twoPhaseDraw mode, drawing is performed in two phases, first the background
-// and then the foreground. This avoids chopping off characters that overlap the next run.
-void wxStyledTextCtrl::SetTwoPhaseDraw(bool twoPhase)
-{
-    SendMsg(SCI_SETTWOPHASEDRAW, twoPhase, 0);
 }
 
 // How many phases is drawing done in?
@@ -2560,7 +2691,7 @@ int wxStyledTextCtrl::GetMultiPaste() const
 // Retrieve the value of a tag from a regular expression search.
 wxString wxStyledTextCtrl::GetTag(int tagNumber) const {
          const int msg = SCI_GETTAG;
-         long len = SendMsg(msg, tagNumber, (sptr_t)NULL);
+         long len = SendMsg(msg, tagNumber, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
@@ -2591,6 +2722,18 @@ void wxStyledTextCtrl::SetFoldMarginColour(bool useSetting, const wxColour& back
 void wxStyledTextCtrl::SetFoldMarginHiColour(bool useSetting, const wxColour& fore)
 {
     SendMsg(SCI_SETFOLDMARGINHICOLOUR, useSetting, wxColourAsLong(fore));
+}
+
+// Enable or disable accessibility.
+void wxStyledTextCtrl::SetAccessibility(int accessibility)
+{
+    SendMsg(SCI_SETACCESSIBILITY, accessibility, 0);
+}
+
+// Report accessibility status.
+int wxStyledTextCtrl::GetAccessibility() const
+{
+    return SendMsg(SCI_GETACCESSIBILITY, 0, 0);
 }
 
 // Move caret down one line.
@@ -2841,6 +2984,12 @@ void wxStyledTextCtrl::LineTranspose()
     SendMsg(SCI_LINETRANSPOSE, 0, 0);
 }
 
+// Reverse order of selected lines.
+void wxStyledTextCtrl::LineReverse()
+{
+    SendMsg(SCI_LINEREVERSE, 0, 0);
+}
+
 // Duplicate the current line.
 void wxStyledTextCtrl::LineDuplicate()
 {
@@ -2997,6 +3146,12 @@ int wxStyledTextCtrl::BraceMatch(int pos, int maxReStyle){
         return SendMsg(SCI_BRACEMATCH, pos, maxReStyle);
 }
 
+// Similar to BraceMatch, but matching starts at the explicit start position.
+int wxStyledTextCtrl::BraceMatchNext(int pos, int startPos)
+{
+    return SendMsg(SCI_BRACEMATCHNEXT, pos, startPos);
+}
+
 // Are the end of line characters visible?
 bool wxStyledTextCtrl::GetViewEOL() const
 {
@@ -3076,6 +3231,12 @@ void wxStyledTextCtrl::MultiEdgeClearAll()
     SendMsg(SCI_MULTIEDGECLEARALL, 0, 0);
 }
 
+// Get multi edge positions.
+int wxStyledTextCtrl::GetMultiEdgeColumn(int which) const
+{
+    return SendMsg(SCI_GETMULTIEDGECOLUMN, which, 0);
+}
+
 // Sets the current caret position to be the search anchor.
 void wxStyledTextCtrl::SearchAnchor()
 {
@@ -3144,10 +3305,28 @@ void wxStyledTextCtrl::ReleaseDocument(void* docPointer) {
          SendMsg(SCI_RELEASEDOCUMENT, 0, (sptr_t)docPointer);
 }
 
+// Get which document options are set.
+int wxStyledTextCtrl::GetDocumentOptions() const
+{
+    return SendMsg(SCI_GETDOCUMENTOPTIONS, 0, 0);
+}
+
 // Get which document modification events are sent to the container.
 int wxStyledTextCtrl::GetModEventMask() const
 {
     return SendMsg(SCI_GETMODEVENTMASK, 0, 0);
+}
+
+// Set whether command events are sent to the container.
+void wxStyledTextCtrl::SetCommandEvents(bool commandEvents)
+{
+    SendMsg(SCI_SETCOMMANDEVENTS, commandEvents, 0);
+}
+
+// Get whether command events are sent to the container.
+bool wxStyledTextCtrl::GetCommandEvents() const
+{
+    return SendMsg(SCI_GETCOMMANDEVENTS, 0, 0) != 0;
 }
 
 // Change internal focus flag.
@@ -3407,6 +3586,14 @@ int wxStyledTextCtrl::PositionRelative(int pos, int relative)
     return SendMsg(SCI_POSITIONRELATIVE, pos, relative);
 }
 
+// Given a valid document position, return a position that differs in a number
+// of UTF-16 code units. Returned value is always between 0 and last position in document.
+// The result may point half way (2 bytes) inside a non-BMP character.
+int wxStyledTextCtrl::PositionRelativeCodeUnits(int pos, int relative)
+{
+    return SendMsg(SCI_POSITIONRELATIVECODEUNITS, pos, relative);
+}
+
 // Copy a range of text to the clipboard. Positions are clipped into the document.
 void wxStyledTextCtrl::CopyRange(int start, int end)
 {
@@ -3430,6 +3617,12 @@ void wxStyledTextCtrl::SetSelectionMode(int selectionMode)
 int wxStyledTextCtrl::GetSelectionMode() const
 {
     return SendMsg(SCI_GETSELECTIONMODE, 0, 0);
+}
+
+// Get whether or not regular caret moves will extend or reduce the selection.
+bool wxStyledTextCtrl::GetMoveExtendsSelection() const
+{
+    return SendMsg(SCI_GETMOVEEXTENDSSELECTION, 0, 0) != 0;
 }
 
 // Retrieve the position of the start of the selection at the given line (wxSTC_INVALID_POSITION if no selection on this line).
@@ -3558,7 +3751,7 @@ void wxStyledTextCtrl::SetWhitespaceChars(const wxString& characters)
 // Get the set of characters making up whitespace for when moving or selecting by word.
 wxString wxStyledTextCtrl::GetWhitespaceChars() const {
          const int msg = SCI_GETWHITESPACECHARS;
-         int len = SendMsg(msg, 0, (sptr_t)NULL);
+         int len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxMemoryBuffer mbuf(len+1);
@@ -3579,7 +3772,7 @@ void wxStyledTextCtrl::SetPunctuationChars(const wxString& characters)
 // Get the set of characters making up punctuation characters
 wxString wxStyledTextCtrl::GetPunctuationChars() const {
          const int msg = SCI_GETPUNCTUATIONCHARS;
-         int len = SendMsg(msg, 0, (sptr_t)NULL);
+         int len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxMemoryBuffer mbuf(len+1);
@@ -3746,13 +3939,13 @@ int wxStyledTextCtrl::GetIndicatorValue() const
     return SendMsg(SCI_GETINDICATORVALUE, 0, 0);
 }
 
-// Turn an indicator on over a range.
+// Turn a indicator on over a range.
 void wxStyledTextCtrl::IndicatorFillRange(int start, int lengthFill)
 {
     SendMsg(SCI_INDICATORFILLRANGE, start, lengthFill);
 }
 
-// Turn an indicator off over a range.
+// Turn a indicator off over a range.
 void wxStyledTextCtrl::IndicatorClearRange(int start, int lengthClear)
 {
     SendMsg(SCI_INDICATORCLEARRANGE, start, lengthClear);
@@ -4145,9 +4338,9 @@ void wxStyledTextCtrl::ClearSelections()
 }
 
 // Add a selection
-int wxStyledTextCtrl::AddSelection(int caret, int anchor)
+void wxStyledTextCtrl::AddSelection(int caret, int anchor)
 {
-    return SendMsg(SCI_ADDSELECTION, caret, anchor);
+    SendMsg(SCI_ADDSELECTION, caret, anchor);
 }
 
 // Drop one selection
@@ -4228,10 +4421,22 @@ int wxStyledTextCtrl::GetSelectionNStart(int selection) const
     return SendMsg(SCI_GETSELECTIONNSTART, selection, 0);
 }
 
+// Returns the virtual space at the start of the selection.
+int wxStyledTextCtrl::GetSelectionNStartVirtualSpace(int selection) const
+{
+    return SendMsg(SCI_GETSELECTIONNSTARTVIRTUALSPACE, selection, 0);
+}
+
 // Sets the position that ends the selection - this becomes the currentPosition.
 void wxStyledTextCtrl::SetSelectionNEnd(int selection, int caret)
 {
     SendMsg(SCI_SETSELECTIONNEND, selection, caret);
+}
+
+// Returns the virtual space at the end of the selection.
+int wxStyledTextCtrl::GetSelectionNEndVirtualSpace(int selection) const
+{
+    return SendMsg(SCI_GETSELECTIONNENDVIRTUALSPACE, selection, 0);
 }
 
 // Returns the position at the end of the selection.
@@ -4300,7 +4505,7 @@ int wxStyledTextCtrl::GetVirtualSpaceOptions() const
     return SendMsg(SCI_GETVIRTUALSPACEOPTIONS, 0, 0);
 }
 
-// On GTK+, allow selecting the modifier key to use for mouse-based
+// On GTK, allow selecting the modifier key to use for mouse-based
 // rectangular selection. Often the window manager requires Alt+Mouse Drag
 // for moving windows.
 // Valid values are wxSTC_KEYMOD_CTRL (default), wxSTC_KEYMOD_ALT, or wxSTC_KEYMOD_SUPER.
@@ -4536,7 +4741,7 @@ void wxStyledTextCtrl::SetRepresentation(const wxString& encodedCharacter, const
 wxString wxStyledTextCtrl::GetRepresentation(const wxString& encodedCharacter) const {
          const int msg = SCI_GETREPRESENTATION;
          const wxWX2MBbuf encCharBuf = wx2stc(encodedCharacter);
-         long len = SendMsg(msg, (sptr_t)(const char*)encCharBuf, (sptr_t)NULL);
+         long len = SendMsg(msg, (sptr_t)(const char*)encCharBuf, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
@@ -4548,6 +4753,65 @@ wxString wxStyledTextCtrl::GetRepresentation(const wxString& encodedCharacter) c
 void wxStyledTextCtrl::ClearRepresentation(const wxString& encodedCharacter)
 {
     SendMsg(SCI_CLEARREPRESENTATION, (sptr_t)(const char*)wx2stc(encodedCharacter), 0);
+}
+
+// Set the end of line annotation text for a line
+void wxStyledTextCtrl::EOLAnnotationSetText(int line, const wxString& text)
+{
+    SendMsg(SCI_EOLANNOTATIONSETTEXT, line, (sptr_t)(const char*)wx2stc(text));
+}
+
+// Get the end of line annotation text for a line
+wxString wxStyledTextCtrl::EOLAnnotationGetText(int line) const {
+         const int msg = SCI_EOLANNOTATIONGETTEXT;
+         long len = SendMsg(msg, line, (sptr_t)nullptr);
+         if (!len) return wxEmptyString;
+
+         wxCharBuffer buf(len);
+         SendMsg(msg, line, (sptr_t)buf.data());
+         return stc2wx(buf);
+}
+
+// Set the style number for the end of line annotations for a line
+void wxStyledTextCtrl::EOLAnnotationSetStyle(int line, int style)
+{
+    SendMsg(SCI_EOLANNOTATIONSETSTYLE, line, style);
+}
+
+// Get the style number for the end of line annotations for a line
+int wxStyledTextCtrl::EOLAnnotationGetStyle(int line) const
+{
+    return SendMsg(SCI_EOLANNOTATIONGETSTYLE, line, 0);
+}
+
+// Clear the end of annotations from all lines
+void wxStyledTextCtrl::EOLAnnotationClearAll()
+{
+    SendMsg(SCI_EOLANNOTATIONCLEARALL, 0, 0);
+}
+
+// Set the visibility for the end of line annotations for a view
+void wxStyledTextCtrl::EOLAnnotationSetVisible(int visible)
+{
+    SendMsg(SCI_EOLANNOTATIONSETVISIBLE, visible, 0);
+}
+
+// Get the visibility for the end of line annotations for a view
+int wxStyledTextCtrl::EOLAnnotationGetVisible() const
+{
+    return SendMsg(SCI_EOLANNOTATIONGETVISIBLE, 0, 0);
+}
+
+// Get the start of the range of style numbers used for end of line annotations
+void wxStyledTextCtrl::EOLAnnotationSetStyleOffset(int style)
+{
+    SendMsg(SCI_EOLANNOTATIONSETSTYLEOFFSET, style, 0);
+}
+
+// Get the start of the range of style numbers used for end of line annotations
+int wxStyledTextCtrl::EOLAnnotationGetStyleOffset() const
+{
+    return SendMsg(SCI_EOLANNOTATIONGETSTYLEOFFSET, 0, 0);
 }
 
 // Start notifying the container of all key presses and commands.
@@ -4635,16 +4899,10 @@ int wxStyledTextCtrl::GetPropertyInt(const wxString &key, int defaultValue) cons
         return SendMsg(SCI_GETPROPERTYINT, (uptr_t)(const char*)wx2stc(key), defaultValue);
 }
 
-// Retrieve the number of bits the current lexer needs for styling.
-int wxStyledTextCtrl::GetStyleBitsNeeded() const
-{
-    return SendMsg(SCI_GETSTYLEBITSNEEDED, 0, 0);
-}
-
 // Retrieve the lexing language of the document.
 wxString wxStyledTextCtrl::GetLexerLanguage() const {
          const int msg = SCI_GETLEXERLANGUAGE;
-         int len = SendMsg(msg, 0, (sptr_t)NULL);
+         int len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
@@ -4660,7 +4918,7 @@ void* wxStyledTextCtrl::PrivateLexerCall(int operation, void* pointer) {
 // Retrieve a '\\n' separated list of properties understood by the current lexer.
 wxString wxStyledTextCtrl::PropertyNames() const {
          const int msg = SCI_PROPERTYNAMES;
-         long len = SendMsg(msg, 0, (sptr_t)NULL);
+         long len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
@@ -4678,7 +4936,7 @@ int wxStyledTextCtrl::PropertyType(const wxString& name)
 wxString wxStyledTextCtrl::DescribeProperty(const wxString& name) const {
          const int msg = SCI_DESCRIBEPROPERTY;
          const wxWX2MBbuf nameBuf = wx2stc(name);
-         long len = SendMsg(msg, (uptr_t)(const char*)nameBuf, (sptr_t)NULL);
+         long len = SendMsg(msg, (uptr_t)(const char*)nameBuf, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
@@ -4689,7 +4947,7 @@ wxString wxStyledTextCtrl::DescribeProperty(const wxString& name) const {
 // Retrieve a '\\n' separated list of descriptions of the keyword sets understood by the current lexer.
 wxString wxStyledTextCtrl::DescribeKeyWordSets() const {
          const int msg = SCI_DESCRIBEKEYWORDSETS;
-         long len = SendMsg(msg, 0, (sptr_t)NULL);
+         long len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
@@ -4756,12 +5014,92 @@ int wxStyledTextCtrl::DistanceToSecondaryStyles() const
 // Get the set of base styles that can be extended with sub styles
 wxString wxStyledTextCtrl::GetSubStyleBases() const {
          const int msg = SCI_GETSUBSTYLEBASES;
-         long len = SendMsg(msg, 0, (sptr_t)NULL);
+         long len = SendMsg(msg, 0, (sptr_t)nullptr);
          if (!len) return wxEmptyString;
 
          wxCharBuffer buf(len);
          SendMsg(msg, 0, (sptr_t)buf.data());
          return stc2wx(buf);
+}
+
+// Retrieve the number of named styles for the lexer.
+int wxStyledTextCtrl::GetNamedStyles() const
+{
+    return SendMsg(SCI_GETNAMEDSTYLES, 0, 0);
+}
+
+// Retrieve the name of a style.
+// Result is NUL-terminated.
+wxString wxStyledTextCtrl::NameOfStyle(int style) const {
+         const int msg = SCI_NAMEOFSTYLE;
+         long len = SendMsg(msg, style, (sptr_t)nullptr);
+         if (!len) return wxEmptyString;
+
+         wxCharBuffer buf(len);
+         SendMsg(msg, style, (sptr_t)buf.data());
+         return stc2wx(buf);
+}
+
+// Retrieve a ' ' separated list of style tags like "literal quoted string".
+// Result is NUL-terminated.
+wxString wxStyledTextCtrl::TagsOfStyle(int style) const {
+         const int msg = SCI_TAGSOFSTYLE;
+         long len = SendMsg(msg, style, (sptr_t)nullptr);
+         if (!len) return wxEmptyString;
+
+         wxCharBuffer buf(len);
+         SendMsg(msg, style, (sptr_t)buf.data());
+         return stc2wx(buf);
+}
+
+// Retrieve a description of a style.
+// Result is NUL-terminated.
+wxString wxStyledTextCtrl::DescriptionOfStyle(int style) const {
+         const int msg = SCI_DESCRIPTIONOFSTYLE;
+         long len = SendMsg(msg, style, (sptr_t)nullptr);
+         if (!len) return wxEmptyString;
+
+         wxCharBuffer buf(len);
+         SendMsg(msg, style, (sptr_t)buf.data());
+         return stc2wx(buf);
+}
+
+// Set the lexer from an ILexer*.
+void wxStyledTextCtrl::SetILexer(void* ilexer) {
+         SendMsg(SCI_SETILEXER, 0, (sptr_t)ilexer);
+}
+
+// Divide each styling byte into lexical class bits (default: 5) and indicator
+// bits (default: 3). If a lexer requires more than 32 lexical states, then this
+// is used to expand the possible states.
+void wxStyledTextCtrl::SetStyleBits(int bits)
+{
+    SendMsg(SCI_SETSTYLEBITS, bits, 0);
+}
+
+// Retrieve number of bits in style bytes used to hold the lexical state.
+int wxStyledTextCtrl::GetStyleBits() const
+{
+    return SendMsg(SCI_GETSTYLEBITS, 0, 0);
+}
+
+// Retrieve the number of bits the current lexer needs for styling.
+int wxStyledTextCtrl::GetStyleBitsNeeded() const
+{
+    return SendMsg(SCI_GETSTYLEBITSNEEDED, 0, 0);
+}
+
+// Is drawing done in two phases with backgrounds drawn before foregrounds?
+bool wxStyledTextCtrl::GetTwoPhaseDraw() const
+{
+    return SendMsg(SCI_GETTWOPHASEDRAW, 0, 0) != 0;
+}
+
+// In twoPhaseDraw mode, drawing is performed in two phases, first the background
+// and then the foreground. This avoids chopping off characters that overlap the next run.
+void wxStyledTextCtrl::SetTwoPhaseDraw(bool twoPhase)
+{
+    SendMsg(SCI_SETTWOPHASEDRAW, twoPhase, 0);
 }
 
 //}}}
@@ -4851,7 +5189,7 @@ void wxStyledTextCtrl::StyleSetFont(int styleNum, const wxFont& font) {
 #ifdef __WXGTK__
     // Ensure that the native font is initialized
     int x, y;
-    GetTextExtent(wxT("X"), &x, &y, NULL, NULL, &font);
+    GetTextExtent(wxT("X"), &x, &y, nullptr, nullptr, &font);
 #endif
     int            size     = font.GetPointSize();
     wxString       faceName = font.GetFaceName();
@@ -4934,7 +5272,7 @@ wxStyledTextCtrl::DoSaveFile(const wxString& filename, int WXUNUSED(fileType))
     wxFile file(filename, wxFile::write);
 #endif
 
-    if ( file.IsOpened() && file.Write(GetValue(), *wxConvCurrent) )
+    if ( file.IsOpened() && file.Write(GetValue()) )
     {
         SetSavePoint();
 
@@ -4963,7 +5301,7 @@ wxStyledTextCtrl::DoLoadFile(const wxString& filename, int WXUNUSED(fileType))
     if ( file.IsOpened() )
     {
         wxString text;
-        if ( file.ReadAll(&text, wxConvAuto()) )
+        if ( file.ReadAll(&text) )
         {
             // Detect the EOL: we use just the first line because there is not
             // much we can do if the file uses inconsistent EOLs anyhow, we'd
@@ -5046,7 +5384,7 @@ bool wxStyledTextCtrl::GetUseAntiAliasing() {
 }
 
 void wxStyledTextCtrl::AnnotationClearLine(int line) {
-    SendMsg(SCI_ANNOTATIONSETTEXT, line, (sptr_t)NULL);
+    SendMsg(SCI_ANNOTATIONSETTEXT, line, (sptr_t)nullptr);
 }
 
 void wxStyledTextCtrl::MarkerDefineBitmap(int markerNumber,
@@ -5186,6 +5524,16 @@ int wxStyledTextCtrl::ReplaceTargetRERaw(const char* text, int length)
     return SendMsg(SCI_REPLACETARGETRE, length, reinterpret_cast<sptr_t>(text));
 }
 
+void wxStyledTextCtrl::SetMirrorCtrl(wxStyledTextCtrl* mirrorCtrl)
+{
+    m_mirrorCtrl = mirrorCtrl;
+
+    // Set the fold flags to the same value as in this control in case they had
+    // been changed before calling this function.
+    if ( m_mirrorCtrl )
+        m_mirrorCtrl->SetFoldFlags(m_swx->foldFlags);
+}
+
 #if WXWIN_COMPATIBILITY_3_0
 // Deprecated since Scintilla 3.7.2
 void wxStyledTextCtrl::UsePopUp(bool allowPopUp)
@@ -5206,9 +5554,12 @@ void wxStyledTextCtrl::StartStyling(int start, int unused)
 // Event handlers
 
 void wxStyledTextCtrl::OnPaint(wxPaintEvent& WXUNUSED(evt)) {
-    // This _must_ be a wxMemoryDC because the code in SurfaceImpl (see
-    // PlatWX.cpp) unconditionally casts it to wxMemoryDC currently.
-    wxBufferedPaintDC dc(this);
+    wxBufferedPaintDC dc(this, m_buffer);
+
+    // We don't use bounding box for anything, so disable updating it to speed
+    // things up a bit.
+    dc.DisableAutomaticBoundingBoxUpdates();
+
     m_swx->DoPaint(&dc, GetUpdateRegion().GetBox());
 }
 
@@ -5240,27 +5591,28 @@ void wxStyledTextCtrl::OnMouseLeftDown(wxMouseEvent& evt) {
     SetFocus();
     wxPoint pt = evt.GetPosition();
     m_swx->DoLeftButtonDown(Point(pt.x, pt.y), m_stopWatch.Time(),
-                      evt.ShiftDown(), evt.ControlDown(), evt.AltDown());
+                            evt.ShiftDown(), evt.ControlDown(), evt.AltDown(), evt.MetaDown());
 }
 
 void wxStyledTextCtrl::OnMouseRightDown(wxMouseEvent& evt) {
     SetFocus();
     wxPoint pt = evt.GetPosition();
     m_swx->DoRightButtonDown(Point(pt.x, pt.y), m_stopWatch.Time(),
-                      evt.ShiftDown(), evt.ControlDown(), evt.AltDown());
+                             evt.ShiftDown(), evt.ControlDown(), evt.AltDown(), evt.MetaDown());
     // We need to call evt.Skip() to allow generating EVT_CONTEXT_MENU
     evt.Skip();
 }
 
 void wxStyledTextCtrl::OnMouseMove(wxMouseEvent& evt) {
     wxPoint pt = evt.GetPosition();
-    m_swx->DoLeftButtonMove(Point(pt.x, pt.y));
+    m_swx->DoLeftButtonMove(Point(pt.x, pt.y), m_stopWatch.Time(),
+                            evt.ShiftDown(), evt.ControlDown(), evt.AltDown(), evt.MetaDown());
 }
 
 void wxStyledTextCtrl::OnMouseLeftUp(wxMouseEvent& evt) {
     wxPoint pt = evt.GetPosition();
     m_swx->DoLeftButtonUp(Point(pt.x, pt.y), m_stopWatch.Time(),
-                      evt.ControlDown());
+                          evt.ShiftDown(), evt.ControlDown(), evt.AltDown(), evt.MetaDown());
 }
 
 void wxStyledTextCtrl::OnMouseMiddleUp(wxMouseEvent& evt) {
@@ -5310,7 +5662,7 @@ void wxStyledTextCtrl::OnMouseWheel(wxMouseEvent& evt)
     if ( !GetMouseWheelCaptures() && !GetRect().Contains(evt.GetPosition()) )
     {
         wxWindow* parent = GetParent();
-        if ( parent != NULL )
+        if ( parent != nullptr )
         {
             wxMouseEvent newevt(evt);
             newevt.SetPosition(
@@ -5325,7 +5677,7 @@ void wxStyledTextCtrl::OnMouseWheel(wxMouseEvent& evt)
 
         // First try to find the list. It will be a wxVListBox named
         // "AutoCompListBox".
-        wxWindow* curWin  = this, *acListBox = NULL;
+        wxWindow* curWin  = this, *acListBox = nullptr;
         wxStack<wxWindow*> windows;
         windows.push(curWin);
 
@@ -5388,16 +5740,13 @@ void wxStyledTextCtrl::OnChar(wxKeyEvent& evt) {
 #endif
     bool skip = ((ctrl || alt) && ! (ctrl && alt));
 
-#if wxUSE_UNICODE
     // apparently if we don't do this, Unicode keys pressed after non-char
     // ASCII ones (e.g. Enter, Tab) are not taken into account (patch 1615989)
     if (m_lastKeyDownConsumed && evt.GetUnicodeKey() > 255)
         m_lastKeyDownConsumed = false;
-#endif
 
     if (!m_lastKeyDownConsumed && !skip) {
-#if wxUSE_UNICODE
-        int key = evt.GetUnicodeKey();
+        wxChar key = evt.GetUnicodeKey();
         bool keyOk = true;
 
         // if the unicode key code is not really a unicode character (it may
@@ -5412,13 +5761,6 @@ void wxStyledTextCtrl::OnChar(wxKeyEvent& evt) {
             m_swx->DoAddChar(key);
             return;
         }
-#else
-        int key = evt.GetKeyCode();
-        if (key < WXK_START) {
-            m_swx->DoAddChar(key);
-            return;
-        }
-#endif
     }
 
     evt.Skip();
@@ -5605,7 +5947,6 @@ void wxStyledTextCtrl::NotifyParent(SCNotification* _scn) {
         evt.SetEventType(wxEVT_STC_USERLISTSELECTION);
         evt.SetListType(scn.listType);
         SetEventText(evt, scn.text, strlen(scn.text));
-        evt.SetPosition(scn.lParam);
         evt.SetListCompletionMethod(scn.listCompletionMethod);
         break;
 
@@ -5653,7 +5994,6 @@ void wxStyledTextCtrl::NotifyParent(SCNotification* _scn) {
         evt.SetEventType(wxEVT_STC_AUTOCOMP_SELECTION);
         evt.SetListType(scn.listType);
         SetEventText(evt, scn.text, strlen(scn.text));
-        evt.SetPosition(scn.lParam);
         evt.SetListCompletionMethod(scn.listCompletionMethod);
         break;
 
@@ -5669,13 +6009,18 @@ void wxStyledTextCtrl::NotifyParent(SCNotification* _scn) {
         evt.SetEventType(wxEVT_STC_AUTOCOMP_COMPLETED);
         evt.SetListType(scn.listType);
         SetEventText(evt, scn.text, strlen(scn.text));
-        evt.SetPosition(scn.lParam);
         evt.SetListCompletionMethod(scn.listCompletionMethod);
         break;
 
     case SCN_MARGINRIGHTCLICK:
         evt.SetEventType(wxEVT_STC_MARGIN_RIGHT_CLICK);
         evt.SetMargin(scn.margin);
+        break;
+
+    case SCN_AUTOCSELECTIONCHANGE:
+        evt.SetEventType(wxEVT_STC_AUTOCOMP_SELECTION_CHANGE);
+        evt.SetListType(scn.listType);
+        SetEventText(evt, scn.text, strlen(scn.text));
         break;
 
     default:
@@ -5701,36 +6046,6 @@ WXLRESULT wxStyledTextCtrl::MSWWindowProc(WXUINT nMsg,
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
-
-wxStyledTextEvent::wxStyledTextEvent(wxEventType commandType, int id)
-    : wxCommandEvent(commandType, id)
-{
-    m_position = 0;
-    m_key = 0;
-    m_modifiers = 0;
-    m_modificationType = 0;
-    m_length = 0;
-    m_linesAdded = 0;
-    m_line = 0;
-    m_foldLevelNow = 0;
-    m_foldLevelPrev = 0;
-    m_margin = 0;
-    m_message = 0;
-    m_wParam = 0;
-    m_lParam = 0;
-    m_listType = 0;
-    m_x = 0;
-    m_y = 0;
-    m_token = 0;
-    m_annotationLinesAdded = 0;
-    m_updated = 0;
-    m_listCompletionMethod = 0;
-
-#if wxUSE_DRAG_AND_DROP
-    m_dragFlags = wxDrag_CopyOnly;
-    m_dragResult = wxDragNone;
-#endif
-}
 
 bool wxStyledTextEvent::GetShift() const { return (m_modifiers & SCI_SHIFT) != 0; }
 bool wxStyledTextEvent::GetControl() const { return (m_modifiers & SCI_CTRL) != 0; }
@@ -5774,9 +6089,16 @@ wxStyledTextEvent::wxStyledTextEvent(const wxStyledTextEvent& event):
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 
+
 /*static*/ wxVersionInfo wxStyledTextCtrl::GetLibraryVersionInfo()
 {
-    return wxVersionInfo("Scintilla", 3, 7, 2, "Scintilla 3.7.2");
+    return wxVersionInfo("Scintilla", 5, 0, 0, "Scintilla 5.0.0");
 }
+
+/*static*/ wxVersionInfo wxStyledTextCtrl::GetLexerVersionInfo()
+{
+    return wxVersionInfo("Lexilla", 5, 4, 6, "Lexilla 5.4.6");
+}
+
 
 #endif // wxUSE_STC

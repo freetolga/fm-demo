@@ -12,9 +12,10 @@ Updating PCRE
 Fast-forward master to the new PCRE version, then merge it into wx branch
 using `git merge --no-commit`. Before committing the merge, additionally:
 
-1. Rerun autogen.sh.
-1. Copy `src/pcre2_chartables.c.dist` to `src/pcre2_chartables.c`.
-1. Examine changes to `src/pcre2.h.generic` and `src/config.h.generic` and
+1. In `configure.ac`, disable the line containing `delete-old-chartables`
+2. Rerun autogen.sh.
+3. Copy `src/pcre2_chartables.c.dist` to `src/pcre2_chartables.c`.
+4. Examine changes to `src/pcre2.h.generic` and `src/config.h.generic` and
    propagate them to `src/wx/pcre2.h` and `src/wx/config.h` respectively.
 
 Add all changed files to the commit.

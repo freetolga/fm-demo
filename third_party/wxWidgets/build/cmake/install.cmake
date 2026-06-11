@@ -54,6 +54,7 @@ else()
     install(
         DIRECTORY "${wxSETUP_HEADER_PATH}"
         DESTINATION "${library_dir}/wx/include"
+        PATTERN "protocols" EXCLUDE
     )
 
     install(

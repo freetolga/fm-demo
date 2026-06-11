@@ -17,33 +17,39 @@
 class wxNSColorRefData : public wxColourRefData
 {
 public:
-    wxNSColorRefData(WX_NSColor color);
-    
+    wxNSColorRefData(CGFloat r, CGFloat g, CGFloat b, CGFloat a);
+    wxNSColorRefData(WXColor color);
+
     wxNSColorRefData(const wxNSColorRefData& other);
 
     virtual ~wxNSColorRefData();
-    
-    virtual CGFloat Red() const wxOVERRIDE;
-    virtual CGFloat Green() const wxOVERRIDE;
-    virtual CGFloat Blue() const wxOVERRIDE;
-    virtual CGFloat Alpha() const wxOVERRIDE;
-    
-    virtual bool IsSolid() const wxOVERRIDE;
 
-    CGColorRef GetCGColor() const wxOVERRIDE;
-    
-    virtual wxColourRefData* Clone() const wxOVERRIDE { return new wxNSColorRefData(*this); }
-    
-    virtual WX_NSColor GetNSColor() const wxOVERRIDE;
-    virtual WX_NSImage GetNSPatternImage() const wxOVERRIDE;
+    virtual CGFloat Red() const override;
+    virtual CGFloat Green() const override;
+    virtual CGFloat Blue() const override;
+    virtual CGFloat Alpha() const override;
+
+    virtual bool IsSolid() const override;
+
+    CGColorRef GetCGColor() const override;
+
+    virtual wxColourRefData* Clone() const override { return new wxNSColorRefData(*this); }
+
+    virtual WXColor GetWXColor() const override;
+    virtual WXImage GetWXPatternImage() const override;
 private:
     static CGFloat GetCGColorComponent(CGColorRef col, int rgbaIndex);
     WX_NSColor m_nsColour;
-    
+
     wxDECLARE_NO_ASSIGN_CLASS(wxNSColorRefData);
 };
 
-wxNSColorRefData::wxNSColorRefData(WX_NSColor color)
+wxNSColorRefData::wxNSColorRefData(CGFloat r, CGFloat g, CGFloat b, CGFloat a = 1.0)
+{
+    m_nsColour = [[NSColor colorWithRed:r green:g blue:b alpha:a] retain];
+}
+
+wxNSColorRefData::wxNSColorRefData(WXColor color)
 {
     m_nsColour = [color retain];
 }
@@ -58,7 +64,7 @@ wxNSColorRefData::~wxNSColorRefData()
     [m_nsColour release];
 }
 
-WX_NSColor wxNSColorRefData::GetNSColor() const
+WX_NSColor wxNSColorRefData::GetWXColor() const
 {
     return m_nsColour;
 }
@@ -66,16 +72,16 @@ WX_NSColor wxNSColorRefData::GetNSColor() const
 CGFloat wxNSColorRefData::GetCGColorComponent(CGColorRef col, int rgbaIndex)
 {
     CGFloat value = 0.0;
-    
+
     if ( col )
     {
         wxCFRef<CGColorRef> rgbacol;
         CGColorSpaceModel model = CGColorSpaceGetModel(CGColorGetColorSpace(col));
         size_t noComp = CGColorGetNumberOfComponents(col);
         const CGFloat* components = CGColorGetComponents(col);
-        
+
         bool isRGB = true;
-        
+
         if (model == kCGColorSpaceModelMonochrome)
         {
             wxASSERT_MSG(1 <= noComp && noComp <= 2, "Monochrome Color unexpected components");
@@ -90,7 +96,7 @@ CGFloat wxNSColorRefData::GetCGColorComponent(CGColorRef col, int rgbaIndex)
         {
             if ( WX_IS_MACOS_OR_IOS_AVAILABLE(10, 11, 9, 0) )
             {
-                rgbacol = CGColorCreateCopyByMatchingToColorSpace(wxMacGetGenericRGBColorSpace(), kCGRenderingIntentDefault, col, NULL);
+                rgbacol = CGColorCreateCopyByMatchingToColorSpace(wxMacGetGenericRGBColorSpace(), kCGRenderingIntentDefault, col, nullptr);
                 noComp = CGColorGetNumberOfComponents(rgbacol);
                 components = CGColorGetComponents(rgbacol);
             }
@@ -99,7 +105,7 @@ CGFloat wxNSColorRefData::GetCGColorComponent(CGColorRef col, int rgbaIndex)
                 isRGB = false;
             }
         }
-        
+
         if (isRGB)
         {
             wxASSERT_MSG(3 <= noComp && noComp <= 4, "RGB Color unexpected components");
@@ -110,7 +116,7 @@ CGFloat wxNSColorRefData::GetCGColorComponent(CGColorRef col, int rgbaIndex)
                 value = components[rgbaIndex];
         }
     }
-    
+
     return value;
 }
 
@@ -119,7 +125,7 @@ CGFloat wxNSColorRefData::Red() const
     wxOSXEffectiveAppearanceSetter helper;
     if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
         return [colRGBA redComponent];
-    
+
     return GetCGColorComponent([m_nsColour CGColor], 0);
 }
 
@@ -128,7 +134,7 @@ CGFloat wxNSColorRefData::Green() const
     wxOSXEffectiveAppearanceSetter helper;
     if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
         return [colRGBA greenComponent];
-    
+
     return GetCGColorComponent([m_nsColour CGColor], 1);
 }
 
@@ -137,7 +143,7 @@ CGFloat wxNSColorRefData::Blue() const
     wxOSXEffectiveAppearanceSetter helper;
     if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
         return [colRGBA blueComponent];
-    
+
     return GetCGColorComponent([m_nsColour CGColor], 2);
 }
 
@@ -146,7 +152,7 @@ CGFloat wxNSColorRefData::Alpha() const
     wxOSXEffectiveAppearanceSetter helper;
     if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
         return [colRGBA alphaComponent];
-    
+
     return GetCGColorComponent([m_nsColour CGColor], 3);
 }
 
@@ -161,7 +167,7 @@ CGColorRef wxNSColorRefData::GetCGColor() const
     return [m_nsColour CGColor];
 }
 
-WX_NSImage wxNSColorRefData::GetNSPatternImage() const
+WX_NSImage wxNSColorRefData::GetWXPatternImage() const
 {
     NSColor* colPat = [m_nsColour colorUsingColorSpaceName:NSPatternColorSpace];
     if ( colPat )
@@ -173,21 +179,22 @@ WX_NSImage wxNSColorRefData::GetNSPatternImage() const
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
-WX_NSColor wxColourRefData::GetNSColor() const
+wxGDIRefData* wxColourImpl::CreateGDIRefData() const
 {
-    wxOSXEffectiveAppearanceSetter helper;
-    return [NSColor colorWithCalibratedRed:Red() green:Green() blue:Blue() alpha:Alpha() ];
+    return new wxNSColorRefData(0.0, 0.0, 0.0);
 }
 
-WX_NSImage wxColourRefData::GetNSPatternImage() const
-{
-    return NULL;
-}
-
-wxColour::wxColour(WX_NSColor col)
+wxColourImpl::wxColourImpl(WX_NSColor col)
 {
     m_refData = new wxNSColorRefData(col);
+}
+
+wxColourImpl::wxColourImpl(CGColorRef col)
+{
+    m_refData = new wxNSColorRefData([[NSColor colorWithCGColor:col] retain]);
+    // as per contract CGColorRef is not retained
+    CGColorRelease(col);
 }

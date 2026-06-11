@@ -2,7 +2,6 @@
 // Name:        src/osx/carbon/dcclient.cpp
 // Purpose:     wxClientDCImpl class
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -48,13 +47,15 @@ wxWindowDCImpl::wxWindowDCImpl( wxDC *owner, wxWindow *window )
     m_ok = true ;
 
     m_window->GetSize( &m_width , &m_height);
+#ifndef __WXOSX_IPHONE__
     if ( !m_window->IsShownOnScreen() )
         m_width = m_height = 0;
+#endif
 
     CGContextRef cg = (CGContextRef) window->MacGetCGContextRef();
 
     m_release = false;
-    if ( cg == NULL )
+    if ( cg == nullptr )
     {
         SetGraphicsContext( wxGraphicsContext::Create( window ) ) ;
         m_contentScaleFactor = window->GetContentScaleFactor();
@@ -75,6 +76,10 @@ wxWindowDCImpl::wxWindowDCImpl( wxDC *owner, wxWindow *window )
         if ( window->MacGetLeftBorderSize() != 0 || window->MacGetTopBorderSize() != 0 )
             CGContextTranslateCTM( cg , -window->MacGetLeftBorderSize() , -window->MacGetTopBorderSize() );
 
+        wxWidgetImpl *impl = (wxWidgetImpl *) window->GetPeer();
+        wxPoint origin( impl->GetDeviceLocalOrigin() );
+        CGContextTranslateCTM( cg, -origin.x, -origin.y );
+
         wxGraphicsContext* context = wxGraphicsContext::CreateFromNative( cg );
         context->SetContentScaleFactor(m_contentScaleFactor);
         SetGraphicsContext( context );
@@ -84,6 +89,10 @@ wxWindowDCImpl::wxWindowDCImpl( wxDC *owner, wxWindow *window )
     SetBackground(window->GetBackgroundColour());
 
     SetFont( window->GetFont() ) ;
+
+    wxWidgetImpl *impl = (wxWidgetImpl*)window->GetPeer();
+    wxPoint origin( impl->GetDeviceLocalOrigin() );
+    SetDeviceLocalOrigin( origin.x, origin.y );
 }
 
 wxWindowDCImpl::~wxWindowDCImpl()
@@ -105,10 +114,21 @@ void wxWindowDCImpl::DoGetSize( int* width, int* height ) const
         *height = m_height;
 }
 
+void wxWindowDCImpl::DestroyClippingRegion()
+{
+    wxGCDCImpl::DestroyClippingRegion();
+
+    wxPoint clipPos = DeviceToLogical(m_origin.x, m_origin.y);
+    wxSize clipDim = DeviceToLogicalRel(m_width, m_height);
+    DoSetClippingRegion(clipPos.x, clipPos.y, clipDim.x, clipDim.y);
+}
+
+#if WXWIN_COMPATIBILITY_3_2
 wxPoint wxWindowDCImpl::OSXGetOrigin() const
 {
     return m_origin;
 }
+#endif // WXWIN_COMPATIBILITY_3_2
 
 /*
  * wxClientDCImpl
@@ -129,11 +149,11 @@ wxClientDCImpl::wxClientDCImpl( wxDC *owner, wxWindow *window ) :
     m_window->GetClientSize( &m_width , &m_height);
     if ( !m_window->IsShownOnScreen() )
         m_width = m_height = 0;
-    
+
     int x0,y0;
     DoGetDeviceOrigin(&x0,&y0);
     SetDeviceOrigin( m_origin.x + x0, m_origin.y + y0 );
-    
+
     DoSetClippingRegion( 0 , 0 , m_width , m_height ) ;
 }
 

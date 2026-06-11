@@ -8,7 +8,19 @@
 #include <mathplot.h>
 
 #include "block1.hpp"
-#include "wx/gtk/stattext.h"
+
+enum
+{
+    ID_Hello = 1,
+    BUTTON_plot = wxID_HIGHEST + 1,
+    SLIDER_FM1,
+    SLIDER_FM2,
+    SLIDER_FM3,
+    LABEL_FM1,
+    LABEL_FM2,
+    LABEL_FM3,
+
+};
 
 class MyApp final : public wxApp
 {
@@ -27,30 +39,21 @@ private:
     void OnAbout(wxCommandEvent& event);
     void OnPlot(wxCommandEvent& event);
     void OnResize(wxSizeEvent& event);
-    void OnSliderChange(wxScrollEvent& event);
+    void OnSliderChange(wxCommandEvent& event);
+    void CleanAllPlots(void);
     mpWindow *m_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *mf_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *s_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *sf_plot = new mpWindow(this, -1, wxDefaultPosition);
-    wxSlider *fm1_slider, *fm2_slider, *fm3_slider;
+    wxSlider *fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 1, 2000);
+    wxSlider *fm2_slider =  new wxSlider(this, SLIDER_FM2, 20, 1, 2000);
+    wxSlider *fm3_slider = new wxSlider(this, SLIDER_FM3, 20, 1, 2000);
     double fm1 = 20;
     double fm2 = 200;
     double fm3 = 2000;
     double fc = 1000;
 };
 
-enum
-{
-    ID_Hello = 1,
-    BUTTON_plot = wxID_HIGHEST + 1,
-    SLIDER_FM1,
-    SLIDER_FM2,
-    SLIDER_FM3,
-    LABEL_FM1,
-    LABEL_FM2,
-    LABEL_FM3,
-
-};
 
 wxIMPLEMENT_APP(MyApp);
 
@@ -70,12 +73,6 @@ MyFrame::MyFrame()
 
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate and Plot");
     wxButton *saveButton = new wxButton(this, BUTTON_plot, "Save result to file");
-    this->fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 1, 2000);
-    wxStaticText fm1Text(this, LABEL_FM1, "fm1(Hz)");
-    this->fm2_slider = new wxSlider(this, SLIDER_FM2, 200, 1, 2000);
-    wxStaticText fm2Text(this, LABEL_FM2, "fm2(Hz)");
-    this->fm3_slider = new wxSlider(this, SLIDER_FM3, 2000, 1, 2000);
-    wxStaticText fm3Text(this, LABEL_FM3, "fm3(Hz)");
     controls_sizer->Add(plotButton, 0, wxSHAPED | wxCENTER, 1);
     controls_sizer->Add(fm1_slider, 0, wxSHAPED | wxCENTER, 1);
     controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 1);
@@ -93,6 +90,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
     Bind(wxEVT_SIZE, &MyFrame::OnResize, this, ID_Hello);
+    Bind(wxEVT_SLIDER, &MyFrame::OnSliderChange, this);
 }
 
 void MyFrame::OnExit(wxCommandEvent& event)
@@ -101,6 +99,7 @@ void MyFrame::OnExit(wxCommandEvent& event)
 }
 
 void MyFrame::OnPlot(wxCommandEvent& event) {
+    this->CleanAllPlots();
     std::valarray<double> time;
     double t1 = 0;
     double t2 = 0.1;
@@ -124,7 +123,6 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer1->SetContinuity(true);
     vectorLayer1->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer1->SetDrawOutsideMargins(false);
-    m_plot->DelLayer(vectorLayer1, mpDeleteAction::mpNoDelete, true, true);
     m_plot->AddLayer(vectorLayer1);
     m_plot->Fit();
 
@@ -149,7 +147,6 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer2->SetDrawOutsideMargins(false);
-    mf_plot->DelLayer(vectorLayer2, mpDeleteAction::mpNoDelete, true, true);
     mf_plot->AddLayer(vectorLayer2);
     mf_plot->Fit();
 
@@ -170,7 +167,6 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer2->SetDrawOutsideMargins(false);
-    s_plot->DelLayer(vectorLayer3, mpDeleteAction::mpNoDelete, true, true);
     s_plot->AddLayer(vectorLayer3);
     s_plot->Fit();
 
@@ -192,7 +188,6 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer2->SetDrawOutsideMargins(false);
-    sf_plot->DelLayer(vectorLayer4, mpDeleteAction::mpNoDelete, true, true);
     sf_plot->AddLayer(vectorLayer4);
     sf_plot->Fit();
 
@@ -207,17 +202,24 @@ void MyFrame::OnResize(wxSizeEvent& event) {
     sf_plot->UpdateAll();
 }
 
-void MyFrame::OnSliderChange(wxScrollEvent& event) {
+void MyFrame::OnSliderChange(wxCommandEvent& event) {
     switch(event.GetId()) {
         case SLIDER_FM1:
-            fm1 = this->fm1_slider->GetValue();
+            this->fm1 = this->fm1_slider->GetValue();
             break;
         case SLIDER_FM2:
-            fm2 = this->fm2_slider->GetValue();
+            this->fm2 = this->fm2_slider->GetValue();
             break;
         case SLIDER_FM3:
-            fm3 = this->fm3_slider->GetValue();
+            this->fm3 = this->fm3_slider->GetValue();
             break;
 
     }
+}
+
+void MyFrame::CleanAllPlots() {
+    m_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
+    mf_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
+    s_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
+    sf_plot->DelAllPlot(mpDeleteAction::mpYesDelete);
 }

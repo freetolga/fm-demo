@@ -2,7 +2,6 @@
 // Name:        src/osx/iphone/utils.mm
 // Purpose:     various cocoa utility functions
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -43,7 +42,7 @@
 // Common Event Support
 // ----------------------------------------------------------------------------
 
-@interface wxAppDelegate : NSObject <UIApplicationDelegate> {
+@interface wxAppDelegate : UIResponder <UIApplicationDelegate> {
 }
 
 @end
@@ -58,19 +57,31 @@
     return YES;
 }
 
-- (void)applicationDidFinishLaunching:(UIApplication *)application {
+- (void)applicationDidFinishLaunching:(UIApplication *)application
+{
     wxTheApp->OSXOnDidFinishLaunching();
 }
 
-- (void)applicationWillTerminate:(UIApplication *)application { 
+- (void)applicationWillTerminate:(UIApplication *)application
+{
     wxUnusedVar(application);
     wxTheApp->OSXOnWillTerminate();
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
     [super dealloc];
 }
 
+#if wxUSE_MENUBAR
+- (void) buildMenuWithBuilder:(id<UIMenuBuilder>) builder
+{
+    if ( builder.system == UIMenuSystem.mainSystem )
+    {
+        wxTheApp->OSXOnBuildMenu((WX_NSObject) builder);
+    }
+}
+#endif
 
 @end
 
@@ -91,6 +102,11 @@ void wxApp::DoCleanUp()
 #endif // wxUSE_BASE
 
 #if wxUSE_GUI
+
+wxApp::AppearanceResult wxApp::SetAppearance(Appearance WXUNUSED(appearance))
+{
+    return AppearanceResult::Failure;
+}
 
 // Emit a beeeeeep
 void wxBell()
@@ -128,40 +144,31 @@ wxMouseState wxGetMouseState()
 {
     wxMouseState ms;
     return ms;
-}    
+}
 
 // Get size of display
 
 class wxDisplayImplSingleiOS : public wxDisplayImplSingle
 {
 public:
-    virtual wxRect GetGeometry() const wxOVERRIDE
+    virtual wxRect GetGeometry() const override
     {
         CGRect bounds = [[UIScreen mainScreen] bounds];
 
         int width, height;
-        if ( UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]) )
-        {
-            // portrait
-            width = (int)bounds.size.width ;
-            height = (int)bounds.size.height;
-        }
-        else
-        {
-            // landscape
-            width = (int)bounds.size.height ;
-            height = (int)bounds.size.width;
-        }
+
+        width = (int)bounds.size.width ;
+        height = (int)bounds.size.height;
 
         return wxRect(0, 0, width, height);
     }
 
-    virtual int GetDepth() const wxOVERRIDE
+    virtual int GetDepth() const override
     {
         return 32; // TODO can we determine this ?
     }
 
-    virtual wxSize GetPPI() const wxOVERRIDE
+    virtual wxSize GetPPI() const override
     {
         return wxSize(72, 72);
     }
@@ -170,7 +177,7 @@ public:
 class wxDisplayFactorySingleiOS : public wxDisplayFactorySingle
 {
 protected:
-    virtual wxDisplayImpl *CreateSingleDisplay() wxOVERRIDE
+    virtual wxDisplayImpl *CreateSingleDisplay() override
     {
         return new wxDisplayImplSingleiOS;
     }
@@ -238,10 +245,10 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
 
     wxSize sz = m_window->GetSize();
 
-    int left = subrect != NULL ? subrect->x : 0 ;
-    int top = subrect != NULL ? subrect->y : 0 ;
-    int width = subrect != NULL ? subrect->width : sz.x;
-    int height = subrect !=  NULL ? subrect->height : sz.y ;
+    int left = subrect != nullptr ? subrect->x : 0 ;
+    int top = subrect != nullptr ? subrect->y : 0 ;
+    int width = subrect != nullptr ? subrect->width : sz.x;
+    int height = subrect != nullptr ? subrect->height : sz.y ;
 
     wxBitmap bmp = wxBitmap(width, height, 32);
 

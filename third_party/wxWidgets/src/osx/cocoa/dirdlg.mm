@@ -2,7 +2,6 @@
 // Name:        src/osx/cocoa/dirdlg.mm
 // Purpose:     wxDirDialog
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     2008-08-30
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -98,14 +97,14 @@ WX_NSOpenPanel wxDirDialog::OSXCreatePanel() const
 
 void wxDirDialog::ShowWindowModal()
 {
-    wxNonOwnedWindow* parentWindow = NULL;
+    wxNonOwnedWindow* parentWindow = nullptr;
 
     if (GetParent())
         parentWindow = dynamic_cast<wxNonOwnedWindow*>(wxGetTopLevelParent(GetParent()));
 
     wxCHECK_RET(parentWindow, "Window modal display requires parent.");
 
-    m_modality = wxDIALOG_MODALITY_WINDOW_MODAL;
+    m_modality = wxWindowMode::WindowModal;
 
     NSOpenPanel *oPanel = OSXCreatePanel();
 
@@ -163,7 +162,7 @@ void wxDirDialog::ModalFinishedCallback(void* panel, int returnCode)
     }
     SetReturnCode(result);
 
-    if (GetModality() == wxDIALOG_MODALITY_WINDOW_MODAL)
+    if (GetModality() == wxWindowMode::WindowModal)
         SendWindowModalDialogEvent ( wxEVT_WINDOW_MODAL_DIALOG_CLOSED  );
 }
 
