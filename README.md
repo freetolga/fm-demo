@@ -2,6 +2,9 @@
 
 this is me applying what i learned in signals and systems to a wxwidgets c++ project in order to visualize FM(Frequency Modulation)
 
+
+this project was made without AI agents
+
 ## current status
 - plotting a 3 tone controlled message
 - plotting modulated signal
