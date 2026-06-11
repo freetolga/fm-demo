@@ -2,6 +2,7 @@
 // Name:        src/common/svg.cpp
 // Purpose:     SVG sample
 // Author:      Chris Elliott
+// Modified by:
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -13,6 +14,7 @@
 
 #ifndef WX_PRECOMP
     #include "wx/dcmemory.h"
+    #include "wx/dcscreen.h"
     #include "wx/icon.h"
     #include "wx/image.h"
     #include "wx/math.h"
@@ -24,6 +26,7 @@
 #include "wx/filename.h"
 #include "wx/mstream.h"
 #include "wx/scopedarray.h"
+#include "wx/display.h"
 #include "wx/private/rescale.h"
 
 #if wxUSE_MARKUP
@@ -61,7 +64,7 @@ inline wxString NumStr(float f)
 
 // Return the colour representation as HTML-like "#rrggbb" string and also
 // returns its alpha as opacity number in 0..1 range.
-wxString Col2SVG(wxColour c, float* opacity = nullptr)
+wxString Col2SVG(wxColour c, float* opacity = NULL)
 {
     if ( c.Alpha() != wxALPHA_OPAQUE )
     {
@@ -84,7 +87,7 @@ wxString Col2SVG(wxColour c, float* opacity = nullptr)
 wxString GetPenStroke(const wxColour& c, int style = wxPENSTYLE_SOLID)
 {
     float opacity;
-    wxString s = wxString::Format(wxS("stroke=\"%s\""), Col2SVG(c, &opacity));
+    wxString s = wxS("stroke:") + Col2SVG(c, &opacity) + wxS(";");
 
     switch ( style )
     {
@@ -94,10 +97,10 @@ wxString GetPenStroke(const wxColour& c, int style = wxPENSTYLE_SOLID)
         case wxPENSTYLE_LONG_DASH:
         case wxPENSTYLE_DOT_DASH:
         case wxPENSTYLE_USER_DASH:
-            s += wxString::Format(wxS(" stroke-opacity=\"%s\""), NumStr(opacity));
+            s += wxString::Format(wxS(" stroke-opacity:%s;"), NumStr(opacity));
             break;
         case wxPENSTYLE_TRANSPARENT:
-            s += wxS(" stroke-opacity=\"0.0\"");
+            s += wxS(" stroke-opacity:0.0;");
             break;
         default:
             wxASSERT_MSG(false, wxS("wxSVGFileDC::Requested Pen Style not available"));
@@ -110,7 +113,7 @@ wxString GetPenStroke(const wxColour& c, int style = wxPENSTYLE_SOLID)
 wxString GetBrushFill(const wxColour& c, int style = wxBRUSHSTYLE_SOLID)
 {
     float opacity;
-    wxString s = wxString::Format(wxS("fill=\"%s\""), Col2SVG(c, &opacity));
+    wxString s = wxS("fill:") + Col2SVG(c, &opacity) + wxS(";");
 
     switch ( style )
     {
@@ -121,10 +124,10 @@ wxString GetBrushFill(const wxColour& c, int style = wxBRUSHSTYLE_SOLID)
         case wxBRUSHSTYLE_CROSS_HATCH:
         case wxBRUSHSTYLE_VERTICAL_HATCH:
         case wxBRUSHSTYLE_HORIZONTAL_HATCH:
-            s += wxString::Format(wxS(" fill-opacity=\"%s\""), NumStr(opacity));
+            s += wxString::Format(wxS(" fill-opacity:%s;"), NumStr(opacity));
             break;
         case wxBRUSHSTYLE_TRANSPARENT:
-            s += wxS(" fill-opacity=\"0.0\"");
+            s += wxS(" fill-opacity:0.0;");
             break;
         default:
             wxASSERT_MSG(false, wxS("wxSVGFileDC::Requested Brush Style not available"));
@@ -167,13 +170,13 @@ wxString GetPenPattern(const wxPen& pen)
             s = wxS("stroke-dasharray=\"");
             wxDash* dashes;
             int count = pen.GetDashes(&dashes);
-            if ((dashes != nullptr) && (count > 0))
+            if ((dashes != NULL) && (count > 0))
             {
                 for (int i = 0; i < count; ++i)
                 {
                     s << dashes[i];
                     if (i < count - 1)
-                        s << wxS(",");
+                        s << ",";
                 }
             }
             s += wxS("\"");
@@ -203,33 +206,33 @@ wxString GetPenStyle(const wxPen& pen)
 {
     wxString penStyle;
 
-    penStyle += wxString::Format(wxS("stroke-width=\"%d\""), pen.GetWidth());
+    penStyle += wxString::Format(wxS("stroke-width:%d;"), pen.GetWidth());
 
     switch (pen.GetCap())
     {
         case wxCAP_PROJECTING:
-            penStyle += wxS(" stroke-linecap=\"square\"");
+            penStyle += wxS(" stroke-linecap:square;");
             break;
         case wxCAP_BUTT:
-            penStyle += wxS(" stroke-linecap=\"butt\"");
+            penStyle += wxS(" stroke-linecap:butt;");
             break;
         case wxCAP_ROUND:
         default:
-            penStyle += wxS(" stroke-linecap=\"round\"");
+            penStyle += wxS(" stroke-linecap:round;");
             break;
     }
 
     switch (pen.GetJoin())
     {
         case wxJOIN_BEVEL:
-            penStyle += wxS(" stroke-linejoin=\"bevel\"");
+            penStyle += wxS(" stroke-linejoin:bevel;");
             break;
         case wxJOIN_MITER:
-            penStyle += wxS(" stroke-linejoin=\"miter\"");
+            penStyle += wxS(" stroke-linejoin:miter;");
             break;
         case wxJOIN_ROUND:
         default:
-            penStyle += wxS(" stroke-linejoin=\"round\"");
+            penStyle += wxS(" stroke-linejoin:round;");
             break;
     }
 
@@ -346,11 +349,11 @@ wxString CreateBrushFill(const wxBrush& brush, wxSVGShapeRenderingMode mode)
 
         float opacity;
         wxString brushColourStr = Col2SVG(brush.GetColour(), &opacity);
-        wxString brushStrokeStr = wxS("stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\"");
+        wxString brushStrokeStr = wxS("stroke-width:1; stroke-linecap:round; stroke-linejoin:round;");
 
         s += wxString::Format(wxS("  <pattern id=\"%s\" patternUnits=\"userSpaceOnUse\" width=\"8\" height=\"8\">\n"),
             patternName);
-        s += wxString::Format(wxS("    <path stroke=\"%s\" stroke-opacity=\"%s\" %s %s %s/>\n"),
+        s += wxString::Format(wxS("    <path style=\"stroke:%s; stroke-opacity:%s; %s\" %s %s/>\n"),
             brushColourStr, NumStr(opacity), brushStrokeStr, pattern, GetRenderMode(mode));
         s += wxS("  </pattern>\n");
     }
@@ -358,28 +361,31 @@ wxString CreateBrushFill(const wxBrush& brush, wxSVGShapeRenderingMode mode)
     return s;
 }
 
-wxMemoryDC GetTextMetricDC(const wxFont& font)
+void SetScaledScreenDCFont(wxScreenDC& sDC, const wxFont& font)
 {
-    wxMemoryDC dc;
-    const double dcDPI = dc.GetPPI().y;
-    const double scale = dcDPI / SVG_DPI.y;
+    const double screenDPI = sDC.GetPPI().y;
+    const double scale = screenDPI / SVG_DPI.y;
     if ( scale != 1 )
     {
-        // The SVG is DPI-independent so we want text metrics for the default (96) DPI.
+        // wxScreenDC uses the DPI of the main screen to determine the text
+        // extent and character width/height. Because the SVG should be
+        // DPI-independent we want the text extent of the default (96) DPI.
+        //
+        // Even when using DPI Independent pixels (like macOS), we still need to
+        // scale because macOS DPI (72) is different than SVG DPI (96).
+        // (wxScreenDC returns the standard DPI also on Retina screens.)
         //
         // We can't just divide the returned sizes by the scale factor, because
         // text does not scale linear (at least on Windows). Therefore, we scale
         // the font size instead.
         wxFont scaledFont = font;
         scaledFont.SetFractionalPointSize(scaledFont.GetFractionalPointSize() / scale);
-        dc.SetFont(scaledFont);
+        sDC.SetFont(scaledFont);
     }
     else
     {
-        dc.SetFont(font);
+        sDC.SetFont(font);
     }
-
-    return dc;
 }
 
 } // anonymous namespace
@@ -396,7 +402,7 @@ wxSVGBitmapEmbedHandler::ProcessBitmap(const wxBitmap& bmp,
 #if wxUSE_BASE64
     static int sub_images = 0;
 
-    if ( wxImage::FindHandler(wxBITMAP_TYPE_PNG) == nullptr )
+    if ( wxImage::FindHandler(wxBITMAP_TYPE_PNG) == NULL )
         wxImage::AddHandler(new wxPNGHandler);
 
     // write the bitmap as a PNG to a memory stream and Base64 encode
@@ -455,7 +461,7 @@ wxSVGBitmapFileHandler::ProcessBitmap(const wxBitmap& bmp,
 {
     static int sub_images = 0;
 
-    if ( wxImage::FindHandler(wxBITMAP_TYPE_PNG) == nullptr )
+    if ( wxImage::FindHandler(wxBITMAP_TYPE_PNG) == NULL )
         wxImage::AddHandler(new wxPNGHandler);
 
     // find a suitable file name
@@ -522,15 +528,15 @@ void wxSVGFileDCImpl::Init(const wxString& filename, int width, int height,
 
     m_dpi = dpi;
 
-    m_writeError = false;
+    m_OK = true;
 
     m_clipUniqueId = 0;
     m_clipNestingLevel = 0;
 
     m_gradientUniqueId = 0;
 
-    m_mm_to_pix_x = m_dpi / 25.4;
-    m_mm_to_pix_y = m_dpi / 25.4;
+    m_mm_to_pix_x = dpi / 25.4;
+    m_mm_to_pix_y = dpi / 25.4;
 
     m_backgroundBrush = *wxTRANSPARENT_BRUSH;
     m_textForegroundColour = *wxBLACK;
@@ -554,15 +560,17 @@ void wxSVGFileDCImpl::Init(const wxString& filename, int width, int height,
     else
         m_outfile.reset(new wxFileOutputStream(m_filename));
 
+    const wxSize dpiSize = FromDIP(wxSize(m_width, m_height));
+
     wxString s;
     s += wxS("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-    s += wxS("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n\n");
+    s += wxS("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.0//EN\" \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">\n\n");
     s += wxS("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"");
     s += wxString::Format(wxS(" width=\"%scm\" height=\"%scm\" viewBox=\"0 0 %d %d\">\n"),
-                          NumStr(m_width / m_dpi * 2.54), NumStr(m_height / m_dpi * 2.54), m_width, m_height);
+                          NumStr(m_width / dpi * 2.54), NumStr(m_height / dpi * 2.54), dpiSize.GetWidth(), dpiSize.GetHeight());
     s += wxString::Format(wxS("<title>%s</title>\n"), title);
-    s += wxString::Format(wxS("<desc>Created with %s</desc>\n\n"), wxVERSION_STRING);
-    s += wxS("<g fill=\"black\" stroke=\"black\" stroke-width=\"1\">\n");
+    s += wxString(wxS("<desc>Picture generated by wxSVG ")) + wxSVGVersion + wxS("</desc>\n\n");
+    s += wxS("<g style=\"fill:black; stroke:black; stroke-width:1\">\n");
     write(s);
 }
 
@@ -594,12 +602,14 @@ wxSize wxSVGFileDCImpl::GetPPI() const
 
 wxSize wxSVGFileDCImpl::FromDIP(const wxSize& sz) const
 {
-    return sz;
+    const wxSize baseline = wxDisplay::GetStdPPI();
+    return wxRescaleCoord(sz).From(baseline).To(SVG_DPI);
 }
 
 wxSize wxSVGFileDCImpl::ToDIP(const wxSize& sz) const
 {
-    return sz;
+    const wxSize baseline = wxDisplay::GetStdPPI();
+    return wxRescaleCoord(sz).From(SVG_DPI).To(baseline);
 }
 
 void wxSVGFileDCImpl::Clear()
@@ -607,7 +617,8 @@ void wxSVGFileDCImpl::Clear()
     {
         wxDCBrushChanger setBackground(*GetOwner(), m_backgroundBrush);
         wxDCPenChanger setTransp(*GetOwner(), *wxTRANSPARENT_PEN);
-        DoDrawRectangle(0, 0, m_width, m_height);
+        const wxSize dpiSize = FromDIP(wxSize(m_width, m_height));
+        DoDrawRectangle(0, 0, dpiSize.GetWidth(), dpiSize.GetHeight());
     }
 
     NewGraphicsIfNeeded();
@@ -623,8 +634,7 @@ void wxSVGFileDCImpl::DoDrawLine(wxCoord x1, wxCoord y1, wxCoord x2, wxCoord y2)
 
     write(s);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(x1, y1, x2, y2);
+    CalcBoundingBox(x1, y1, x2, y2);
 }
 
 void wxSVGFileDCImpl::DoDrawLines(int n, const wxPoint points[], wxCoord xoffset, wxCoord yoffset)
@@ -637,17 +647,15 @@ void wxSVGFileDCImpl::DoDrawLines(int n, const wxPoint points[], wxCoord xoffset
         s = wxString::Format(wxS("  <path d=\"M%d %d"),
             (points[0].x + xoffset), (points[0].y + yoffset));
 
-        if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-            CalcBoundingBox(points[0].x + xoffset, points[0].y + yoffset);
+        CalcBoundingBox(points[0].x + xoffset, points[0].y + yoffset);
 
         for (int i = 1; i < n; ++i)
         {
             s += wxString::Format(wxS(" L%d %d"), (points[i].x + xoffset), (points[i].y + yoffset));
-            if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-                CalcBoundingBox(points[i].x + xoffset, points[i].y + yoffset);
+            CalcBoundingBox(points[i].x + xoffset, points[i].y + yoffset);
         }
 
-        s += wxString::Format(wxS("\" fill=\"none\" %s %s/>\n"),
+        s += wxString::Format(wxS("\" style=\"fill:none\" %s %s/>\n"),
             GetRenderMode(m_renderingMode), GetPenPattern(m_pen));
 
         write(s);
@@ -657,7 +665,7 @@ void wxSVGFileDCImpl::DoDrawLines(int n, const wxPoint points[], wxCoord xoffset
 #if wxUSE_SPLINES
 void wxSVGFileDCImpl::DoDrawSpline(const wxPointList* points)
 {
-    wxCHECK_RET(points, "null pointer to spline points");
+    wxCHECK_RET(points, "NULL pointer to spline points");
     wxCHECK_RET(points->size() >= 2, "incomplete list of spline points");
 
     NewGraphicsIfNeeded();
@@ -674,11 +682,8 @@ void wxSVGFileDCImpl::DoDrawSpline(const wxPointList* points)
 
     s += wxString::Format("M %s %s L %s %s",
                           NumStr(p1.m_x), NumStr(p1.m_y), NumStr(p3.m_x), NumStr(p3.m_y));
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-    {
-        CalcBoundingBox(wxRound(p1.m_x), wxRound(p1.m_y));
-        CalcBoundingBox(wxRound(p3.m_x), wxRound(p3.m_y));
-    }
+    CalcBoundingBox(wxRound(p1.m_x), wxRound(p1.m_y));
+    CalcBoundingBox(wxRound(p3.m_x), wxRound(p3.m_y));
 
     while ( itPt != points->end() )
     {
@@ -696,17 +701,13 @@ void wxSVGFileDCImpl::DoDrawSpline(const wxPointList* points)
         s += wxString::Format(" C %s %s, %s %s, %s %s",
              NumStr(c1.m_x), NumStr(c1.m_y), NumStr(c2.m_x), NumStr(c2.m_y), NumStr(p3.m_x), NumStr(p3.m_y));
 
-        if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        {
-            CalcBoundingBox(wxRound(p0.m_x), wxRound(p0.m_y));
-            CalcBoundingBox(wxRound(p3.m_x), wxRound(p3.m_y));
-        }
+        CalcBoundingBox(wxRound(p0.m_x), wxRound(p0.m_y));
+        CalcBoundingBox(wxRound(p3.m_x), wxRound(p3.m_y));
     }
     s += wxString::Format(" L %s %s", NumStr(p2.m_x), NumStr(p2.m_y));
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxRound(p2.m_x), wxRound(p2.m_y));
+    CalcBoundingBox(wxRound(p2.m_x), wxRound(p2.m_y));
 
-    s += wxString::Format("\" fill=\"none\" %s %s/>\n",
+    s += wxString::Format("\" style=\"fill:none\" %s %s/>\n",
                           GetRenderMode(m_renderingMode), GetPenPattern(m_pen));
     write(s);
 }
@@ -718,7 +719,7 @@ void wxSVGFileDCImpl::DoDrawPoint(wxCoord x, wxCoord y)
 
     wxString s;
 
-    s = wxS("  <g stroke-width=\"1\" stroke-linecap=\"round\">\n  ");
+    s = wxS("  <g style=\"stroke-width:1; stroke-linecap:round;\">\n  ");
     write(s);
 
     DoDrawLine(x, y, x, y);
@@ -748,13 +749,10 @@ void wxSVGFileDCImpl::DoDrawRotatedText(const wxString& sText, wxCoord x, wxCoor
     const double dy = heightLine * cos(rad);
 
     // Update bounding box: upper left, upper right, bottom left, bottom right
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-    {
-        CalcBoundingBox(x, y);
-        CalcBoundingBox((wxCoord)(x + w * cos(rad)), (wxCoord)(y - h * sin(rad)));
-        CalcBoundingBox((wxCoord)(x + h * sin(rad)), (wxCoord)(y + h * cos(rad)));
-        CalcBoundingBox((wxCoord)(x + h * sin(rad) + w * cos(rad)), (wxCoord)(y + h * cos(rad) - w * sin(rad)));
-    }
+    CalcBoundingBox(x, y);
+    CalcBoundingBox((wxCoord)(x + w * cos(rad)), (wxCoord)(y - h * sin(rad)));
+    CalcBoundingBox((wxCoord)(x + h * sin(rad)), (wxCoord)(y + h * cos(rad)));
+    CalcBoundingBox((wxCoord)(x + h * sin(rad) + w * cos(rad)), (wxCoord)(y + h * cos(rad) - w * sin(rad)));
 
     // Create text style string
     wxString fontstyle;
@@ -782,20 +780,21 @@ void wxSVGFileDCImpl::DoDrawRotatedText(const wxString& sText, wxCoord x, wxCoor
     if (textDecoration.empty())
         textDecoration = wxS(" none");
 
-    wxString style;
-    style += wxString::Format(wxS("font-family=\"%s\" "), m_font.GetFaceName());
-    style += wxString::Format(wxS("font-weight=\"%d\" "), m_font.GetWeight());
-    style += wxString::Format(wxS("font-style=\"%s\" "), fontstyle);
-    style += wxString::Format(wxS("font-size=\"%spt\" "), NumStr(m_font.GetFractionalPointSize()));
-    style += wxString::Format(wxS("text-decoration=\"%s\" "), textDecoration);
-    style += wxString::Format(wxS("%s %s stroke-width=\"0\" "),
+    wxString style = wxS("style=\"");
+    style += wxString::Format(wxS("font-family:%s; "), m_font.GetFaceName());
+    style += wxString::Format(wxS("font-weight:%d; "), m_font.GetWeight());
+    style += wxString::Format(wxS("font-style:%s; "), fontstyle);
+    style += wxString::Format(wxS("font-size:%spt; "), NumStr(m_font.GetFractionalPointSize()));
+    style += wxString::Format(wxS("text-decoration:%s; "), textDecoration);
+    style += wxString::Format(wxS("%s %s stroke-width:0; "),
                               GetBrushFill(m_textForegroundColour),
                               GetPenStroke(m_textForegroundColour));
+    style += wxS("white-space: pre;");
+    style += wxS("\"");
 
-    // "xml:space" is deprecated in favour of "white-space: pre", keep it for now to
+    // this is deprecated in favour of "white-space: pre", keep it for now to
     // support SVG viewers that do not support the new tag
-    style += wxS("xml:space=\"preserve\" ");
-    style += wxS("style=\"white-space: pre;\" ");
+    style += wxS(" xml:space=\"preserve\"");
 
     // Draw all text line by line
     const wxArrayString lines = wxSplit(sText, '\n', '\0');
@@ -815,7 +814,7 @@ void wxSVGFileDCImpl::DoDrawRotatedText(const wxString& sText, wxCoord x, wxCoor
         {
             // draw text background
             const wxString rectStyle = wxString::Format(
-                wxS("%s %s stroke-width=\"1\""),
+                wxS("style=\"%s %s stroke-width:1;\""),
                 GetBrushFill(m_textBackgroundColour),
                 GetPenStroke(m_textBackgroundColour));
 
@@ -865,8 +864,7 @@ void wxSVGFileDCImpl::DoDrawRoundedRectangle(wxCoord x, wxCoord y, wxCoord width
 
     write(s);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+    CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
 }
 
 void wxSVGFileDCImpl::DoDrawPolygon(int n, const wxPoint points[],
@@ -882,11 +880,10 @@ void wxSVGFileDCImpl::DoDrawPolygon(int n, const wxPoint points[],
     for (int i = 0; i < n; i++)
     {
         s += wxString::Format(wxS("%d %d "), points[i].x + xoffset, points[i].y + yoffset);
-        if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-            CalcBoundingBox(points[i].x + xoffset, points[i].y + yoffset);
+        CalcBoundingBox(points[i].x + xoffset, points[i].y + yoffset);
     }
 
-    s += wxString::Format(wxS("\" %s %s %s fill-rule=\"%s\"/>\n"),
+    s += wxString::Format(wxS("\" %s %s %s style=\"fill-rule:%s;\"/>\n"),
         GetRenderMode(m_renderingMode), GetPenPattern(m_pen), GetBrushPattern(m_brush),
         fillStyle == wxODDEVEN_RULE ? wxS("evenodd") : wxS("nonzero"));
 
@@ -950,8 +947,7 @@ void wxSVGFileDCImpl::DoDrawEllipse(wxCoord x, wxCoord y, wxCoord width, wxCoord
 
     write(s);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+    CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
 }
 
 void wxSVGFileDCImpl::DoDrawArc(wxCoord x1, wxCoord y1, wxCoord x2, wxCoord y2, wxCoord xc, wxCoord yc)
@@ -1017,12 +1013,6 @@ void wxSVGFileDCImpl::DoDrawArc(wxCoord x1, wxCoord y1, wxCoord x2, wxCoord y2, 
         GetRenderMode(m_renderingMode), GetPenPattern(m_pen));
 
     write(s);
-
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-    {
-        double r = wxMax(r1, r2);
-        CalcBoundingBox(xc - r, yc - r, xc + r, yc + r);
-    }
 }
 
 void wxSVGFileDCImpl::DoDrawEllipticArc(wxCoord x, wxCoord y, wxCoord w, wxCoord h, double sa, double ea)
@@ -1117,9 +1107,6 @@ void wxSVGFileDCImpl::DoDrawEllipticArc(wxCoord x, wxCoord y, wxCoord w, wxCoord
     wxString arcLine = wxString::Format(wxS("%s\" %s %s/>\n"),
         arcPath, GetRenderMode(m_renderingMode), GetPenPattern(m_pen));
     write(arcLine);
-
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(x, y, x + w, y + h);
 }
 
 void wxSVGFileDCImpl::DoGradientFillLinear(const wxRect& rect,
@@ -1143,9 +1130,9 @@ void wxSVGFileDCImpl::DoGradientFillLinear(const wxRect& rect,
     s += wxS("  <defs>\n");
     s += wxString::Format(wxS("    <linearGradient id=\"gradient%zu\" x1=\"%d%%\" y1=\"%d%%\" x2=\"%d%%\" y2=\"%d%%\">\n"),
         m_gradientUniqueId, x1, y1, x2, y2);
-    s += wxString::Format(wxS("      <stop offset=\"0%%\" stop-color=\"%s\" stop-opacity=\"%s\"/>\n"),
+    s += wxString::Format(wxS("      <stop offset=\"0%%\" style=\"stop-color:%s; stop-opacity:%s\"/>\n"),
         initCol, NumStr(initOpacity));
-    s += wxString::Format(wxS("      <stop offset=\"100%%\" stop-color=\"%s\" stop-opacity=\"%s\"/>\n"),
+    s += wxString::Format(wxS("      <stop offset=\"100%%\" style=\"stop-color:%s; stop-opacity:%s\"/>\n"),
         destCol, NumStr(destOpacity));
     s += wxS("    </linearGradient>\n");
     s += wxS("  </defs>\n");
@@ -1158,8 +1145,7 @@ void wxSVGFileDCImpl::DoGradientFillLinear(const wxRect& rect,
 
     write(s);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(rect);
+    CalcBoundingBox(rect);
 }
 
 void wxSVGFileDCImpl::DoGradientFillConcentric(const wxRect& rect,
@@ -1183,9 +1169,9 @@ void wxSVGFileDCImpl::DoGradientFillConcentric(const wxRect& rect,
     s += wxS("  <defs>\n");
     s += wxString::Format(wxS("    <radialGradient id=\"gradient%zu\" cx=\"%s%%\" cy=\"%s%%\" fx=\"%s%%\" fy=\"%s%%\">\n"),
         m_gradientUniqueId, NumStr(cx), NumStr(cy), NumStr(fx), NumStr(fd));
-    s += wxString::Format(wxS("      <stop offset=\"0%%\" stop-color=\"%s\" stop-opacity=\"%s\" />\n"),
+    s += wxString::Format(wxS("      <stop offset=\"0%%\" style=\"stop-color:%s; stop-opacity:%s\" />\n"),
         initCol, NumStr(initOpacity));
-    s += wxString::Format(wxS("      <stop offset=\"100%%\" stop-color=\"%s\" stop-opacity=\"%s\" />\n"),
+    s += wxString::Format(wxS("      <stop offset=\"100%%\" style=\"stop-color:%s; stop-opacity:%s\" />\n"),
         destCol, NumStr(destOpacity));
     s += wxS("    </radialGradient>\n");
     s += wxS("  </defs>\n");
@@ -1198,8 +1184,7 @@ void wxSVGFileDCImpl::DoGradientFillConcentric(const wxRect& rect,
 
     write(s);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(rect);
+    CalcBoundingBox(rect);
 }
 
 void wxSVGFileDCImpl::DoSetDeviceClippingRegion(const wxRegion& region)
@@ -1240,10 +1225,10 @@ void wxSVGFileDCImpl::DoSetClippingRegion(wxCoord x, wxCoord y, wxCoord width, w
                 "y=\"" << y << "\" "
                 "width=\"" << width << "\" "
                 "height=\"" << height << "\" "
-                "stroke=\"gray\" fill=\"none\"/>\n"
+                "style=\"stroke: gray; fill: none;\"/>\n"
            "  </clipPath>\n"
            "</defs>\n"
-           "<g clip-path=\"url(#clip" << m_clipNestingLevel << ")\">\n";
+           "<g style=\"clip-path: url(#clip" << m_clipNestingLevel << ");\">\n";
 
     write(svg);
 
@@ -1291,18 +1276,27 @@ void wxSVGFileDCImpl::DoGetTextExtent(const wxString& string,
                                       wxCoord* externalLeading,
                                       const wxFont* theFont) const
 {
-    GetTextMetricDC(theFont ? *theFont : m_font).
-        GetTextExtent(string, x, y, descent, externalLeading);
+    wxScreenDC sDC;
+    SetScaledScreenDCFont(sDC, theFont ? *theFont : m_font);
+
+    sDC.GetTextExtent(string, x, y, descent, externalLeading);
 }
 
 wxCoord wxSVGFileDCImpl::GetCharHeight() const
 {
-    return GetTextMetricDC(m_font).GetCharHeight();
+    wxScreenDC sDC;
+    SetScaledScreenDCFont(sDC, m_font);
+
+    return sDC.GetCharHeight();
+
 }
 
 wxCoord wxSVGFileDCImpl::GetCharWidth() const
 {
-    return GetTextMetricDC(m_font).GetCharWidth();
+    wxScreenDC sDC;
+    SetScaledScreenDCFont(sDC, m_font);
+
+    return sDC.GetCharWidth();
 }
 
 void wxSVGFileDCImpl::ComputeScaleAndOrigin()
@@ -1373,7 +1367,7 @@ void wxSVGFileDCImpl::DoStartNewGraphics()
 {
     wxString s;
 
-    s = wxString::Format(wxS("<g %s %s %s transform=\"translate(%d %d) scale(%s %s)\">\n"),
+    s = wxString::Format(wxS("<g style=\"%s %s %s\" transform=\"translate(%d %d) scale(%s %s)\">\n"),
         GetPenStyle(m_pen),
         GetBrushFill(m_brush.GetColour(), m_brush.GetStyle()),
         GetPenStroke(m_pen.GetColour(), m_pen.GetStyle()),
@@ -1432,31 +1426,27 @@ void wxSVGFileDCImpl::DoDrawBitmap(const wxBitmap& bmp, wxCoord x, wxCoord y,
 {
     NewGraphicsIfNeeded();
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(x, y, x + bmp.GetWidth(), y + bmp.GetHeight());
-
-    if ( !m_outfile )
-        return;
-
     // If we don't have any bitmap handler yet, use the default one.
     if ( !m_bmp_handler )
         m_bmp_handler.reset(new wxSVGBitmapFileHandler(m_filename));
 
-    m_writeError = m_bmp_handler->ProcessBitmap(bmp, x, y, *m_outfile);
+    m_OK = m_outfile && m_outfile->IsOk();
+    if (!m_OK)
+        return;
+
+    m_bmp_handler->ProcessBitmap(bmp, x, y, *m_outfile);
+    m_OK = m_outfile->IsOk();
 }
 
 void wxSVGFileDCImpl::write(const wxString& s)
 {
-    if ( !m_outfile )
+    m_OK = m_outfile && m_outfile->IsOk();
+    if (!m_OK)
         return;
 
-    if ( m_outfile->IsOk() )
-    {
-        const wxCharBuffer buf = s.utf8_str();
-        m_outfile->Write(buf, strlen((const char*)buf));
-    }
-
-    m_writeError = !m_outfile->IsOk();
+    const wxCharBuffer buf = s.utf8_str();
+    m_outfile->Write(buf, strlen((const char*)buf));
+    m_OK = m_outfile->IsOk();
 }
 
 #endif // wxUSE_SVG

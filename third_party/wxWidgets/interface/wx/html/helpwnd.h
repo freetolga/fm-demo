@@ -56,7 +56,7 @@ enum
         m_embeddedHtmlHelp.SetHelpWindow(m_embeddedHelpWindow);
         m_embeddedHelpWindow->Create(this, wxID_ANY, wxDefaultPosition, GetClientSize(),
                                      wxTAB_TRAVERSAL|wxBORDER_NONE, wxHF_DEFAULT_STYLE);
-        m_embeddedHtmlHelp.AddBook(wxFileName("doc.zip"));
+        m_embeddedHtmlHelp.AddBook(wxFileName(wxT("doc.zip")));
     @endcode
 
     You should pass the style wxHF_EMBEDDED to the style parameter of
@@ -69,7 +69,7 @@ enum
 class wxHtmlHelpWindow : public wxWindow
 {
 public:
-    wxHtmlHelpWindow(wxHtmlHelpData* data = nullptr);
+    wxHtmlHelpWindow(wxHtmlHelpData* data = NULL);
 
     /**
         Constructor.
@@ -82,7 +82,7 @@ public:
                      const wxSize& size = wxDefaultSize,
                      int style = wxTAB_TRAVERSAL|wxBORDER_NONE,
                      int helpStyle = wxHF_DEFAULT_STYLE,
-                     wxHtmlHelpData* data = nullptr);
+                     wxHtmlHelpData* data = NULL);
 
     /**
         Creates the help window. See @ref wxHtmlHelpWindow() "the constructor"
@@ -144,13 +144,8 @@ public:
                            const wxString& path = wxEmptyString);
 
     /**
-        Associates a wxConfig object with the help window.
-
-        It is recommended that you use wxHtmlHelpController::UseConfig instead.
-
-        @param config The object to use or @NULL to disable the use of wxConfig.
-        @param rootpath The path in the wxConfig object to use as the root for
-            this window's settings. If empty, the current path will be used.
+        Associates a wxConfig object with the help window. It is recommended that you
+        use wxHtmlHelpController::UseConfig instead.
     */
     void UseConfig(wxConfigBase* config,
                    const wxString& rootpath = wxEmptyString);

@@ -2,6 +2,7 @@
 // Name:        artbrows.cpp
 // Purpose:     wxArtProvider demo - art browser dialog
 // Author:      Vaclav Slavik
+// Modified by:
 // Created:     2002/04/05
 // Copyright:   (c) Vaclav Slavik
 // Licence:     wxWindows licence
@@ -262,5 +263,5 @@ void wxArtBrowserDialog::SetArtBitmap(const wxArtID& id, const wxArtClient& clie
     m_canvas->SetSize(bmp.GetWidth(), bmp.GetHeight());
     m_canvas->SetBitmap(bmp);
     m_text->SetLabel(wxString::Format("Size: %d x %d", bmp.GetWidth(), bmp.GetHeight()));
-    Layout();
+    Refresh();
 }

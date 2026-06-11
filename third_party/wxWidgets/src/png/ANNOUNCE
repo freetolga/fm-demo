@@ -1,5 +1,5 @@
-libpng 1.6.55 - February 9, 2026
-================================
+libpng 1.6.37 - April 14, 2019
+==============================
 
 This is a public release of libpng, intended for use in production code.
 
@@ -7,12 +7,15 @@ This is a public release of libpng, intended for use in production code.
 Files available for download
 ----------------------------
 
-Source files:
+Source files with LF line endings (for Unix/Linux):
 
- * libpng-1.6.55.tar.xz (LZMA-compressed, recommended)
- * libpng-1.6.55.tar.gz (deflate-compressed)
- * lpng1655.7z (LZMA-compressed)
- * lpng1655.zip (deflate-compressed)
+ * libpng-1.6.37.tar.xz (LZMA-compressed, recommended)
+ * libpng-1.6.37.tar.gz
+
+Source files with CRLF line endings (for Windows):
+
+ * lp1637.7z (LZMA-compressed, recommended)
+ * lp1637.zip
 
 Other information:
 
@@ -22,16 +25,23 @@ Other information:
  * TRADEMARK.md
 
 
-Changes from version 1.6.54 to version 1.6.55
----------------------------------------------
+Changes since the previous public release (version 1.6.36)
+----------------------------------------------------------
 
- * Fixed CVE-2026-25646 (high severity):
-   Heap buffer overflow in `png_set_quantize`.
-   (Reported and fixed by Joshua Inscoe.)
- * Resolved an oss-fuzz build issue involving nalloc.
-   (Contributed by Philippe Antoine.)
+ * Fixed a use-after-free vulnerability (CVE-2019-7317) in png_image_free.
+ * Fixed a memory leak in the ARM NEON implementation of png_do_expand_palette.
+ * Fixed a memory leak in pngtest.c.
+ * Fixed two vulnerabilities (CVE-2018-14048, CVE-2018-14550) in
+   contrib/pngminus; refactor.
+ * Changed the license of contrib/pngminus to MIT; refresh makefile and docs.
+   (Contributed by Willem van Schaik)
+ * Fixed a typo in the libpng license v2.
+   (Contributed by Miguel Ojeda)
+ * Added makefiles for AddressSanitizer-enabled builds.
+ * Cleaned up various makefiles.
+
 
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.
 Subscription is required; visit
-<https://lists.sourceforge.net/lists/listinfo/png-mng-implement>
+https://lists.sourceforge.net/lists/listinfo/png-mng-implement
 to subscribe.

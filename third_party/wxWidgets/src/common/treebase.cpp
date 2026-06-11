@@ -24,7 +24,6 @@
 
 #include "wx/treectrl.h"
 #include "wx/imaglist.h"
-#include "wx/dcclient.h"
 
 extern WXDLLEXPORT_DATA(const char) wxTreeCtrlNameStr[] = "treeCtrl";
 
@@ -80,6 +79,7 @@ wxFLAGS_MEMBER(wxBORDER)
 // standard window styles
 wxFLAGS_MEMBER(wxTAB_TRAVERSAL)
 wxFLAGS_MEMBER(wxCLIP_CHILDREN)
+wxFLAGS_MEMBER(wxTRANSPARENT_WINDOW)
 wxFLAGS_MEMBER(wxWANTS_CHARS)
 wxFLAGS_MEMBER(wxFULL_REPAINT_ON_RESIZE)
 wxFLAGS_MEMBER(wxALWAYS_SHOW_SB )
@@ -98,6 +98,9 @@ wxFLAGS_MEMBER(wxTR_ROW_LINES)
 wxFLAGS_MEMBER(wxTR_HAS_VARIABLE_ROW_HEIGHT)
 wxFLAGS_MEMBER(wxTR_SINGLE)
 wxFLAGS_MEMBER(wxTR_MULTIPLE)
+#if WXWIN_COMPATIBILITY_2_8
+wxFLAGS_MEMBER(wxTR_EXTENDED)
+#endif
 wxFLAGS_MEMBER(wxTR_DEFAULT_STYLE)
 wxEND_FLAGS( wxTreeCtrlStyle )
 
@@ -141,7 +144,7 @@ wxTreeEvent::wxTreeEvent(wxEventType commandType,
 wxTreeEvent::wxTreeEvent(wxEventType commandType, int id)
            : wxNotifyEvent(commandType, id)
 {
-    m_itemOld = nullptr;
+    m_itemOld = 0l;
     m_editCancelled = false;
 }
 
@@ -201,80 +204,20 @@ void wxTreeCtrlBase::SetItemState(const wxTreeItemId& item, int state)
     DoSetItemState(item, state);
 }
 
-bool wxTreeCtrlBase::HasAnyImages() const
+static void
+wxGetBestTreeSize(const wxTreeCtrlBase* treeCtrl, wxTreeItemId id, wxSize& size)
 {
-    return HasImages() || m_imagesState.HasImages();
-}
-
-namespace
-{
-
-// This is used to store context used for determining the best tree size.
-class TreeSizer
-{
-public:
-    // Precompute the values that we will need.
-    explicit TreeSizer(const wxTreeCtrlBase* tree)
-        : treeCtrl(const_cast<wxTreeCtrlBase*>(tree)),
-          dc(const_cast<wxTreeCtrlBase*>(tree)),
-          iconSize(tree->GetImageLogicalSize(tree)),
-          indent(tree->FromDIP(tree->GetIndent()))
-    {
-    }
-
-    wxSize GetSize() const
-    {
-        const wxTreeItemId id = treeCtrl->GetRootItem();
-        if ( !id.IsOk() )
-            return wxSize(0, 0);
-
-        return DoGetSizeOf(id, 1);
-    }
-
-private:
-    // Recursive function actually computing the size.
-    wxSize DoGetSizeOf(wxTreeItemId id, int depth) const;
-
-    wxTreeCtrlBase* const treeCtrl;
-    wxInfoDC dc;
-    const wxSize iconSize;
-    const int indent;
-};
-
-wxSize TreeSizer::DoGetSizeOf(wxTreeItemId id, int depth) const
-{
-    wxSize size;
-
-    // Rectangle of the item may be empty if the item is not currently visible,
-    // e.g. because the branch containing it is collapsed.
     wxRect rect;
-    if ( treeCtrl->GetBoundingRect(id, rect, true /* just the item */)
-         && !rect.IsEmpty() ) // check for valid rect
+
+    if ( treeCtrl->GetBoundingRect(id, rect, true /* just the item */) )
     {
         // Translate to logical position so we get the full extent
 #if defined(__WXMSW__) && !defined(__WXUNIVERSAL__)
         rect.x += treeCtrl->GetScrollPos(wxHORIZONTAL);
+        rect.y += treeCtrl->GetScrollPos(wxVERTICAL);
 #endif
 
-        size.x = rect.GetRight();
-        size.y = rect.GetHeight();
-    }
-    else if (id != treeCtrl->GetRootItem())
-    {
-        // Estimate width for collapsed (invisible) node
-        size = dc.GetTextExtent(treeCtrl->GetItemText(id));
-        size.x += indent * depth;
-#if defined(__WXMSW__)
-        // On Windows there should be some extra space to the right of the text
-        size.x += indent / 2;
-#endif
-
-        if ( treeCtrl->GetItemImage(id) != wxTreeCtrl::NO_IMAGE )
-        {
-            size.x += iconSize.GetWidth();
-            if ( iconSize.y > size.y )
-                size.y = iconSize.GetHeight();
-        }
+        size.IncTo(wxSize(rect.GetRight(), rect.GetBottom()));
     }
 
     wxTreeItemIdValue cookie;
@@ -282,16 +225,9 @@ wxSize TreeSizer::DoGetSizeOf(wxTreeItemId id, int depth) const
           item.IsOk();
           item = treeCtrl->GetNextChild(id, cookie) )
     {
-        const wxSize childSize = DoGetSizeOf(item, depth + 1);
-        if ( childSize.x > size.x )
-            size.x = childSize.x;
-        size.y += childSize.y;
+        wxGetBestTreeSize(treeCtrl, item, size);
     }
-
-    return size;
 }
-
-} // anonymous namespace
 
 wxSize wxTreeCtrlBase::DoGetBestSize() const
 {
@@ -324,7 +260,9 @@ wxSize wxTreeCtrlBase::DoGetBestSize() const
     else // use precise, if potentially slow, size computation method
     {
         // iterate over all items recursively
-        size = TreeSizer{this}.GetSize();
+        wxTreeItemId idRoot = GetRootItem();
+        if ( idRoot.IsOk() )
+            wxGetBestTreeSize(this, idRoot, size);
     }
 
     // need some minimal size even for empty tree

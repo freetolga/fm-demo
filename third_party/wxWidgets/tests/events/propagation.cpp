@@ -23,19 +23,11 @@
 #include "wx/docmdi.h"
 #include "wx/frame.h"
 #include "wx/menu.h"
+#include "wx/scopedptr.h"
 #include "wx/scopeguard.h"
 #include "wx/toolbar.h"
 #include "wx/uiaction.h"
-#if wxUSE_AUI
-    #include "wx/aui/framemanager.h"
-    #include "wx/aui/tabmdi.h"
-#endif
-
-#include <memory>
-
-#if defined(__WXGTK__) || defined(__WXQT__)
-    #include "waitfor.h"
-#endif
+#include "wx/stopwatch.h"
 
 // FIXME: Currently under OS X testing paint event doesn't work because neither
 //        calling Refresh()+Update() nor even sending wxPaintEvent directly to
@@ -72,7 +64,7 @@ public:
 
     // override ProcessEvent() to confirm that it is called for all event
     // handlers in the chain
-    virtual bool ProcessEvent(wxEvent& event) override
+    virtual bool ProcessEvent(wxEvent& event) wxOVERRIDE
     {
         if ( event.GetEventType() == m_evtType )
             g_str += 'o'; // "o" == "overridden"
@@ -178,20 +170,21 @@ public:
 
     void GeneratePaintEvent()
     {
-#if defined(__WXGTK__) || defined(__WXQT__)
+#ifdef __WXGTK__
         // We need to map the window, otherwise we're not going to get any
         // paint events for it.
-        YieldForAWhile();
+        for ( wxStopWatch sw; sw.Time() < 50; )
+            wxYield();
 
         // Ignore events generated during the initial mapping.
         g_str.clear();
-#endif // __WXGTK__ || __WXQT__
+#endif // __WXGTK__
 
         Refresh();
         Update();
     }
 
-    virtual void OnDraw(wxDC& WXUNUSED(dc)) override
+    virtual void OnDraw(wxDC& WXUNUSED(dc)) wxOVERRIDE
     {
         g_str += 'D';   // draw
     }
@@ -235,8 +228,8 @@ class EventPropagationTestCase : public CppUnit::TestCase
 public:
     EventPropagationTestCase() {}
 
-    virtual void setUp() override;
-    virtual void tearDown() override;
+    virtual void setUp() wxOVERRIDE;
+    virtual void tearDown() wxOVERRIDE;
 
 private:
     CPPUNIT_TEST_SUITE( EventPropagationTestCase );
@@ -254,9 +247,6 @@ private:
 #endif
 #if wxUSE_DOC_VIEW_ARCHITECTURE
         CPPUNIT_TEST( DocView );
-    #if wxUSE_AUI
-        CPPUNIT_TEST( DocViewAui );
-    #endif
 #endif // wxUSE_DOC_VIEW_ARCHITECTURE
         WXUISIM_TEST( ContextMenuEvent );
         WXUISIM_TEST( PropagationLevel );
@@ -274,18 +264,6 @@ private:
 #endif
 #if wxUSE_DOC_VIEW_ARCHITECTURE
     void DocView();
-    #if wxUSE_AUI
-        void DocViewAui();
-    #endif
-    void DocViewCommon(wxFrame* (*newParent)(wxDocManager *manager,
-                                                wxFrame *parent,
-                                                wxWindowID id,
-                                                const wxString& title),
-                        wxFrame* (*newChild)(wxDocument *doc,
-                                                wxView *view,
-                                                wxFrame *parent,
-                                                wxWindowID id,
-                                                const wxString& title));
 #endif // wxUSE_DOC_VIEW_ARCHITECTURE
 #if wxUSE_UIACTIONSIMULATOR
     void ContextMenuEvent();
@@ -311,8 +289,8 @@ void EventPropagationTestCase::setUp()
 
 void EventPropagationTestCase::tearDown()
 {
-    SetFilterEventFunc(nullptr);
-    SetProcessEventFunc(nullptr);
+    SetFilterEventFunc(NULL);
+    SetProcessEventFunc(NULL);
 }
 
 void EventPropagationTestCase::OneHandler()
@@ -382,7 +360,7 @@ void EventPropagationTestCase::ForwardEvent()
     public:
         ForwardEvtHandler(wxEvtHandler& h) : m_h(&h) { }
 
-        virtual bool ProcessEvent(wxEvent& event) override
+        virtual bool ProcessEvent(wxEvent& event) wxOVERRIDE
         {
             g_str += 'f';
 
@@ -486,8 +464,8 @@ void EventPropagationTestCase::MenuEvent()
     wxMenu* const menu = CreateTestMenu(frame);
 #if wxUSE_MENUBAR
     wxMenuBar* const mb = menu->GetMenuBar();
-    std::unique_ptr<wxMenuBar> ensureMenuBarDestruction(mb);
-    wxON_BLOCK_EXIT_OBJ1( *frame, wxFrame::SetMenuBar, (wxMenuBar*)nullptr );
+    wxScopedPtr<wxMenuBar> ensureMenuBarDestruction(mb);
+    wxON_BLOCK_EXIT_OBJ1( *frame, wxFrame::SetMenuBar, (wxMenuBar*)NULL );
 #endif
     // Check that wxApp gets the event exactly once.
     ASSERT_MENU_EVENT_RESULT( menu, "aA" );
@@ -497,7 +475,7 @@ void EventPropagationTestCase::MenuEvent()
     TestMenuEvtHandler hm('m'); // 'm' for "menu"
     menu->SetNextHandler(&hm);
     wxON_BLOCK_EXIT_OBJ1( *menu,
-                          wxEvtHandler::SetNextHandler, (wxEvtHandler*)nullptr );
+                          wxEvtHandler::SetNextHandler, (wxEvtHandler*)NULL );
     ASSERT_MENU_EVENT_RESULT( menu, "aomA" );
 
 
@@ -509,7 +487,7 @@ void EventPropagationTestCase::MenuEvent()
     TestMenuEvtHandler hs('s'); // 's' for "submenu"
     submenu->SetNextHandler(&hs);
     wxON_BLOCK_EXIT_OBJ1( *submenu,
-                          wxEvtHandler::SetNextHandler, (wxEvtHandler*)nullptr );
+                          wxEvtHandler::SetNextHandler, (wxEvtHandler*)NULL );
     ASSERT_MENU_EVENT_RESULT_FOR( wxID_ABOUT, submenu, "aosomA" );
 
 #if wxUSE_MENUBAR
@@ -546,7 +524,7 @@ class EventTestView : public wxView
 public:
     EventTestView() { }
 
-    virtual void OnDraw(wxDC*) override { }
+    virtual void OnDraw(wxDC*) wxOVERRIDE { }
 
     wxDECLARE_DYNAMIC_CLASS(EventTestView);
 };
@@ -556,84 +534,11 @@ wxIMPLEMENT_DYNAMIC_CLASS(EventTestView, wxView);
 
 void EventPropagationTestCase::DocView()
 {
-    DocViewCommon(
-        [](wxDocManager* manager,
-            wxFrame *parent,
-            wxWindowID id,
-            const wxString& title) -> wxFrame*
-        {
-            return new wxDocMDIParentFrame(manager, parent, id, title);
-        },
-        [](wxDocument *doc,
-            wxView *view,
-            wxFrame *parent,
-            wxWindowID id,
-            const wxString& title) -> wxFrame*
-        {
-            wxDocMDIChildFrame* child = new wxDocMDIChildFrame(doc, view, dynamic_cast<wxDocMDIParentFrame*>(parent), id, title);
-            // Ensure that the child that we've just created is the active one.
-            child->Activate();
-            return child;
-        }
-    );
-}
-
-#if wxUSE_AUI
-void EventPropagationTestCase::DocViewAui()
-{
-    DocViewCommon(
-        [](wxDocManager* manager,
-            wxFrame *parent,
-            wxWindowID id,
-            const wxString& title) -> wxFrame*
-        {
-            class AuiParentFrame : public wxDocParentFrameAny<wxAuiMDIParentFrame>
-            {
-            public:
-                AuiParentFrame(wxDocManager* manager,
-                                wxFrame* parent,
-                                wxWindowID id,
-                                const wxString& title) :
-                    wxDocParentFrameAny<wxAuiMDIParentFrame>(manager, parent, id, title),
-                    auiMgr(this)
-                {
-                }
-            private:
-                wxAuiManager auiMgr;
-            };
-            return new AuiParentFrame(manager, parent, id, title);
-        },
-        [](wxDocument *doc,
-            wxView *view,
-            wxFrame *parentBase,
-            wxWindowID id,
-            const wxString& title) -> wxFrame*
-        {
-            typedef wxDocParentFrameAny<wxAuiMDIParentFrame> ParentType;
-            ParentType* parent = dynamic_cast<ParentType*>(parentBase);
-            wxFrame* child = new wxDocChildFrameAny<wxAuiMDIChildFrame, wxAuiMDIParentFrame>(doc, view, parent, id, title);
-            CHECK( parent->GetActiveChild() == child );
-            return child;
-        }
-    );
-}
-#endif // wxUSE_AUI
-
-void EventPropagationTestCase::DocViewCommon(wxFrame* (*newParent)(wxDocManager *manager,
-                                                                        wxFrame *parent,
-                                                                        wxWindowID id,
-                                                                        const wxString& title),
-                                                wxFrame* (*newChild)(wxDocument *doc,
-                                                                        wxView *view,
-                                                                        wxFrame *parent,
-                                                                        wxWindowID id,
-                                                                        const wxString& title))
-{
     // Set up the parent frame and its menu bar.
     wxDocManager docManager;
 
-    std::unique_ptr<wxFrame>
-        parent((*newParent)(&docManager, nullptr, wxID_ANY, "Parent"));
+    wxScopedPtr<wxDocMDIParentFrame>
+        parent(new wxDocMDIParentFrame(&docManager, NULL, wxID_ANY, "Parent"));
 
     wxMenu* const menu = CreateTestMenu(parent.get());
 
@@ -641,34 +546,32 @@ void EventPropagationTestCase::DocViewCommon(wxFrame* (*newParent)(wxDocManager 
     // Set up the event handlers.
     TestEvtSink sinkDM('m');
     docManager.Connect(wxEVT_MENU,
-                       wxEventHandler(TestEvtSink::Handle), nullptr, &sinkDM);
+                       wxEventHandler(TestEvtSink::Handle), NULL, &sinkDM);
 
     TestEvtSink sinkParent('p');
     parent->Connect(wxEVT_MENU,
-                    wxEventHandler(TestEvtSink::Handle), nullptr, &sinkParent);
+                    wxEventHandler(TestEvtSink::Handle), NULL, &sinkParent);
 
 
     // Check that wxDocManager and wxFrame get the event in order.
     ASSERT_MENU_EVENT_RESULT( menu, "ampA" );
 
 
-    // The document template must be heap-allocated as wxDocManager owns it.
-    wxDocTemplate* const docTemplate = new wxDocTemplate
-                                           (
-                                            &docManager, "Test", "", "", "",
-                                            "Test Document", "Test View",
-                                            wxCLASSINFO(EventTestDocument),
-                                            wxCLASSINFO(EventTestView)
-                                           );
-
     // Now check what happens if we have an active document.
-    wxDocument* const doc = docTemplate->CreateDocument("");
+    wxDocTemplate docTemplate(&docManager, "Test", "", "", "",
+                              "Test Document", "Test View",
+                              wxCLASSINFO(EventTestDocument),
+                              wxCLASSINFO(EventTestView));
+    wxDocument* const doc = docTemplate.CreateDocument("");
     wxView* const view = doc->GetFirstView();
 
-    std::unique_ptr<wxFrame>
-        child((*newChild)(doc, view, parent.get(), wxID_ANY, "Child"));
+    wxScopedPtr<wxMDIChildFrame>
+        child(new wxDocMDIChildFrame(doc, view, parent.get(), wxID_ANY, "Child"));
 
     wxMenu* const menuChild = CreateTestMenu(child.get());
+
+    // Ensure that the child that we've just created is the active one.
+    child->Activate();
 
 #ifdef __WXGTK__
     // There are a lot of hacks related to child frame menu bar handling in
@@ -687,19 +590,20 @@ void EventPropagationTestCase::DocViewCommon(wxFrame* (*newParent)(wxDocManager 
 
     TestEvtSink sinkDoc('d');
     doc->Connect(wxEVT_MENU,
-                 wxEventHandler(TestEvtSink::Handle), nullptr, &sinkDoc);
+                 wxEventHandler(TestEvtSink::Handle), NULL, &sinkDoc);
 
     TestEvtSink sinkView('v');
     view->Connect(wxEVT_MENU,
-                  wxEventHandler(TestEvtSink::Handle), nullptr, &sinkView);
+                  wxEventHandler(TestEvtSink::Handle), NULL, &sinkView);
 
     TestEvtSink sinkChild('c');
     child->Connect(wxEVT_MENU,
-                   wxEventHandler(TestEvtSink::Handle), nullptr, &sinkChild);
+                   wxEventHandler(TestEvtSink::Handle), NULL, &sinkChild);
 
     // Check that wxDocument, wxView, wxDocManager, child frame and the parent
     // get the event in order.
     ASSERT_MENU_EVENT_RESULT( menuChild, "advmcpA" );
+
 
 #if wxUSE_TOOLBAR
     // Also check that toolbar events get forwarded to the active child.
@@ -716,6 +620,7 @@ void EventPropagationTestCase::DocViewCommon(wxFrame* (*newParent)(wxDocManager 
     CPPUNIT_ASSERT_EQUAL( "advmcpA", g_str );
 #endif // wxUSE_TOOLBAR
 }
+
 #endif // wxUSE_DOC_VIEW_ARCHITECTURE
 
 #if wxUSE_UIACTIONSIMULATOR

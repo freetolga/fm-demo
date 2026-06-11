@@ -21,28 +21,15 @@
 
 #include "asserthelper.h"
 
-#include <memory>
-
 TEST_CASE("wxWrapSizer::CalcMin", "[wxWrapSizer]")
 {
-    std::unique_ptr<wxWindow> win(new wxWindow(wxTheApp->GetTopWindow(), wxID_ANY));
+    wxScopedPtr<wxWindow> win(new wxWindow(wxTheApp->GetTopWindow(), wxID_ANY));
     win->SetClientSize(180, 240);
 
     wxSizer *sizer = new wxWrapSizer(wxHORIZONTAL);
     win->SetSizer(sizer);
 
     wxSize sizeMinExpected;
-
-    auto const checkSizeIsExpected = [&](const char* desc)
-    {
-        INFO(desc);
-        CHECK( sizer->CalcMinSizeFromKnownDirection
-                      (
-                        wxHORIZONTAL,
-                        win->GetClientSize().x,
-                        win->GetClientSize().y
-                      ) == sizeMinExpected );
-    };
 
     // With a single child the min size must be the same as child size.
     const wxSize sizeChild1 = wxSize(80, 60);
@@ -54,7 +41,7 @@ TEST_CASE("wxWrapSizer::CalcMin", "[wxWrapSizer]")
     sizer->Add(child1);
     win->Layout();
 
-    checkSizeIsExpected("Single child");
+    CHECK( sizeMinExpected == sizer->CalcMin() );
 
     // If both children can fit in the same row, the minimal size of the sizer
     // is determined by the sum of their minimal horizontal dimensions and
@@ -69,7 +56,7 @@ TEST_CASE("wxWrapSizer::CalcMin", "[wxWrapSizer]")
     sizer->Add(child2);
     win->Layout();
 
-    checkSizeIsExpected("Two children in one row");
+    CHECK( sizeMinExpected == sizer->CalcMin() );
 
     // Three children will take at least two rows so the minimal size in
     // vertical direction must increase.
@@ -82,12 +69,12 @@ TEST_CASE("wxWrapSizer::CalcMin", "[wxWrapSizer]")
     sizer->Add(child3);
     win->Layout();
 
-    checkSizeIsExpected("Three children in two rows");
+    CHECK( sizeMinExpected == sizer->CalcMin() );
 }
 
 TEST_CASE("wxWrapSizer::CalcMinFromMinor", "[wxWrapSizer]")
 {
-    std::unique_ptr<wxWindow> win(new wxWindow(wxTheApp->GetTopWindow(), wxID_ANY));
+    wxScopedPtr<wxWindow> win(new wxWindow(wxTheApp->GetTopWindow(), wxID_ANY));
     win->SetClientSize(180, 240);
 
     wxSizer* boxSizer = new wxBoxSizer(wxHORIZONTAL);

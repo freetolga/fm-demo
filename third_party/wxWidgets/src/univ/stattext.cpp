@@ -2,6 +2,7 @@
 // Name:        src/univ/stattext.cpp
 // Purpose:     wxStaticText
 // Author:      Vadim Zeitlin
+// Modified by:
 // Created:     14.08.00
 // Copyright:   (c) 2000 SciTech Software, Inc. (www.scitechsoft.com)
 // Licence:     wxWindows licence
@@ -66,8 +67,11 @@ void wxStaticText::DoDraw(wxControlRenderer *renderer)
 
 void wxStaticText::SetLabel(const wxString& str)
 {
-    if ( !UpdateLabelOrig(str) )
+    if ( str == m_labelOrig )
         return;
+
+    // save original label
+    m_labelOrig = str;
 
     // draw as real label the abbreviated version of it
     WXSetVisibleLabel(GetEllipsizedLabel());

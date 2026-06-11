@@ -1,7 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/x11/colour.h
-// Purpose:     wxColourImpl class
+// Purpose:     wxColour class
 // Author:      Julian Smart, Robert Roebling
+// Modified by:
 // Created:     17/09/98
 // Copyright:   (c) Julian Smart, Robert Roebling
 // Licence:     wxWindows licence
@@ -25,19 +26,23 @@ class WXDLLIMPEXP_FWD_CORE wxPaintDC;
 class WXDLLIMPEXP_FWD_CORE wxBitmap;
 class WXDLLIMPEXP_FWD_CORE wxWindow;
 
+class WXDLLIMPEXP_FWD_CORE wxColour;
+
 //-----------------------------------------------------------------------------
-// wxColourImpl
+// wxColour
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxColourImpl : public wxColourBase
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxColour : public wxColourBase
 {
 public:
     // constructors
     // ------------
-    wxColourImpl() = default;
+    DEFINE_STD_WXCOLOUR_CONSTRUCTORS
 
-    bool operator==(const wxColourImpl& col) const;
-    bool operator!=(const wxColourImpl& col) const { return !(*this == col); }
+    virtual ~wxColour();
+
+    bool operator==(const wxColour& col) const;
+    bool operator!=(const wxColour& col) const { return !(*this == col); }
 
     unsigned char Red() const;
     unsigned char Green() const;
@@ -51,12 +56,15 @@ public:
 
 protected:
     virtual wxGDIRefData *CreateGDIRefData() const;
-    wxNODISCARD virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const;
+    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const;
 
     virtual void
     InitRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
     virtual bool FromString(const wxString& str);
+
+private:
+    wxDECLARE_DYNAMIC_CLASS(wxColour);
 };
 
 #endif // _WX_COLOUR_H_

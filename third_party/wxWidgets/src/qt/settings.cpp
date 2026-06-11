@@ -11,8 +11,8 @@
 #include "wx/settings.h"
 #include "wx/qt/private/converter.h"
 #include <QtGui/QPalette>
-#include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QStyle>
 
 wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
@@ -37,7 +37,6 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
             color = pal.color(QPalette::Light);
             break;
 
-        case wxSYS_COLOUR_GRIDLINES:
         case wxSYS_COLOUR_BTNFACE:
             color = pal.color(QPalette::Button);
             break;
@@ -70,7 +69,6 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
             color = pal.color(QPalette::Light);
             break;
 
-        case wxSYS_COLOUR_LISTBOXHIGHLIGHT:
         case wxSYS_COLOUR_HIGHLIGHT:
             color = pal.highlight().color();
             break;
@@ -122,9 +120,6 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
             break;
 
         case wxSYS_COLOUR_HOTLIGHT:
-            color = pal.color(QPalette::Link);
-            break;
-
         case wxSYS_COLOUR_GRADIENTACTIVECAPTION:
         case wxSYS_COLOUR_GRADIENTINACTIVECAPTION:
             // TODO
@@ -201,10 +196,10 @@ int wxSystemSettingsNative::GetMetric(wxSystemMetric index, const wxWindow* WXUN
             return QApplication::style()->pixelMetric(QStyle::PM_IconViewIconSize);
 
         case wxSYS_SCREEN_X:
-            return QApplication::primaryScreen()->size().width();
+            return QApplication::desktop()->screenGeometry().width();
 
         case wxSYS_SCREEN_Y:
-            return QApplication::primaryScreen()->size().height();
+            return QApplication::desktop()->screenGeometry().height();
 
         case wxSYS_HSCROLL_Y:
         case wxSYS_VSCROLL_X:

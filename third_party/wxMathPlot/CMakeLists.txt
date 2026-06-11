@@ -8,13 +8,12 @@ if (MSVC)
 else()
 	add_compile_options(-Wall -Wextra)
 endif()
-find_package(wxWidgets REQUIRED core base adv aui)
 # wxMathPlot lib
 set(wxmathplot_src mathplot/mathplot.cpp MathPlotConfig/MathPlotConfig.cpp)
 add_library(wxmathplot SHARED ${wxmathplot_src})
 add_library(wxmathplot_static ${wxmathplot_src})
-target_link_libraries(wxmathplot ${wxWidgets_LIBRARIES})
-include(${wxWidgets_USE_FILE})
+target_link_libraries(wxmathplot wx::core wx::base wx::adv wx::aui)
+target_link_libraries(wxmathplot_static wx::core wx::base wx::adv wx::aui)
 include_directories(${CMAKE_SOURCE_DIR}/MathPlotConfig)
 include_directories(${CMAKE_SOURCE_DIR}/mathplot)
 INSTALL(TARGETS wxmathplot
@@ -24,25 +23,6 @@ INSTALL(TARGETS wxmathplot
 install(FILES mathplot/mathplot.h DESTINATION include/wxmathplot COMPONENT Development)
 install(FILES MathPlotConfig/MathPlotConfig.h DESTINATION include/wxmathplot COMPONENT Development)
 
-# Demos
-add_executable(MathPlotDemo 
-	MathPlotDemo/MathPlotDemoApp.cpp MathPlotDemo/MathPlotDemoMain.cpp
-	)
-target_link_libraries(MathPlotDemo wxmathplot_static ${wxWidgets_LIBRARIES})
-
-add_executable(MathPlotConfigDemo 
-	MathPlotConfig/MathPlotConfigDemo.cpp
-	)
-target_link_libraries(MathPlotConfigDemo wxmathplot_static ${wxWidgets_LIBRARIES})
-
-if(WIN32 AND MSVC)
-	set_target_properties(MathPlotDemo PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
-	set_target_properties(MathPlotConfigDemo PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
-endif(WIN32 AND MSVC)
-
-set(MY_PATH "PATH=%PATH%" C:/wxWidgetsDev/wx-3.2.6/lib/vc14x_x64_dll)
-set_target_properties(MathPlotDemo PROPERTIES VS_DEBUGGER_ENVIRONMENT "${MY_PATH}")
-set_target_properties(MathPlotConfigDemo PROPERTIES VS_DEBUGGER_ENVIRONMENT "${MY_PATH}")
 
 #CPack
 

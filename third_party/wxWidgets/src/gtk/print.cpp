@@ -31,8 +31,6 @@
 #include "wx/modalhook.h"
 #include "wx/display.h"
 
-#include "wx/private/print.h"
-
 #include "wx/gtk/private/wrapgtk.h"
 
 #if GTK_CHECK_VERSION(2,14,0)
@@ -44,11 +42,7 @@
 #include "wx/link.h"
 wxFORCE_LINK_THIS_MODULE(gtk_print)
 
-#include "wx/gtk/private/glibptr.h"
-#include "wx/gtk/private/error.h"
 #include "wx/gtk/private/object.h"
-
-#include <vector>
 
 // Useful to convert angles from degrees to radians.
 static const double DEG2RAD  = M_PI / 180.0;
@@ -56,7 +50,7 @@ static const double DEG2RAD  = M_PI / 180.0;
 // Map wxPaperSize to GtkPaperSize names
 // Ordering must be the same as wxPaperSize enum
 static const char* const gs_paperList[] = {
-    nullptr, // wxPAPER_NONE
+    NULL, // wxPAPER_NONE
     "na_letter", // wxPAPER_LETTER
     "na_legal", // wxPAPER_LEGAL
     "iso_a4", // wxPAPER_A4
@@ -193,12 +187,12 @@ static GtkPaperSize* wxGetGtkPaperSize(wxPaperSize paperId, const wxSize& size)
         // look for a size match in GTK's GtkPaperSize list
         const double w = size.x;
         const double h = size.y;
-        GtkPaperSize* paperSize = nullptr;
+        GtkPaperSize* paperSize = NULL;
         GList* list = gtk_paper_size_get_paper_sizes(true);
         for (GList* p = list; p; p = p->next)
         {
             GtkPaperSize* paperSize2 = static_cast<GtkPaperSize*>(p->data);
-            if (paperSize == nullptr &&
+            if (paperSize == NULL &&
                 fabs(w - gtk_paper_size_get_width(paperSize2, GTK_UNIT_MM)) < 1 &&
                 fabs(h - gtk_paper_size_get_height(paperSize2, GTK_UNIT_MM)) < 1)
             {
@@ -234,8 +228,8 @@ public:
     wxGtkPrintModule()
     {
     }
-    bool OnInit() override;
-    void OnExit() override {}
+    bool OnInit() wxOVERRIDE;
+    void OnExit() wxOVERRIDE {}
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxGtkPrintModule);
@@ -302,7 +296,7 @@ wxDialog *
 wxGtkPrintFactory::CreatePrintSetupDialog(wxWindow * WXUNUSED(parent),
                                           wxPrintData * WXUNUSED(data))
 {
-    return nullptr;
+    return NULL;
 }
 
 wxDCImpl* wxGtkPrintFactory::CreatePrinterDCImpl( wxPrinterDC *owner, const wxPrintData& data )
@@ -389,8 +383,8 @@ wxIMPLEMENT_CLASS(wxGtkPrintNativeData, wxPrintNativeDataBase);
 wxGtkPrintNativeData::wxGtkPrintNativeData()
 {
     m_config = gtk_print_settings_new();
-    m_job = nullptr;
-    m_context = nullptr;
+    m_job = NULL;
+    m_context = NULL;
 }
 
 wxGtkPrintNativeData::~wxGtkPrintNativeData()
@@ -600,7 +594,7 @@ GtkPageSetup* GetPageSetupFromSettings(GtkPrintSettings* settings)
     gtk_page_setup_set_orientation (page_setup, gtk_print_settings_get_orientation (settings));
 
     GtkPaperSize *paper_size = gtk_print_settings_get_paper_size (settings);
-    if (paper_size != nullptr)
+    if (paper_size != NULL)
     {
         gtk_page_setup_set_paper_size_and_default_margins (page_setup, paper_size);
         gtk_paper_size_free(paper_size);
@@ -668,7 +662,7 @@ wxGtkPrintDialog::~wxGtkPrintDialog()
         static_cast<wxGtkPrintNativeData*>(printData.GetNativeData());
     GtkPrintOperation* printOp = native->GetPrintJob();
     g_object_unref(printOp);
-    native->SetPrintJob(nullptr);
+    native->SetPrintJob(NULL);
 }
 
 // This is called even if we actually don't want the dialog to appear.
@@ -685,40 +679,25 @@ int wxGtkPrintDialog::ShowModal()
     GtkPrintSettings * settings = native->GetPrintConfig();
 
     // We have to restore pages to print here because they're stored in a wxPrintDialogData and ConvertToNative only works for wxPrintData.
-    if (m_printDialogData.GetSelection() || m_printDialogData.GetCurrentPage())
+    int fromPage = m_printDialogData.GetFromPage();
+    int toPage = m_printDialogData.GetToPage();
+    if (m_printDialogData.GetSelection())
         gtk_print_settings_set_print_pages(settings, GTK_PRINT_PAGES_CURRENT);
-    else if (m_printDialogData.GetAllPages() || m_printDialogData.GetPageRanges().empty())
+    else if (m_printDialogData.GetAllPages())
         gtk_print_settings_set_print_pages(settings, GTK_PRINT_PAGES_ALL);
-    else
-    {
+    else {
         gtk_print_settings_set_print_pages(settings, GTK_PRINT_PAGES_RANGES);
-
-        const auto& pageRanges = m_printDialogData.GetPageRanges();
-
-        const auto numRanges = pageRanges.size();
-        std::vector<GtkPageRange> ranges(numRanges);
-        for ( size_t i = 0; i < numRanges; i++ )
-        {
-            ranges[i].start = pageRanges[i].fromPage - 1;
-            ranges[i].end = pageRanges[i].toPage - 1;
-        }
-
-        gtk_print_settings_set_page_ranges(settings, &ranges[0], numRanges);
+        GtkPageRange range;
+        range.start = fromPage - 1;
+        range.end = (toPage >= fromPage) ? toPage - 1 : fromPage - 1;
+        gtk_print_settings_set_page_ranges(settings, &range, 1);
     }
 
     GtkPrintOperation * const printOp = native->GetPrintJob();
 
-    gtk_print_operation_set_print_settings (printOp, settings);
-
-    if ( m_printDialogData.GetEnableCurrentPage() )
-    {
-        // We need to set the current page value to make the corresponding
-        // radio button enabled in the GTK dialog. As we don't know what it's
-        // going to be yet (this will be returned by GetPagesInfo() which will
-        // be called later), just set it to 1.
-        g_object_set(G_OBJECT(printOp), "current-page", 1, nullptr);
-    }
-
+    // If the settings are OK, we restore it.
+    if (settings != NULL)
+        gtk_print_operation_set_print_settings (printOp, settings);
     GtkPageSetup* pgSetup = GetPageSetupFromSettings(settings);
     gtk_print_operation_set_default_page_setup (printOp, pgSetup);
     g_object_unref(pgSetup);
@@ -729,7 +708,7 @@ int wxGtkPrintDialog::ShowModal()
     gtk_print_operation_set_use_full_page(printOp, TRUE);
 
     // Show the dialog if needed.
-    wxGtkError gError;
+    GError* gError = NULL;
     GtkPrintOperationResult response = gtk_print_operation_run
                                        (
                                            printOp,
@@ -738,8 +717,8 @@ int wxGtkPrintDialog::ShowModal()
                                             : GTK_PRINT_OPERATION_ACTION_PRINT,
                                            m_parent
                                             ? GTK_WINDOW(gtk_widget_get_toplevel(m_parent->m_widget))
-                                            : nullptr,
-                                           gError.Out()
+                                            : NULL,
+                                           &gError
                                        );
 
     // Does everything went well?
@@ -749,8 +728,66 @@ int wxGtkPrintDialog::ShowModal()
     }
     else if (response == GTK_PRINT_OPERATION_RESULT_ERROR)
     {
-        wxLogError(_("Error while printing: %s"), gError.GetMessage());
+        wxLogError(_("Error while printing: ") + wxString(gError ? gError->message : "???"));
+        g_error_free (gError);
         return wxID_NO; // We use wxID_NO because there is no wxID_ERROR available
+    }
+
+    // Now get the settings and save it.
+    GtkPrintSettings* newSettings = gtk_print_operation_get_print_settings(printOp);
+
+    // When embedding the page setup tab into the dialog, as we do, changes to
+    // the settings such as the paper size and orientation there are not
+    // reflected in the print settings, but must be retrieved from the page
+    // setup struct itself separately.
+    GtkPageSetup* defPageSetup = NULL;
+    g_object_get(printOp, "default-page-setup", &defPageSetup, NULL);
+    if ( defPageSetup )
+    {
+        SetPageSetupToSettings(newSettings, defPageSetup);
+        g_object_unref(defPageSetup);
+    }
+
+    native->SetPrintConfig(newSettings);
+    data.ConvertFromNative();
+
+    // Set PrintDialogData variables
+    m_printDialogData.SetPrintData(data);
+    m_printDialogData.SetCollate(data.GetCollate());
+    m_printDialogData.SetNoCopies(data.GetNoCopies());
+    m_printDialogData.SetPrintToFile(data.GetPrinterName() == "Print to File");
+
+    // Same problem as a few lines before.
+    switch (gtk_print_settings_get_print_pages(newSettings))
+    {
+        case GTK_PRINT_PAGES_CURRENT:
+            m_printDialogData.SetSelection( true );
+            break;
+        case GTK_PRINT_PAGES_RANGES:
+            {// wxWidgets doesn't support multiple ranges, so we can only save the first one even if the user wants to print others.
+            // For example, the user enters "1-3;5-7" in the dialog: pages 1-3 and 5-7 will be correctly printed when the user
+            // will hit "OK" button. However we can only save 1-3 in the print data.
+            gint num_ranges = 0;
+            GtkPageRange* range;
+            range = gtk_print_settings_get_page_ranges (newSettings, &num_ranges);
+            if (num_ranges >= 1)
+            {
+                m_printDialogData.SetFromPage( range[0].start );
+                m_printDialogData.SetToPage( range[0].end );
+                g_free(range);
+            }
+            else {
+                m_printDialogData.SetAllPages( true );
+                m_printDialogData.SetFromPage( 0 );
+                m_printDialogData.SetToPage( 9999 );
+            }
+            break;}
+        case GTK_PRINT_PAGES_ALL:
+        default:
+            m_printDialogData.SetAllPages( true );
+            m_printDialogData.SetFromPage( 0 );
+            m_printDialogData.SetToPage( 9999 );
+            break;
     }
 
     return wxID_OK;
@@ -818,7 +855,7 @@ int wxGtkPageSetupDialog::ShowModal()
         dlg = gtk_page_setup_unix_dialog_new(title.utf8_str(),
                                              m_parent
                                                 ? GTK_WINDOW(m_parent->m_widget)
-                                                : nullptr);
+                                                : NULL);
 
     gtk_page_setup_unix_dialog_set_print_settings(
         GTK_PAGE_SETUP_UNIX_DIALOG(dlg), nativeData);
@@ -894,8 +931,8 @@ wxIMPLEMENT_CLASS(wxGtkPrinter, wxPrinterBase);
 wxGtkPrinter::wxGtkPrinter( wxPrintDialogData *data ) :
     wxPrinterBase( data )
 {
-    m_gpc = nullptr;
-    m_dc = nullptr;
+    m_gpc = NULL;
+    m_dc = NULL;
 
     if (data)
         m_printDialogData = *data;
@@ -911,6 +948,30 @@ bool wxGtkPrinter::Print(wxWindow *parent, wxPrintout *printout, bool prompt )
     {
         sm_lastError = wxPRINTER_ERROR;
         return false;
+    }
+
+    // Let's correct the PageInfo just in case the app gives wrong values.
+    int fromPage, toPage;
+    int minPage, maxPage;
+    printout->GetPageInfo(&minPage, &maxPage, &fromPage, &toPage);
+
+    if (minPage < 1) minPage = 1;
+    if (maxPage < 1) maxPage = 9999;
+    if (maxPage < minPage) maxPage = minPage;
+
+    m_printDialogData.SetMinPage(minPage);
+    m_printDialogData.SetMaxPage(maxPage);
+    if (fromPage != 0)
+    {
+        if (fromPage < minPage) fromPage = minPage;
+        else if (fromPage > maxPage) fromPage = maxPage;
+        m_printDialogData.SetFromPage(fromPage);
+    }
+    if (toPage != 0)
+    {
+        m_printDialogData.SetToPage(toPage);
+        if (toPage > maxPage) toPage = maxPage;
+        else if (toPage < minPage) toPage = minPage;
     }
 
     wxPrintData printdata = GetPrintDialogData().GetPrintData();
@@ -937,7 +998,7 @@ bool wxGtkPrinter::Print(wxWindow *parent, wxPrintout *printout, bool prompt )
     // doesn't necessarily show
     int ret = dialog.ShowModal();
 
-    printout->SetDC(nullptr);
+    printout->SetDC(NULL);
     wxDELETE(m_dc);
 
     if (ret == wxID_CANCEL)
@@ -951,6 +1012,8 @@ bool wxGtkPrinter::Print(wxWindow *parent, wxPrintout *printout, bool prompt )
         return false;
     }
 
+    m_printDialogData = dialog.GetPrintDialogData();
+
     sm_lastError = wxPRINTER_NO_ERROR;
     return true;
 }
@@ -960,62 +1023,11 @@ void wxGtkPrinter::BeginPrint(wxPrintout *printout, GtkPrintOperation *operation
     wxPrintData printdata = GetPrintDialogData().GetPrintData();
     wxGtkPrintNativeData *native = (wxGtkPrintNativeData*) printdata.GetNativeData();
 
-    // Now get the settings and save it.
-    GtkPrintSettings* newSettings = gtk_print_operation_get_print_settings(operation);
-
-    // When embedding the page setup tab into the dialog, as we do, changes to
-    // the settings such as the paper size and orientation there are not
-    // reflected in the print settings, but must be retrieved from the page
-    // setup struct itself separately.
-    GtkPageSetup* defPageSetup = nullptr;
-    g_object_get(operation, "default-page-setup", &defPageSetup, nullptr);
-    if ( defPageSetup )
-    {
-        SetPageSetupToSettings(newSettings, defPageSetup);
-        g_object_unref(defPageSetup);
-    }
-
     // We need to update printdata with the new data from the dialog and we
     // have to do this here because this method needs this new data and we
     // cannot update it earlier
-    native->SetPrintConfig(newSettings);
+    native->SetPrintConfig(gtk_print_operation_get_print_settings(operation));
     printdata.ConvertFromNative();
-
-    // Set PrintDialogData variables
-    m_printDialogData.SetPrintData(printdata);
-    m_printDialogData.SetCollate(printdata.GetCollate());
-    m_printDialogData.SetNoCopies(printdata.GetNoCopies());
-    m_printDialogData.SetPrintToFile(printdata.GetPrinterName() == "Print to File");
-
-    wxPrintPageRanges pageRanges;
-    switch (gtk_print_settings_get_print_pages(newSettings))
-    {
-        case GTK_PRINT_PAGES_CURRENT:
-            m_printDialogData.SetSelection( true );
-            break;
-        case GTK_PRINT_PAGES_RANGES:
-            {
-            gint num_ranges = 0;
-            GtkPageRange* range;
-            range = gtk_print_settings_get_page_ranges (newSettings, &num_ranges);
-
-            wxGlibPtr<GtkPageRange> rangePtrDeleter(range);
-
-            pageRanges.resize(num_ranges);
-            for ( auto& pageRange : pageRanges )
-            {
-                pageRange.fromPage = range->start + 1;
-                pageRange.toPage = range->end + 1;
-                ++range;
-            }
-            m_printDialogData.SetPageRanges(pageRanges);
-            break;
-            }
-        case GTK_PRINT_PAGES_ALL:
-        default:
-            m_printDialogData.SetAllPages( true );
-            break;
-    }
 
     SetPrintContext(context);
     native->SetPrintContext( context );
@@ -1033,64 +1045,128 @@ void wxGtkPrinter::BeginPrint(wxPrintout *printout, GtkPrintOperation *operation
         return;
     }
 
-    if (!printout->SetUp(*m_dc))
-    {
-        sm_lastError = wxPRINTER_ERROR;
-        return;
-    }
+    printout->SetUp(*m_dc);
 
     printout->OnPreparePrinting();
 
     // Get some parameters from the printout, if defined.
-    const auto allPages = printout->GetPagesInfo(pageRanges);
+    int fromPage, toPage;
+    int minPage, maxPage;
+    printout->GetPageInfo(&minPage, &maxPage, &fromPage, &toPage);
 
-    if (!allPages.IsValid())
+    if (maxPage == 0)
     {
         sm_lastError = wxPRINTER_ERROR;
+        wxFAIL_MSG("wxPrintout::GetPageInfo gives a null maxPage.");
         return;
     }
 
-    gtk_print_operation_set_n_pages(operation, allPages.GetNumberOfPages());
-
     printout->OnBeginPrinting();
+
+    int numPages = 0;
+
+    // If we're not previewing we need to calculate the number of pages to print.
+    // If we're previewing, Gtk Print will render every pages without wondering about the page ranges the user may
+    // have defined in the dialog. So the number of pages is the maximum available.
+    if (!printout->IsPreview())
+    {
+        GtkPrintSettings * settings = gtk_print_operation_get_print_settings (operation);
+        switch (gtk_print_settings_get_print_pages(settings))
+        {
+            case GTK_PRINT_PAGES_CURRENT:
+                numPages = 1;
+                break;
+            case GTK_PRINT_PAGES_RANGES:
+                {gint num_ranges = 0;
+                GtkPageRange* range;
+                int i;
+                range = gtk_print_settings_get_page_ranges (settings, &num_ranges);
+                for (i=0; i<num_ranges; i++)
+                {
+                    if (range[i].end < range[i].start) range[i].end = range[i].start;
+                    if (range[i].start < minPage-1) range[i].start = minPage-1;
+                    if (range[i].end > maxPage-1) range[i].end = maxPage-1;
+                    if (range[i].start > maxPage-1) range[i].start = maxPage-1;
+                    numPages += range[i].end - range[i].start + 1;
+                }
+                if (range)
+                {
+                    gtk_print_settings_set_page_ranges(settings, range, 1);
+                    g_free(range);
+                }
+                break;}
+            case GTK_PRINT_PAGES_ALL:
+            default:
+                numPages = maxPage - minPage + 1;
+                break;
+        }
+    }
+    else numPages = maxPage - minPage + 1;
+
+    gtk_print_operation_set_n_pages(operation, numPages);
 }
 
 void wxGtkPrinter::DrawPage(wxPrintout *printout,
-                            GtkPrintOperation * WXUNUSED(operation),
+                            GtkPrintOperation *operation,
                             GtkPrintContext * WXUNUSED(context),
                             int page_nr)
 {
-    // The last error is set if OnBeginDocument() failed when called for the
-    // first page or OnPrintPage() returned false for any page, and we
-    // shouldn't do anything with the subsequent pages in this case.
-    if (sm_lastError != wxPRINTER_NO_ERROR)
-        return;
+    int fromPage, toPage, minPage, maxPage, startPage, endPage;
+    printout->GetPageInfo(&minPage, &maxPage, &fromPage, &toPage);
 
-    const int minPage = m_printDialogData.GetMinPage();
-    const int maxPage = m_printDialogData.GetMaxPage();
+    int numPageToDraw = page_nr + minPage;
+    if (numPageToDraw < minPage) numPageToDraw = minPage;
+    if (numPageToDraw > maxPage) numPageToDraw = maxPage;
 
-    if(page_nr == 0)
+    GtkPrintSettings * settings = gtk_print_operation_get_print_settings (operation);
+    switch (gtk_print_settings_get_print_pages(settings))
     {
-        if (!printout->OnBeginDocument(minPage, maxPage))
+        case GTK_PRINT_PAGES_CURRENT:
+            g_object_get(G_OBJECT(operation), "current-page", &startPage, NULL);
+            endPage = startPage;
+            break;
+        case GTK_PRINT_PAGES_RANGES:
+            {gint num_ranges = 0;
+            GtkPageRange* range;
+            range = gtk_print_settings_get_page_ranges (settings, &num_ranges);
+            // We don't need to verify these values as it has already been done in wxGtkPrinter::BeginPrint.
+            if (num_ranges >= 1)
+            {
+                startPage = range[0].start + 1;
+                endPage = range[0].end + 1;
+                g_free(range);
+            }
+            else {
+                startPage = minPage;
+                endPage = maxPage;
+            }
+            break;}
+        case GTK_PRINT_PAGES_ALL:
+        default:
+            startPage = minPage;
+            endPage = maxPage;
+            break;
+    }
+
+    if(numPageToDraw == startPage)
+    {
+        if (!printout->OnBeginDocument(startPage, endPage))
         {
             wxLogError(_("Could not start printing."));
             sm_lastError = wxPRINTER_ERROR;
-            return;
         }
     }
-
-    const int numPageToDraw = minPage + page_nr;
 
     // The app can render the page numPageToDraw.
     if (printout->HasPage(numPageToDraw))
     {
-        wxPrintingPageGuard pageGuard(*m_dc);
-        if (!printout->OnPrintPage(numPageToDraw))
-            sm_lastError = wxPRINTER_CANCELLED;
+        m_dc->StartPage();
+        printout->OnPrintPage(numPageToDraw);
+        m_dc->EndPage();
     }
 
 
-    if(numPageToDraw == maxPage)
+    if(numPageToDraw == endPage)
     {
         printout->OnEndDocument();
     }
@@ -1107,12 +1183,12 @@ wxDC* wxGtkPrinter::PrintDialog( wxWindow *parent )
     if (ret == wxID_CANCEL)
     {
         sm_lastError = wxPRINTER_CANCELLED;
-        return nullptr;
+        return NULL;
     }
     if (ret == wxID_NO)
     {
         sm_lastError = wxPRINTER_ERROR;
-        return nullptr;
+        return NULL;
     }
 
     wxDC* dc = dialog.GetPrintDC();
@@ -1133,36 +1209,6 @@ bool wxGtkPrinter::Setup( wxWindow * WXUNUSED(parent) )
 //-----------------------------------------------------------------------------
 // wxGtkPrinterDC
 //-----------------------------------------------------------------------------
-
-// Helper class for saving/restoring Cairo context in its ctor/dtor.
-class wxGtkPrinterDCContextSaver
-{
-public:
-    explicit wxGtkPrinterDCContextSaver(const wxGtkPrinterDCImpl* impl)
-        : m_impl(impl),
-          m_origSourceColour(impl->m_currentSourceColour)
-    {
-        cairo_save( m_impl->m_cairo );
-    }
-
-    ~wxGtkPrinterDCContextSaver()
-    {
-        // Because the source colour corresponds to the actual colour used by
-        // Cairo, we need to reset it if it was changed (which is quite
-        // possible as SetPen() and SetBrush(), called from the implementation
-        // of other functions, do it) when restoring the context, otherwise it
-        // wouldn't match the actually used colour any longer.
-        m_impl->m_currentSourceColour = m_origSourceColour;
-
-        cairo_restore( m_impl->m_cairo );
-    }
-
-private:
-    const wxGtkPrinterDCImpl* const m_impl;
-    const wxColour m_origSourceColour;
-
-    wxDECLARE_NO_COPY_CLASS(wxGtkPrinterDCContextSaver);
-};
 
 #define wxCAIRO_SCALE 1
 
@@ -1212,6 +1258,11 @@ wxGtkPrinterDCImpl::wxGtkPrinterDCImpl(wxPrinterDC *owner, const wxPrintData& da
     m_DEV2PS = 72.0 / (double)m_resolution;
 #endif
 
+    m_currentRed = 0;
+    m_currentBlue = 0;
+    m_currentGreen = 0;
+    m_currentAlpha = 0;
+
     m_signX = 1;  // default x-axis left to right.
     m_signY = 1;  // default y-axis bottom up -> top down.
 }
@@ -1227,7 +1278,7 @@ wxGtkPrinterDCImpl::~wxGtkPrinterDCImpl()
 
 bool wxGtkPrinterDCImpl::IsOk() const
 {
-    return m_gpc != nullptr;
+    return m_gpc != NULL;
 }
 
 void* wxGtkPrinterDCImpl::GetCairoContext() const
@@ -1238,30 +1289,6 @@ void* wxGtkPrinterDCImpl::GetCairoContext() const
 void* wxGtkPrinterDCImpl::GetHandle() const
 {
     return GetCairoContext();
-}
-
-namespace
-{
-
-void DoSetSourceColour(cairo_t* cr, const wxColour& col)
-{
-    cairo_set_source_rgba( cr,
-                           col.Red() / 255.0,
-                           col.Green() / 255.0,
-                           col.Blue() / 255.0,
-                           col.Alpha() / 255.0 );
-}
-
-} // anonymous namespace
-
-void wxGtkPrinterDCImpl::SetSourceColour(const wxColour& col)
-{
-    if ( col == m_currentSourceColour )
-        return;
-
-    DoSetSourceColour(m_cairo, col);
-
-    m_currentSourceColour = col;
 }
 
 bool wxGtkPrinterDCImpl::DoFloodFill(wxCoord WXUNUSED(x1),
@@ -1317,8 +1344,7 @@ void wxGtkPrinterDCImpl::DoGradientFillConcentric(const wxRect& rect, const wxCo
 
     cairo_pattern_destroy(gradient);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(xR, yR), wxSize(w, h));
+    CalcBoundingBox(wxPoint(xR, yR), wxSize(w, h));
 }
 
 void wxGtkPrinterDCImpl::DoGradientFillLinear(const wxRect& rect, const wxColour& initialColour, const wxColour& destColour, wxDirection nDirection)
@@ -1367,8 +1393,7 @@ void wxGtkPrinterDCImpl::DoGradientFillLinear(const wxRect& rect, const wxColour
 
     cairo_pattern_destroy(gradient);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
+    CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
 }
 
 bool wxGtkPrinterDCImpl::DoGetPixel(wxCoord WXUNUSED(x1),
@@ -1389,8 +1414,7 @@ void wxGtkPrinterDCImpl::DoDrawLine(wxCoord x1, wxCoord y1, wxCoord x2, wxCoord 
     cairo_line_to ( m_cairo, XLOG2DEV(x2), YLOG2DEV(y2) );
     cairo_stroke ( m_cairo );
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox( x1, y1, x2, y2 );
+    CalcBoundingBox( x1, y1, x2, y2 );
 }
 
 void wxGtkPrinterDCImpl::DoCrossHair(wxCoord x, wxCoord y)
@@ -1406,8 +1430,7 @@ void wxGtkPrinterDCImpl::DoCrossHair(wxCoord x, wxCoord y)
     cairo_line_to (m_cairo, XLOG2DEVREL(w), YLOG2DEV(y));
 
     cairo_stroke (m_cairo);
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox( 0, 0, w, h );
+    CalcBoundingBox( 0, 0, w, h );
 }
 
 void wxGtkPrinterDCImpl::DoDrawArc(wxCoord x1,wxCoord y1,wxCoord x2,wxCoord y2,wxCoord xc,wxCoord yc)
@@ -1459,17 +1482,14 @@ void wxGtkPrinterDCImpl::DoDrawArc(wxCoord x1,wxCoord y1,wxCoord x2,wxCoord y2,w
         cairo_stroke(m_cairo);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-    {
-        CalcBoundingBox (x1, y1);
-        CalcBoundingBox (xc, yc);
-        CalcBoundingBox (x2, y2);
-    }
+    CalcBoundingBox (x1, y1);
+    CalcBoundingBox (xc, yc);
+    CalcBoundingBox (x2, y2);
 }
 
 void wxGtkPrinterDCImpl::DoDrawEllipticArc(wxCoord x,wxCoord y,wxCoord w,wxCoord h,double sa,double ea)
 {
-    wxGtkPrinterDCContextSaver saver(this);
+    cairo_save( m_cairo );
 
     cairo_new_path(m_cairo);
 
@@ -1487,8 +1507,9 @@ void wxGtkPrinterDCImpl::DoDrawEllipticArc(wxCoord x,wxCoord y,wxCoord w,wxCoord
     SetBrush( m_brush );
     cairo_fill( m_cairo );
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
+    cairo_restore( m_cairo );
+
+    CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
 }
 
 void wxGtkPrinterDCImpl::DoDrawPoint(wxCoord x, wxCoord y)
@@ -1502,8 +1523,7 @@ void wxGtkPrinterDCImpl::DoDrawPoint(wxCoord x, wxCoord y)
     cairo_line_to ( m_cairo, XLOG2DEV(x), YLOG2DEV(y) );
     cairo_stroke ( m_cairo );
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox( x, y );
+    CalcBoundingBox( x, y );
 }
 
 void wxGtkPrinterDCImpl::DoDrawLines(int n, const wxPoint points[], wxCoord xoffset, wxCoord yoffset)
@@ -1517,11 +1537,8 @@ void wxGtkPrinterDCImpl::DoDrawLines(int n, const wxPoint points[], wxCoord xoff
     SetPen (m_pen);
 
     int i;
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-    {
-        for ( i =0; i<n ; i++ )
-            CalcBoundingBox( points[i].x+xoffset, points[i].y+yoffset);
-    }
+    for ( i =0; i<n ; i++ )
+        CalcBoundingBox( points[i].x+xoffset, points[i].y+yoffset);
 
     cairo_move_to ( m_cairo, XLOG2DEV(points[0].x+xoffset), YLOG2DEV(points[0].y+yoffset) );
 
@@ -1537,8 +1554,7 @@ void wxGtkPrinterDCImpl::DoDrawPolygon(int n, const wxPoint points[],
 {
     if (n==0) return;
 
-    wxGtkPrinterDCContextSaver saver(this);
-
+    cairo_save(m_cairo);
     if (fillStyle == wxWINDING_RULE)
         cairo_set_fill_rule( m_cairo, CAIRO_FILL_RULE_WINDING);
     else
@@ -1569,8 +1585,9 @@ void wxGtkPrinterDCImpl::DoDrawPolygon(int n, const wxPoint points[],
         cairo_stroke(m_cairo);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox( x, y );
+    CalcBoundingBox( x, y );
+
+    cairo_restore(m_cairo);
 }
 
 void wxGtkPrinterDCImpl::DoDrawPolyPolygon(int n, const int count[], const wxPoint points[],
@@ -1604,8 +1621,7 @@ void wxGtkPrinterDCImpl::DoDrawRectangle(wxCoord x, wxCoord y, wxCoord width, wx
         cairo_stroke(m_cairo);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+    CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
 }
 
 void wxGtkPrinterDCImpl::DoDrawRoundedRectangle(wxCoord x, wxCoord y, wxCoord width, wxCoord height, double radius)
@@ -1658,8 +1674,7 @@ void wxGtkPrinterDCImpl::DoDrawRoundedRectangle(wxCoord x, wxCoord y, wxCoord wi
         cairo_stroke(m_cairo);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+    CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
 }
 
 void wxGtkPrinterDCImpl::DoDrawEllipse(wxCoord x, wxCoord y, wxCoord width, wxCoord height)
@@ -1667,7 +1682,7 @@ void wxGtkPrinterDCImpl::DoDrawEllipse(wxCoord x, wxCoord y, wxCoord width, wxCo
     width--;
     height--;
 
-    wxGtkPrinterDCContextSaver saver(this);
+    cairo_save (m_cairo);
 
     cairo_new_path(m_cairo);
 
@@ -1687,14 +1702,15 @@ void wxGtkPrinterDCImpl::DoDrawEllipse(wxCoord x, wxCoord y, wxCoord width, wxCo
         cairo_stroke(m_cairo);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+    CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+
+    cairo_restore (m_cairo);
 }
 
 #if wxUSE_SPLINES
 void wxGtkPrinterDCImpl::DoDrawSpline(const wxPointList *points)
 {
-    wxCHECK_RET(points, "null pointer to spline points?");
+    wxCHECK_RET(points, "NULL pointer to spline points?");
     wxCHECK_RET(points->GetCount() >= 2, "incomplete list of spline points?");
 
     SetPen (m_pen);
@@ -1720,8 +1736,7 @@ void wxGtkPrinterDCImpl::DoDrawSpline(const wxPointList *points)
     cairo_move_to( m_cairo, XLOG2DEV((wxCoord)x1), YLOG2DEV((wxCoord)y1) );
     cairo_line_to( m_cairo, XLOG2DEV((wxCoord)x3), YLOG2DEV((wxCoord)y3) );
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox( (wxCoord)x1, (wxCoord)y1, (wxCoord)x3, (wxCoord)y3 );
+    CalcBoundingBox( (wxCoord)x1, (wxCoord)y1, (wxCoord)x3, (wxCoord)y3 );
 
     node = node->GetNext();
     while (node)
@@ -1743,8 +1758,7 @@ void wxGtkPrinterDCImpl::DoDrawSpline(const wxPointList *points)
             XLOG2DEV((wxCoord)x2), YLOG2DEV((wxCoord)y2),
             XLOG2DEV((wxCoord)x3), YLOG2DEV((wxCoord)y3) );
 
-        if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-            CalcBoundingBox( (wxCoord)x1, (wxCoord)y1, (wxCoord)x3, (wxCoord)y3 );
+        CalcBoundingBox( (wxCoord)x1, (wxCoord)y1, (wxCoord)x3, (wxCoord)y3 );
 
         node = node->GetNext();
     }
@@ -1796,10 +1810,10 @@ void wxGtkPrinterDCImpl::DoDrawBitmap( const wxBitmap& bitmap, wxCoord x, wxCoor
 #ifndef __WXGTK3__
     wxBitmap bmpSource = bitmap;  // we need a non-const instance.
     if (!useMask && !bitmap.HasPixbuf() && bitmap.GetMask())
-        bmpSource.SetMask(nullptr);
+        bmpSource.SetMask(NULL);
 #endif
 
-    wxGtkPrinterDCContextSaver saver(this);
+    cairo_save(m_cairo);
 
     // Prepare to draw the image.
     cairo_translate(m_cairo, x, y);
@@ -1820,8 +1834,9 @@ void wxGtkPrinterDCImpl::DoDrawBitmap( const wxBitmap& bitmap, wxCoord x, wxCoor
     cairo_fill(m_cairo);
 #endif
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(0, 0, bw, bh);
+    CalcBoundingBox(0, 0, bw, bh);
+
+    cairo_restore(m_cairo);
 }
 
 void wxGtkPrinterDCImpl::DoDrawText(const wxString& text, wxCoord x, wxCoord y )
@@ -1842,12 +1857,32 @@ void wxGtkPrinterDCImpl::DoDrawRotatedText(const wxString& text, wxCoord x, wxCo
 
     const bool setAttrs = m_font.GTKSetPangoAttrs(m_layout);
     if (m_textForegroundColour.IsOk())
-        SetSourceColour(m_textForegroundColour);
+    {
+        unsigned char red = m_textForegroundColour.Red();
+        unsigned char blue = m_textForegroundColour.Blue();
+        unsigned char green = m_textForegroundColour.Green();
+        unsigned char alpha = m_textForegroundColour.Alpha();
+
+        if (!(red == m_currentRed && green == m_currentGreen && blue == m_currentBlue && alpha == m_currentAlpha))
+        {
+            double redPS = (double)(red) / 255.0;
+            double bluePS = (double)(blue) / 255.0;
+            double greenPS = (double)(green) / 255.0;
+            double alphaPS = (double)(alpha) / 255.0;
+
+            cairo_set_source_rgba( m_cairo, redPS, greenPS, bluePS, alphaPS );
+
+            m_currentRed = red;
+            m_currentBlue = blue;
+            m_currentGreen = green;
+            m_currentAlpha = alpha;
+        }
+    }
 
     // Draw layout.
     cairo_move_to (m_cairo, xx, yy);
 
-    wxGtkPrinterDCContextSaver saver(this);
+    cairo_save( m_cairo );
 
     if (fabs(angle) > 0.00001)
         cairo_rotate( m_cairo, angle*DEG2RAD );
@@ -1859,24 +1894,35 @@ void wxGtkPrinterDCImpl::DoDrawRotatedText(const wxString& text, wxCoord x, wxCo
 
     if ( m_backgroundMode == wxBRUSHSTYLE_SOLID )
     {
-        wxGtkPrinterDCContextSaver saver2(this);
+        unsigned char red = m_textBackgroundColour.Red();
+        unsigned char blue = m_textBackgroundColour.Blue();
+        unsigned char green = m_textBackgroundColour.Green();
+        unsigned char alpha = m_textBackgroundColour.Alpha();
 
-        SetSourceColour(m_textBackgroundColour);
+        double redPS = (double)(red) / 255.0;
+        double bluePS = (double)(blue) / 255.0;
+        double greenPS = (double)(green) / 255.0;
+        double alphaPS = (double)(alpha) / 255.0;
+
+        cairo_save(m_cairo);
+        cairo_set_source_rgba( m_cairo, redPS, greenPS, bluePS, alphaPS );
         cairo_rectangle(m_cairo, 0, 0, w, h);   // still in cairo units
         cairo_fill(m_cairo);
+        cairo_restore(m_cairo);
     }
 
     pango_cairo_update_layout (m_cairo, m_layout);
     pango_cairo_show_layout (m_cairo, m_layout);
 
+    cairo_restore( m_cairo );
+
     if (setAttrs)
     {
         // Undo underline attributes setting
-        pango_layout_set_attributes(m_layout, nullptr);
+        pango_layout_set_attributes(m_layout, NULL);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
+    CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
 }
 
 void wxGtkPrinterDCImpl::Clear()
@@ -1884,10 +1930,11 @@ void wxGtkPrinterDCImpl::Clear()
 // Clear does nothing for printing, but keep the code
 // for later reuse
 /*
-    wxGtkPrinterDCContextSaver saver(this);
+    cairo_save(m_cairo);
     cairo_set_operator (m_cairo, CAIRO_OPERATOR_SOURCE);
     SetBrush(m_backgroundBrush);
     cairo_paint(m_cairo);
+    cairo_restore(m_cairo);
 */
 }
 
@@ -1939,16 +1986,17 @@ void wxGtkPrinterDCImpl::SetPen( const wxPen& pen )
         {
             wxDash *wx_dashes;
             int num = m_pen.GetDashes (&wx_dashes);
-
-            std::vector<gdouble> g_dashes(num);
-            for (int i = 0; i < num; ++i)
+            gdouble *g_dashes = g_new( gdouble, num );
+            int i;
+            for (i = 0; i < num; ++i)
                 g_dashes[i] = (gdouble) wx_dashes[i];
-            cairo_set_dash( m_cairo, &g_dashes[0], num, 0);
+            cairo_set_dash( m_cairo, g_dashes, num, 0);
+            g_free( g_dashes );
         }
         break;
         case wxPENSTYLE_SOLID:
         case wxPENSTYLE_TRANSPARENT:
-        default:              cairo_set_dash( m_cairo, nullptr, 0, 0 );   break;
+        default:              cairo_set_dash( m_cairo, NULL, 0, 0 );   break;
     }
 
     switch (m_pen.GetCap())
@@ -1967,7 +2015,25 @@ void wxGtkPrinterDCImpl::SetPen( const wxPen& pen )
         default:            cairo_set_line_join (m_cairo, CAIRO_LINE_JOIN_ROUND); break;
     }
 
-    SetSourceColour(m_pen.GetColour());
+    unsigned char red = m_pen.GetColour().Red();
+    unsigned char blue = m_pen.GetColour().Blue();
+    unsigned char green = m_pen.GetColour().Green();
+    unsigned char alpha = m_pen.GetColour().Alpha();
+
+    if (!(red == m_currentRed && green == m_currentGreen && blue == m_currentBlue && alpha == m_currentAlpha))
+    {
+        double redPS = (double)(red) / 255.0;
+        double bluePS = (double)(blue) / 255.0;
+        double greenPS = (double)(green) / 255.0;
+        double alphaPS = (double)(alpha) / 255.0;
+
+        cairo_set_source_rgba( m_cairo, redPS, greenPS, bluePS, alphaPS );
+
+        m_currentRed = red;
+        m_currentBlue = blue;
+        m_currentGreen = green;
+        m_currentAlpha = alpha;
+    }
 }
 
 void wxGtkPrinterDCImpl::SetBrush( const wxBrush& brush )
@@ -1978,12 +2044,34 @@ void wxGtkPrinterDCImpl::SetBrush( const wxBrush& brush )
 
     if (m_brush.GetStyle() == wxBRUSHSTYLE_TRANSPARENT)
     {
-        SetSourceColour(wxColour(0, 0, 0, 0));
+        cairo_set_source_rgba( m_cairo, 0, 0, 0, 0 );
+        m_currentRed = 0;
+        m_currentBlue = 0;
+        m_currentGreen = 0;
+        m_currentAlpha = 0;
         return;
     }
 
     // Brush colour.
-    SetSourceColour(m_brush.GetColour());
+    unsigned char red = m_brush.GetColour().Red();
+    unsigned char blue = m_brush.GetColour().Blue();
+    unsigned char green = m_brush.GetColour().Green();
+    unsigned char alpha = m_brush.GetColour().Alpha();
+
+    double redPS = (double)(red) / 255.0;
+    double bluePS = (double)(blue) / 255.0;
+    double greenPS = (double)(green) / 255.0;
+    double alphaPS = (double)(alpha) / 255.0;
+
+    if (!(red == m_currentRed && green == m_currentGreen && blue == m_currentBlue && alpha == m_currentAlpha))
+    {
+        cairo_set_source_rgba( m_cairo, redPS, greenPS, bluePS, alphaPS );
+
+        m_currentRed = red;
+        m_currentBlue = blue;
+        m_currentGreen = green;
+        m_currentAlpha = alpha;
+    }
 
     if (m_brush.IsHatch())
     {
@@ -2029,7 +2117,7 @@ void wxGtkPrinterDCImpl::SetBrush( const wxBrush& brush )
                 wxFAIL_MSG("Couldn't get hatch style from wxBrush.");
         }
 
-        DoSetSourceColour(cr, m_brush.GetColour());
+        cairo_set_source_rgba(cr, redPS, greenPS, bluePS, alphaPS);
         cairo_stroke (cr);
 
         cairo_destroy(cr);
@@ -2061,13 +2149,13 @@ void wxGtkPrinterDCImpl::SetLogicalFunction( wxRasterOperationMode function )
 
 void wxGtkPrinterDCImpl::SetBackground( const wxBrush& brush )
 {
-    wxGtkPrinterDCContextSaver saver(this);
-
     m_backgroundBrush = brush;
+    cairo_save(m_cairo);
     cairo_set_operator (m_cairo, CAIRO_OPERATOR_DEST_OVER);
 
     SetBrush(m_backgroundBrush);
     cairo_paint(m_cairo);
+    cairo_restore(m_cairo);
 }
 
 void wxGtkPrinterDCImpl::SetBackgroundMode(int mode)
@@ -2160,8 +2248,7 @@ void wxGtkPrinterDCImpl::DoGetTextExtent(const wxString& string, wxCoord *width,
         return;
     }
 
-    wxGtkPrinterDCContextSaver saver(this);
-
+    cairo_save( m_cairo );
     cairo_scale(m_cairo, m_scaleX, m_scaleY);
 
     // Set layout's text
@@ -2202,6 +2289,8 @@ void wxGtkPrinterDCImpl::DoGetTextExtent(const wxString& string, wxCoord *width,
         PangoFontDescription *desc = theFont->GetNativeFontInfo()->description;
         pango_font_description_set_size(desc, oldSize);
     }
+
+    cairo_restore( m_cairo );
 }
 
 bool wxGtkPrinterDCImpl::DoGetPartialTextExtents(const wxString& text, wxArrayInt& widths) const
@@ -2212,8 +2301,7 @@ bool wxGtkPrinterDCImpl::DoGetPartialTextExtents(const wxString& text, wxArrayIn
     int w = 0;
     if ( data.length() > 0 )
     {
-        wxGtkPrinterDCContextSaver saver(this);
-
+        cairo_save(m_cairo);
         cairo_scale(m_cairo, m_scaleX, m_scaleY);
 
         pango_layout_set_text(m_layout, data, data.length());
@@ -2221,11 +2309,13 @@ bool wxGtkPrinterDCImpl::DoGetPartialTextExtents(const wxString& text, wxArrayIn
         do
         {
             PangoRectangle rect;
-            pango_layout_iter_get_cluster_extents(iter, nullptr, &rect);
+            pango_layout_iter_get_cluster_extents(iter, NULL, &rect);
             w += rect.width;
             widths.Add(PANGO_PIXELS(w));
         } while (pango_layout_iter_next_cluster(iter));
         pango_layout_iter_free(iter);
+
+       cairo_restore(m_cairo);
     }
     size_t i = widths.GetCount();
     const size_t len = text.length();
@@ -2291,7 +2381,7 @@ void wxGtkPrintPreview::Init(wxPrintout * WXUNUSED(printout),
                              wxPrintout * WXUNUSED(printoutForPrinting),
                              wxPrintData *data)
 {
-    // convert wxPrintQuality to resolution (input pointer can be null)
+    // convert wxPrintQuality to resolution (input pointer can be NULL)
     wxPrintQuality quality = data ? data->GetQuality() : wxPRINT_QUALITY_MEDIUM;
     switch ( quality )
     {
@@ -2316,7 +2406,7 @@ void wxGtkPrintPreview::Init(wxPrintout * WXUNUSED(printout),
             }
 
             wxFAIL_MSG( "unknown print quality" );
-            wxFALLTHROUGH;
+            // fall through
 
         case wxPRINT_QUALITY_MEDIUM:
             m_resolution = 600;
@@ -2332,7 +2422,7 @@ wxGtkPrintPreview::wxGtkPrintPreview(wxPrintout *printout,
                                      wxPrintDialogData *data)
                  : wxPrintPreviewBase(printout, printoutForPrinting, data)
 {
-    Init(printout, printoutForPrinting, data ? &data->GetPrintData() : nullptr);
+    Init(printout, printoutForPrinting, data ? &data->GetPrintData() : NULL);
 }
 
 wxGtkPrintPreview::wxGtkPrintPreview(wxPrintout *printout,

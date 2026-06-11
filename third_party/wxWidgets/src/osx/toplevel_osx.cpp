@@ -2,6 +2,7 @@
 // Name:        src/osx/toplevel_osx.cpp
 // Purpose:     implements wxTopLevelWindow for Mac
 // Author:      Stefan Csomor
+// Modified by:
 // Created:     24.09.01
 // Copyright:   (c) 2001-2004 Stefan Csomor
 // Licence:     wxWindows licence
@@ -72,7 +73,7 @@ bool wxTopLevelWindowMac::Create(wxWindow *parent,
         return false;
 
     wxWindow::SetLabel( title ) ;
-    m_nowpeer->SetTitle(title);
+    m_nowpeer->SetTitle(title, GetFont().GetEncoding() );
     wxTopLevelWindows.Append(this);
 
     return true;
@@ -99,7 +100,7 @@ bool wxTopLevelWindowMac::Destroy()
     // loop iteration
     if ( !wxPendingDelete.Member(this) )
         wxPendingDelete.Append(this);
-
+    
     Hide();
     return true;
 }
@@ -117,7 +118,7 @@ void wxTopLevelWindowMac::Maximize(bool maximize)
 
 bool wxTopLevelWindowMac::IsMaximized() const
 {
-    if ( m_nowpeer == nullptr )
+    if ( m_nowpeer == NULL )
         return false;
 
     return m_nowpeer->IsMaximized();
@@ -131,7 +132,7 @@ void wxTopLevelWindowMac::Iconize(bool iconize)
 
 bool wxTopLevelWindowMac::IsIconized() const
 {
-    if ( m_nowpeer == nullptr )
+    if ( m_nowpeer == NULL )
         return false;
 
     return m_nowpeer->IsIconized();
@@ -151,15 +152,7 @@ void wxTopLevelWindowMac::Restore()
 
 wxPoint wxTopLevelWindowMac::GetClientAreaOrigin() const
 {
-    // under Cocoa we keep for backwards compatibility the client origin at 0,0
-    // (representing the contentview), while under iOS the entire app has a contentview
-    // which extends under the statusbar, so we need to determine the correct client
-    // area
-#if wxOSX_USE_IPHONE
-    return wxNonOwnedWindow::GetClientAreaOrigin();
-#else
     return wxPoint(0, 0) ;
-#endif
 }
 
 void wxTopLevelWindowMac::SetTitle(const wxString& title)
@@ -167,7 +160,7 @@ void wxTopLevelWindowMac::SetTitle(const wxString& title)
     m_label = title ;
 
     if ( m_nowpeer )
-        m_nowpeer->SetTitle(title);
+        m_nowpeer->SetTitle(title, GetFont().GetEncoding() );
 }
 
 wxString wxTopLevelWindowMac::GetTitle() const

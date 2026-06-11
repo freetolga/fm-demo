@@ -2,6 +2,7 @@
 // Name:        src/osx/dialog_osx.cpp
 // Purpose:     wxDialog class
 // Author:      Stefan Csomor
+// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -40,7 +41,7 @@ void wxDialog::OSXBeginModalDialog()
         s_modalStack.back()->OSXSetWorksWhenModal(false);
     s_modalWorksStack.push_back(OSXGetWorksWhenModal());
 #endif
-
+    
     s_modalStack.push_back(this);
 }
 
@@ -50,7 +51,7 @@ void wxDialog::OSXEndModalDialog()
     s_modalStack.pop_back();
 #if wxOSX_USE_COCOA
     s_modalWorksStack.pop_back();
-
+    
     // restore worksWhenModal
     if ( s_modalStack.size() > 0 )
         s_modalStack.back()->OSXSetWorksWhenModal(s_modalWorksStack.back());
@@ -59,8 +60,8 @@ void wxDialog::OSXEndModalDialog()
 
 void wxDialog::Init()
 {
-    m_modality = wxWindowMode::Normal;
-    m_eventLoop = nullptr;
+    m_modality = wxDIALOG_MODALITY_NONE;
+    m_eventLoop = NULL;
 }
 
 bool wxDialog::Create( wxWindow *parent,
@@ -105,12 +106,12 @@ bool wxDialog::IsEscapeKey(const wxKeyEvent& event)
 
 bool wxDialog::IsModal() const
 {
-    return m_modality != wxWindowMode::Normal;
+    return m_modality != wxDIALOG_MODALITY_NONE;
 }
 
 bool wxDialog::Show(bool show)
 {
-    if ( m_modality == wxWindowMode::WindowModal )
+    if ( m_modality == wxDIALOG_MODALITY_WINDOW_MODAL )
     {
         if ( !wxWindow::Show(show) )
             // nothing to do
@@ -132,14 +133,14 @@ bool wxDialog::Show(bool show)
 
     if ( !show )
     {
-        const wxWindowMode modalityOrig = m_modality;
+        const int modalityOrig = m_modality;
 
         // complete the 'hiding' before we send the event
-        m_modality = wxWindowMode::Normal;
+        m_modality = wxDIALOG_MODALITY_NONE;
 
         switch ( modalityOrig )
         {
-            case wxWindowMode::WindowModal:
+            case wxDIALOG_MODALITY_WINDOW_MODAL:
                 EndWindowModal(); // OS X implementation method for cleanup
                 SendWindowModalDialogEvent ( wxEVT_WINDOW_MODAL_DIALOG_CLOSED  );
                 break;
@@ -156,7 +157,7 @@ int wxDialog::ShowModal()
 {
     WX_HOOK_MODAL_DIALOG();
 
-    m_modality = wxWindowMode::AppModal;
+    m_modality = wxDIALOG_MODALITY_APP_MODAL;
 
     Show();
 
@@ -167,21 +168,21 @@ int wxDialog::ShowModal()
     modalLoop.Run();
     OSXEndModalDialog();
 
-    m_eventLoop = nullptr;
+    m_eventLoop = NULL;
 
     return GetReturnCode();
 }
 
 void wxDialog::ShowWindowModal()
 {
-    m_modality = wxWindowMode::WindowModal;
+    m_modality = wxDIALOG_MODALITY_WINDOW_MODAL;
 
     Show();
 
     DoShowWindowModal();
 }
 
-wxWindowMode wxDialog::GetModality() const
+wxDialogModality wxDialog::GetModality() const
 {
     return m_modality;
 }

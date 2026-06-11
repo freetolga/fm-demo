@@ -16,10 +16,6 @@
     #include "wx/slider.h"
 #endif // WX_PRECOMP
 
-#ifdef __WXQT__
-    #include <QtGlobal> // QT_VERSION and QT_VERSION_CHECK
-#endif
-
 #include "wx/uiaction.h"
 #include "testableframe.h"
 
@@ -28,8 +24,8 @@ class SliderTestCase : public CppUnit::TestCase
 public:
     SliderTestCase() { }
 
-    void setUp() override;
-    void tearDown() override;
+    void setUp() wxOVERRIDE;
+    void tearDown() wxOVERRIDE;
 
 private:
     CPPUNIT_TEST_SUITE( SliderTestCase );
@@ -97,7 +93,6 @@ void SliderTestCase::PageUpDown()
     wxUIActionSimulator sim;
 
     m_slider->SetFocus();
-    wxYield();
 
     sim.Char(WXK_PAGEUP);
     sim.Char(WXK_PAGEDOWN);
@@ -116,9 +111,8 @@ void SliderTestCase::LineUpDown()
     EventCounter linedown(m_slider, wxEVT_SCROLL_LINEDOWN);
 
     wxUIActionSimulator sim;
-
-    m_slider->SetFocus();
     wxYield();
+    m_slider->SetFocus();
 
     sim.Char(WXK_UP);
     sim.Char(WXK_DOWN);
@@ -136,9 +130,8 @@ void SliderTestCase::EvtSlider()
     EventCounter slider(m_slider, wxEVT_SLIDER);
 
     wxUIActionSimulator sim;
-
-    m_slider->SetFocus();
     wxYield();
+    m_slider->SetFocus();
 
     sim.Char(WXK_UP);
     sim.Char(WXK_DOWN);
@@ -153,9 +146,8 @@ void SliderTestCase::LinePageSize()
 {
 #if wxUSE_UIACTIONSIMULATOR
     wxUIActionSimulator sim;
-
-    m_slider->SetFocus();
     wxYield();
+    m_slider->SetFocus();
 
     m_slider->SetPageSize(20);
 
@@ -229,14 +221,7 @@ void SliderTestCase::Thumb()
 
     CPPUNIT_ASSERT(track.GetCount() != 0);
     CPPUNIT_ASSERT_EQUAL(1, release.GetCount());
-
-#ifdef __WXQT__
-    #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-        WARN("wxEVT_SCROLL_CHANGED is generated twice with Qt 6.8, skipping test");
-        return;
-    #endif
-#endif
-#if defined(__WXMSW__) || defined(__WXGTK__) || defined(__WXQT__)
+#if defined(__WXMSW__) || defined(__WXGTK__)
     CPPUNIT_ASSERT_EQUAL(1, changed.GetCount());
 #endif
 #endif

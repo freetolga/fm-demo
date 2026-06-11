@@ -2,6 +2,7 @@
 // Name:        src/osx/iphone/menuitem.mm
 // Purpose:     wxMenuItem implementation
 // Author:      Stefan Csomor
+// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -43,7 +44,7 @@ Mapping sActionToWXMapping[] =
     { wxID_PASTE, @selector(paste:) },
     { wxID_CLEAR, @selector(delete:) },
     { wxID_SELECTALL, @selector(selectAll:) },
-    { 0, nullptr }
+    { 0, NULL }
 };
 
 int wxOSXGetIdFromSelector(SEL action )
@@ -75,7 +76,7 @@ SEL wxOSXGetSelectorFromID(int menuId )
 /*
 void wxMacCocoaMenuItemSetAccelerator( UIMenuItem* menuItem, wxAcceleratorEntry* entry )
 {
-    if ( entry == nullptr )
+    if ( entry == NULL )
     {
         [menuItem setKeyEquivalent:@""];
         return;
@@ -182,20 +183,20 @@ void wxMacCocoaMenuItemSetAccelerator( UIMenuItem* menuItem, wxAcceleratorEntry*
 
 */
 
-class wxMenuItemIPhoneImpl : public wxMenuItemImpl
+class wxMenuItemCocoaImpl : public wxMenuItemImpl
 {
 public :
-    wxMenuItemIPhoneImpl( wxMenuItem* peer, UIMenuElement* item ) : wxMenuItemImpl(peer), m_osxMenuItem(wxCFRetain(item))
+    wxMenuItemCocoaImpl( wxMenuItem* peer, UIMenuElement* item ) : wxMenuItemImpl(peer), m_osxMenuItem(wxCFRetain(item))
     {
     }
 
-    ~wxMenuItemIPhoneImpl();
+    ~wxMenuItemCocoaImpl();
 
-    void SetBitmap( const wxBitmapBundle& bitmap ) override
+    void SetBitmap( const wxBitmapBundle& bitmap ) wxOVERRIDE
     {
     }
 
-    void Enable( bool enable ) override
+    void Enable( bool enable ) wxOVERRIDE
     {
         UIMenuElement* menuElement = m_osxMenuItem.get();
         if ( [menuElement isKindOfClass:UIAction.class] )
@@ -208,7 +209,7 @@ public :
         }
     }
 
-    void Check( bool check ) override
+    void Check( bool check ) wxOVERRIDE
     {
         UIMenuElement* menuElement = m_osxMenuItem.get();
         if ( [menuElement isKindOfClass:UIAction.class] )
@@ -218,7 +219,7 @@ public :
         }
     }
 
-    void Hide( bool hide ) override
+    void Hide( bool hide ) wxOVERRIDE
     {
         UIMenuElement* menuElement = m_osxMenuItem.get();
         if ( [menuElement isKindOfClass:UIAction.class] )
@@ -231,24 +232,24 @@ public :
         }
     }
 
-    void SetLabel( const wxString& text, wxAcceleratorEntry *entry ) override
+    void SetLabel( const wxString& text, wxAcceleratorEntry *entry ) wxOVERRIDE
     {
         // recreate, it's readonly
     }
 
-    bool DoDefault() override;
+    bool DoDefault() wxOVERRIDE;
 
-    void * GetHMenuItem() override { return m_osxMenuItem; }
+    void * GetHMenuItem() wxOVERRIDE { return m_osxMenuItem; }
 
 protected :
     wxCFRef<UIMenuElement*> m_osxMenuItem ;
 } ;
 
-wxMenuItemIPhoneImpl::~wxMenuItemIPhoneImpl()
+wxMenuItemCocoaImpl::~wxMenuItemCocoaImpl()
 {
 }
 
-bool wxMenuItemIPhoneImpl::DoDefault()
+bool wxMenuItemCocoaImpl::DoDefault()
 {
     bool handled=false;
     int menuid = m_peer->GetId();
@@ -286,13 +287,12 @@ wxMenuItemImpl* wxMenuItemImpl::Create( wxMenuItem* peer, wxMenu *pParentMenu,
                        wxItemKind kind,
                        wxMenu *pSubMenu )
 {
-    wxMenuItemImpl* c = nullptr;
+    wxMenuItemImpl* c = NULL;
     UIMenuElement* item = nil;
 
     if ( kind == wxITEM_SEPARATOR )
     {
-        UIAction* menuItem = [UIAction actionWithTitle:@"" image:nil identifier:nil handler: ^( UIAction* action) {} ];
-        item = menuItem;
+        // TODO new version of item = [[UIMenuItem separatorItem] retain];
     }
     else
     {
@@ -306,14 +306,12 @@ wxMenuItemImpl* wxMenuItemImpl::Create( wxMenuItem* peer, wxMenu *pParentMenu,
         }
         else
         {
-            wxString identifier = wxString::Format( wxT("%p"), peer );
-            wxCFStringRef cfidentifier(identifier);
             // currently in the iOS 14 Beta UICommands trigger a layout violation so stick with UIActions for the time being
             if ( entry )
             {
                 //  TODO UIKeyCommand* command = [UIKeyCommand commandWithTitle ...]
 
-                UIAction* menuitem = [UIAction actionWithTitle:cfText.AsNSString() image:nil identifier:cfidentifier.AsNSString()
+                UIAction* menuitem = [UIAction actionWithTitle:cfText.AsNSString() image:nil identifier:nil
                                                    handler: ^( UIAction* action) { peer->GetMenu()->HandleCommandProcess(peer);} ];
                 item = menuitem;
             }
@@ -323,13 +321,13 @@ wxMenuItemImpl* wxMenuItemImpl::Create( wxMenuItem* peer, wxMenu *pParentMenu,
                 UICommand* command = [UICommand commandWithTitle:cfText.AsNSString() image:nil action:@selector(menuItemAction:) propertyList:nil];
                  */
 
-                UIAction* menuitem = [UIAction actionWithTitle:cfText.AsNSString() image:nil identifier:cfidentifier.AsNSString()
+                UIAction* menuitem = [UIAction actionWithTitle:cfText.AsNSString() image:nil identifier:nil
                                                    handler: ^( UIAction* action) { peer->GetMenu()->HandleCommandProcess(peer);} ];
                 item = menuitem;
             }
         }
     }
-    c = new wxMenuItemIPhoneImpl( peer, item );
+    c = new wxMenuItemCocoaImpl( peer, item );
     return c;
 }
 

@@ -2,6 +2,7 @@
 // Name:        src/msw/statbmp.cpp
 // Purpose:     wxStaticBitmap
 // Author:      Julian Smart
+// Modified by:
 // Created:     04/01/98
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -164,7 +165,6 @@ void wxStaticBitmap::Free()
     if ( m_ownsCurrentHandle )
     {
         ::DeleteObject(m_currentHandle);
-        m_currentHandle = 0;
         m_ownsCurrentHandle = false;
     }
 }

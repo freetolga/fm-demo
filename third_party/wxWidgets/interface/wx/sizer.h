@@ -31,9 +31,9 @@
     What makes sizers so well fitted for use in wxWidgets is the fact that every
     control reports its own minimal size and the algorithm can handle differences in
     font sizes or different window (dialog item) sizes on different platforms without
-    problems. If e.g. the standard font as well as the overall design of GTK widgets
+    problems. If e.g. the standard font as well as the overall design of Motif widgets
     requires more space than on Windows, the initial dialog size will automatically
-    be bigger on GTK than on Windows.
+    be bigger on Motif than on Windows.
 
     Sizers may also be used to control the layout of custom drawn items on the
     window. The wxSizer::Add(), wxSizer::Insert(), and wxSizer::Prepend() functions
@@ -187,7 +187,7 @@ public:
                      int proportion = 0,
                      int flag = 0,
                      int border = 0,
-                     wxObject* userData = nullptr);
+                     wxObject* userData = NULL);
 
     /**
         Appends a child to the sizer.
@@ -245,7 +245,7 @@ public:
                      int proportion = 0,
                      int flag = 0,
                      int border = 0,
-                     wxObject* userData = nullptr);
+                     wxObject* userData = NULL);
 
     /**
         Appends a spacer child to the sizer.
@@ -293,7 +293,7 @@ public:
                      int proportion = 0,
                      int flag = 0,
                      int border = 0,
-                     wxObject* userData = nullptr);
+                     wxObject* userData = NULL);
 
     /**
         Appends a spacer child to the sizer.
@@ -335,46 +335,6 @@ public:
         Here, the sizer will do the actual calculation of its children's minimal sizes.
     */
     virtual wxSize CalcMin() = 0;
-
-    /**
-        May be overridden by sizers whose minimal size depends on the layout
-        direction.
-
-        It may be useful to override it if the sizer minimal size varies
-        depending on its size in some direction. For example, wxWrapSizer uses
-        it to determine the smallest size it can use and still show all of its
-        items when the size in some direction is fixed, e.g. it returns the
-        width of the widest control when @a direction is wxVERTICAL or the
-        total height of all controls wrapped at the given width when @a
-        direction is wxHORIZONTAL.
-
-        If the sizer minimal size doesn't depend on the size known in the given
-        direction, this function should return wxDefaultSize to avoid
-        unnecessary re-layouts.
-
-        The default implementation simply returns wxDefaultSize (after calling
-        InformFirstDirection() for backward compatibility).
-
-        @param direction
-            The direction in which the size is fixed, either ::wxHORIZONTAL or
-            ::wxVERTICAL.
-        @param size
-            The size in the direction given by the @a direction parameter,
-            always valid, i.e. positive.
-        @param availableOtherDir
-            The size available in the other direction, may be -1 if the
-            available size is not known.
-        @return
-            The minimal size of the sizer when its size in the given
-            @a direction is fixed to @a size or ::wxDefaultSize if the minimum
-            size doesn't depend on the layout direction and is always the same.
-
-        @since 3.3.2
-    */
-    virtual wxSize
-    CalcMinSizeFromKnownDirection(int direction,
-                                  int size,
-                                  int availableOtherDir);
 
     /**
         Detaches all children from the sizer.
@@ -473,10 +433,9 @@ public:
     void FitInside(wxWindow* window);
 
     /**
-        Compatibility function called by CalcMinSizeFromKnownDirection().
-
-        This function shouldn't be used in the new code, please override
-        CalcMinSizeFromKnownDirection() instead.
+       Inform sizer about the first direction that has been decided (by
+       parent item).  Returns true if it made use of the information (and
+       recalculated min size).
     */
     virtual bool InformFirstDirection(int direction, int size, int availableOtherDir);
 
@@ -619,7 +578,7 @@ public:
                         int proportion = 0,
                         int flag = 0,
                         int border = 0,
-                        wxObject* userData = nullptr);
+                        wxObject* userData = NULL);
 
     /**
         Insert a child into the sizer before any existing item at @a index.
@@ -638,7 +597,7 @@ public:
                         int proportion = 0,
                         int flag = 0,
                         int border = 0,
-                        wxObject* userData = nullptr);
+                        wxObject* userData = NULL);
 
     /**
         Insert a child into the sizer before any existing item at @a index.
@@ -649,7 +608,7 @@ public:
                         int proportion = 0,
                         int flag = 0,
                         int border = 0,
-                        wxObject* userData = nullptr);
+                        wxObject* userData = NULL);
     /**
         Insert a child into the sizer before any existing item at @a index.
 
@@ -722,7 +681,7 @@ public:
     wxSizerItem* Prepend(wxWindow* window, int proportion = 0,
                          int flag = 0,
                          int border = 0,
-                         wxObject* userData = nullptr);
+                         wxObject* userData = NULL);
 
     /**
         Same as Add(), but prepends the items to the beginning of the
@@ -738,7 +697,7 @@ public:
     wxSizerItem* Prepend(wxSizer* sizer, int proportion = 0,
                          int flag = 0,
                          int border = 0,
-                         wxObject* userData = nullptr);
+                         wxObject* userData = NULL);
 
     /**
         Same as Add(), but prepends the items to the beginning of the
@@ -748,7 +707,7 @@ public:
                          int proportion = 0,
                          int flag = 0,
                          int border = 0,
-                         wxObject* userData = nullptr);
+                         wxObject* userData = NULL);
 
     /**
         Same as Add(), but prepends the items to the beginning of the
@@ -1083,46 +1042,6 @@ public:
     void Realize();
 
     /**
-        Returns the affirmative button for the sizer.
-
-        Affirmative buttons are those added with ID @c wxID_OK, @c wxID_YES
-        or @c wxID_SAVE. They can have other ID if they were added calling
-        wxStdDialogButtonSizer::SetAffirmativeButton.
-    */
-    wxButton* GetAffirmativeButton() const;
-
-    /**
-        Returns the apply button for the sizer.
-
-        Apply buttons are those added with ID @c wxID_APPLY.
-    */
-    wxButton* GetApplyButton() const;
-
-    /**
-        Returns the negative button for the sizer.
-
-        Negative buttons are those added with ID @c wxID_NO. They can have other
-        ID if they were added calling wxStdDialogButtonSizer::SetNegativeButton.
-    */
-    wxButton* GetNegativeButton() const;
-
-    /**
-        Returns the cancel button for the sizer.
-
-        Cancel buttons are those added with ID @c wxID_CANCEL or @c wxID_CLOSE.
-        They can have other ID if they were added calling
-        wxStdDialogButtonSizer::SetCancelButton.
-    */
-    wxButton* GetCancelButton() const;
-
-    /**
-        Returns the help button for the sizer.
-
-        Help buttons are those added with ID @c wxID_HELP or @c wxID_CONTEXT_HELP.
-    */
-    wxButton* GetHelpButton() const;
-
-    /**
         Sets the affirmative button for the sizer.
 
         This allows you to use identifiers other than the standard identifiers
@@ -1172,7 +1091,7 @@ public:
         Construct a sizer item for tracking a spacer.
     */
     wxSizerItem(int width, int height, int proportion=0, int flag=0,
-                int border=0, wxObject* userData=nullptr);
+                int border=0, wxObject* userData=NULL);
 
     ///@{
     /**
@@ -1181,7 +1100,7 @@ public:
     wxSizerItem(wxWindow* window, const wxSizerFlags& flags);
     wxSizerItem(wxWindow* window, int proportion=0, int flag=0,
                 int border=0,
-                wxObject* userData=nullptr);
+                wxObject* userData=NULL);
     ///@}
 
     ///@{
@@ -1191,7 +1110,7 @@ public:
     wxSizerItem(wxSizer* sizer, const wxSizerFlags& flags);
     wxSizerItem(wxSizer* sizer, int proportion=0, int flag=0,
                 int border=0,
-                wxObject* userData=nullptr);
+                wxObject* userData=NULL);
     ///@}
 
     /**
@@ -1306,7 +1225,7 @@ public:
     /**
         Get the rectangle of the item on the parent window, excluding borders.
     */
-    virtual wxRect GetRect() const;
+    virtual wxRect GetRect();
 
     /**
         Get the current size of the item, as set in the last Layout.
@@ -1456,7 +1375,7 @@ public:
     you can now write
 
     @code
-    sizer->Add(ctrl, wxSizerFlags().Expand().DoubleBorder(wxALL));
+    sizer->Add(ctrl, wxSizerFlags().Expand().Border(wxALL, 10));
     @endcode
 
     This is more readable and also allows you to create wxSizerFlags objects which
@@ -1464,7 +1383,7 @@ public:
 
     @code
     wxSizerFlags flagsExpand(1);
-        flagsExpand.Expand().DoubleBorder(wxALL);
+        flagsExpand.Expand().Border(wxALL, 10);
 
         sizer->Add(ctrl1, flagsExpand);
         sizer->Add(ctrl2, flagsExpand);
@@ -2036,13 +1955,8 @@ public:
     and will delete it in the wxStaticBoxSizer destructor.
 
     Note that since wxWidgets 2.9.1 you are strongly encouraged to create the windows
-    which are added to wxStaticBoxSizer as children of wxStaticBox itself and
-    failure to do so will result in warning messages in debug builds, even if
-    creating them using the static box parent as parent still works too (but
-    note that items using different parents can't be used inside the same
-    sizer, i.e. all of them should be children either of the box itself or of
-    its parent and an assert will be triggered if this is not the case).
-    Please see wxStaticBox documentation for more details.
+    which are added to wxStaticBoxSizer as children of wxStaticBox itself, see
+    this class documentation for more details.
 
     Example of use of this class:
     @code

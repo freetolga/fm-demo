@@ -2,6 +2,7 @@
 // Name:        src/generic/textdlgg.cpp
 // Purpose:     wxTextEntryDialog
 // Author:      Julian Smart
+// Modified by:
 // Created:     04/01/98
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -64,8 +65,7 @@ bool wxTextEntryDialog::Create(wxWindow *parent,
                                      const wxString& caption,
                                      const wxString& value,
                                      long style,
-                                     const wxPoint& pos,
-                                     const wxSize sz)
+                                     const wxPoint& pos)
 {
     // Do not pass style to GetParentForModalDialog() as wxDIALOG_NO_PARENT
     // has the same numeric value as wxTE_MULTILINE and so attempting to create
@@ -75,13 +75,11 @@ bool wxTextEntryDialog::Create(wxWindow *parent,
     // important problem.
     if ( !wxDialog::Create(GetParentForModalDialog(parent, 0),
                            wxID_ANY, caption,
-                           pos, sz,
+                           pos, wxDefaultSize,
                            wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER) )
     {
         return false;
     }
-
-    SetMinSize( sz );
 
     m_dialogStyle = style;
     m_value = value;
@@ -115,17 +113,7 @@ bool wxTextEntryDialog::Create(wxWindow *parent,
 
     SetSizer( topsizer );
 
-    // Size returned by Fit() is the minimum size needed to fit the contents.
-    const wxSize minSize = topsizer->Fit( this );
-
-    // Prevent the dialog from being resized smaller than the minimum size.
-    SetMinSize(minSize);
-
-    // For single-line entry, also constrain max height to prevent vertical expansion
-    if ( !(style & wxTE_MULTILINE) )
-    {
-        SetMaxSize(wxSize(-1, minSize.GetHeight()));
-    }
+    topsizer->SetSizeHints( this );
 
     if ( style & wxCENTRE )
         Centre( wxBOTH );
@@ -180,14 +168,6 @@ void wxTextEntryDialog::SetValue(const wxString& val)
     }
 }
 
-void wxTextEntryDialog::SetHint(const wxString& hint)
-{
-    if ( m_textctrl )
-    {
-        m_textctrl->SetHint(hint);
-    }
-}
-
 void wxTextEntryDialog::ForceUpper()
 {
     if ( m_textctrl )
@@ -197,6 +177,13 @@ void wxTextEntryDialog::ForceUpper()
 }
 
 #if wxUSE_VALIDATORS
+
+#if WXWIN_COMPATIBILITY_2_8
+void wxTextEntryDialog::SetTextValidator( long style )
+{
+    SetTextValidator((wxTextValidatorStyle)style);
+}
+#endif
 
 void wxTextEntryDialog::SetTextValidator( wxTextValidatorStyle style )
 {

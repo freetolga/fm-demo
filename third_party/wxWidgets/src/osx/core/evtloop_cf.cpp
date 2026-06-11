@@ -31,13 +31,9 @@
 
 #include "wx/scopedptr.h"
 
-#include "wx/scopeguard.h"
-
 #include "wx/osx/private.h"
 #include "wx/osx/core/cfref.h"
 #include "wx/thread.h"
-
-#include "wx/private/safecall.h"
 
 #if wxUSE_GUI
     #include "wx/nonownedwnd.h"
@@ -122,7 +118,7 @@ wxCFEventLoop::DefaultModeObserverCallBack(CFRunLoopObserverRef WXUNUSED(observe
     if ( activity & kCFRunLoopBeforeTimers )
     {
     }
-
+    
     if ( activity & kCFRunLoopBeforeWaiting )
     {
     }
@@ -138,7 +134,7 @@ wxCFEventLoop::wxCFEventLoop()
 #if wxUSE_UIACTIONSIMULATOR
     m_shouldWaitForEvent = false;
 #endif
-
+    
     m_runLoop = CFGetCurrentRunLoop();
 
     CFRunLoopObserverContext ctxt;
@@ -315,47 +311,56 @@ void wxCFEventLoop::OSXDoStop()
 // terminating when Exit() is called
 int wxCFEventLoop::DoRun()
 {
-#if wxUSE_EXCEPTIONS
     // we must ensure that OnExit() is called even if an exception is thrown
     // from inside ProcessEvents() but we must call it from Exit() in normal
     // situations because it is supposed to be called synchronously,
-    // wxModalEventLoop depends on this, so we can't just use ON_BLOCK_EXIT and
-    // need a named guard to be able to dismiss it if it was called normally
-    wxScopeGuard guardOnExit = wxMakeObjGuard(*this, &wxCFEventLoop::OnExit);
+    // wxModalEventLoop depends on this (so we can't just use ON_BLOCK_EXIT or
+    // something similar here)
+#if wxUSE_EXCEPTIONS
+    for ( ;; )
+    {
+        try
+        {
 #endif // wxUSE_EXCEPTIONS
 
-    // This loop is only used when exceptions are used, but it should hopefully
-    // be optimized away completely when they are not, so use it in any case to
-    // make the code simpler.
-    for ( bool stop = false; !stop; )
-    {
-        wxSafeCall<void>([&, this]
-        {
             OSXDoRun();
 
 #if wxUSE_EXCEPTIONS
-            guardOnExit.Dismiss();
-#endif // wxUSE_EXCEPTIONS
-
-            stop = true;
-        }, [&]()
+            // exit the outer loop as well
+            break;
+        }
+        catch ( ... )
         {
-#if wxUSE_EXCEPTIONS
-            if ( !wxTheApp || !wxTheApp->OnExceptionInMainLoop() )
+            try
             {
-                stop = true;
+                if ( !wxTheApp || !wxTheApp->OnExceptionInMainLoop() )
+                {
+                    OnExit();
+                    break;
+                }
+                //else: continue running the event loop
             }
-            //else: continue running the event loop
-#endif // wxUSE_EXCEPTIONS
-        });
+            catch ( ... )
+            {
+                // OnException() throwed, possibly rethrowing the same
+                // exception again: very good, but we still need OnExit() to
+                // be called
+                OnExit();
+                throw;
+            }
+        }
     }
+#endif // wxUSE_EXCEPTIONS
 
     return m_exitcode;
 }
 
-void wxCFEventLoop::DoStop(int rc)
+// sets the "should exit" flag and wakes up the loop so that it terminates
+// soon
+void wxCFEventLoop::ScheduleExit(int rc)
 {
     m_exitcode = rc;
+    m_shouldExit = true;
     OSXDoStop();
 }
 
@@ -392,10 +397,10 @@ static bool gs_bGuiOwnedByMainThread = true;
 // critical section which controls access to all GUI functions: any secondary
 // thread (i.e. except the main one) must enter this crit section before doing
 // any GUI calls
-static wxCriticalSection *gs_critsectGui = nullptr;
+static wxCriticalSection *gs_critsectGui = NULL;
 
 // critical section which protects gs_nWaitingForGui variable
-static wxCriticalSection *gs_critsectWaitingForGui = nullptr;
+static wxCriticalSection *gs_critsectWaitingForGui = NULL;
 
 // number of threads waiting for GUI in wxMutexGuiEnter()
 static size_t gs_nWaitingForGui = 0;

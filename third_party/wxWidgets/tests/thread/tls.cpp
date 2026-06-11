@@ -35,8 +35,11 @@ struct PerThreadData
     int number;
 };
 
-wxTHREAD_SPECIFIC_DECL PerThreadData gs_threadData;
-wxTHREAD_SPECIFIC_DECL int gs_threadInt;
+wxTLS_TYPE(PerThreadData) gs_threadDataVar;
+#define gs_threadData wxTLS_VALUE(gs_threadDataVar)
+
+wxTLS_TYPE(int) gs_threadIntVar;
+#define gs_threadInt wxTLS_VALUE(gs_threadIntVar)
 
 // ----------------------------------------------------------------------------
 // test thread
@@ -50,7 +53,7 @@ public:
     // ctor both creates and starts the thread
     TLSTestThread() : wxThread(wxTHREAD_JOINABLE) { Create(); Run(); }
 
-    virtual void *Entry() override
+    virtual void *Entry() wxOVERRIDE
     {
         gs_threadInt = 17;
 
@@ -62,7 +65,7 @@ public:
         wxASSERT( gs_threadData.name == std::string("worker") );
         wxASSERT( gs_threadData.number == 2 );
 
-        return nullptr;
+        return NULL;
     }
 };
 
@@ -72,30 +75,54 @@ public:
 // test class
 // ----------------------------------------------------------------------------
 
-TEST_CASE("TLS::Int", "[tls]")
+class TLSTestCase : public CppUnit::TestCase
 {
-    CHECK( gs_threadInt == 0 );
+public:
+    TLSTestCase() { }
+
+private:
+    CPPUNIT_TEST_SUITE( TLSTestCase );
+        CPPUNIT_TEST( TestInt );
+        CPPUNIT_TEST( TestStruct );
+    CPPUNIT_TEST_SUITE_END();
+
+    void TestInt();
+    void TestStruct();
+
+    wxDECLARE_NO_COPY_CLASS(TLSTestCase);
+};
+
+// register in the unnamed registry so that these tests are run by default
+CPPUNIT_TEST_SUITE_REGISTRATION( TLSTestCase );
+
+// also include in its own registry so that these tests can be run alone
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( TLSTestCase, "TLSTestCase" );
+
+void TLSTestCase::TestInt()
+{
+    CPPUNIT_ASSERT_EQUAL( 0, gs_threadInt );
 
     gs_threadInt++;
-    CHECK( gs_threadInt == 1 );
+    CPPUNIT_ASSERT_EQUAL( 1, gs_threadInt );
 
     TLSTestThread().Wait();
 
-    CHECK( gs_threadInt == 1 );
+    CPPUNIT_ASSERT_EQUAL( 1, gs_threadInt );
 }
 
-TEST_CASE("TLS::Struct", "[tls]")
+void TLSTestCase::TestStruct()
 {
-    CHECK( gs_threadData.name == nullptr);
-    CHECK( gs_threadData.number == 0 );
+    CPPUNIT_ASSERT_EQUAL( NULL, gs_threadData.name );
+    CPPUNIT_ASSERT_EQUAL( 0, gs_threadData.number );
 
     gs_threadData.name = "main";
     gs_threadData.number = 1;
 
-    CHECK( gs_threadData.number == 1 );
+    CPPUNIT_ASSERT_EQUAL( 1, gs_threadData.number );
 
     TLSTestThread().Wait();
 
-    CHECK( gs_threadData.name == std::string("main") );
-    CHECK( gs_threadData.number == 1 );
+    CPPUNIT_ASSERT_EQUAL( std::string("main"), gs_threadData.name );
+    CPPUNIT_ASSERT_EQUAL( 1, gs_threadData.number );
 }
+

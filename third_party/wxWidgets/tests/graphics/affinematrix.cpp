@@ -27,7 +27,30 @@
 // Affine transform test class
 // ----------------------------------------------------------------------------
 
-TEST_CASE("AffineTransform::InvertMatrix", "[affine-transform]")
+class AffineTransformTestCase : public CppUnit::TestCase
+{
+public:
+    AffineTransformTestCase() {}
+
+private:
+    CPPUNIT_TEST_SUITE( AffineTransformTestCase );
+        CPPUNIT_TEST( InvertMatrix );
+        CPPUNIT_TEST( Concat );
+    CPPUNIT_TEST_SUITE_END();
+
+    void InvertMatrix();
+    void Concat();
+
+    wxDECLARE_NO_COPY_CLASS(AffineTransformTestCase);
+};
+
+// register in the unnamed registry so that these tests are run by default
+CPPUNIT_TEST_SUITE_REGISTRATION( AffineTransformTestCase );
+
+// also include in its own registry so that these tests can be run alone
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( AffineTransformTestCase, "AffineTransformTestCase" );
+
+void AffineTransformTestCase::InvertMatrix()
 {
     wxAffineMatrix2D matrix1;
     matrix1.Set(wxMatrix2D(2, 1, 1, 1), wxPoint2DDouble(1, 1));
@@ -39,18 +62,18 @@ TEST_CASE("AffineTransform::InvertMatrix", "[affine-transform]")
     wxMatrix2D m;
     wxPoint2DDouble p;
     matrix2.Get(&m, &p);
-    CHECK( (int)m.m_11 == 1 );
-    CHECK( (int)m.m_12 == -1 );
-    CHECK( (int)m.m_21 == -1 );
-    CHECK( (int)m.m_22 == 2 );
-    CHECK( (int)p.m_x == 0 );
-    CHECK( (int)p.m_y == -1 );
+    CPPUNIT_ASSERT_EQUAL( 1, (int)m.m_11 );
+    CPPUNIT_ASSERT_EQUAL( -1, (int)m.m_12 );
+    CPPUNIT_ASSERT_EQUAL( -1, (int)m.m_21 );
+    CPPUNIT_ASSERT_EQUAL( 2, (int)m.m_22 );
+    CPPUNIT_ASSERT_EQUAL( 0, (int)p.m_x );
+    CPPUNIT_ASSERT_EQUAL( -1, (int)p.m_y );
 
     matrix2.Concat(matrix1);
-    CHECK( matrix2.IsIdentity() );
+    CPPUNIT_ASSERT( matrix2.IsIdentity() );
 }
 
-TEST_CASE("AffineTransform::Concat", "[affine-transform]")
+void AffineTransformTestCase::Concat()
 {
     wxAffineMatrix2D m1;
     m1.Set(wxMatrix2D(0.9, 0.4, -0.4, 0.9), wxPoint2DDouble(0.0, 0.0));
@@ -63,12 +86,12 @@ TEST_CASE("AffineTransform::Concat", "[affine-transform]")
     m1.Get(&m, &p);
 
     const double delta = 0.01;
-    CHECK_THAT( m.m_11 , Catch::Matchers::WithinAbs(0.9, delta) );
-    CHECK_THAT( m.m_12, Catch::Matchers::WithinAbs(0.4, delta) );
-    CHECK_THAT( m.m_21, Catch::Matchers::WithinAbs(-0.4, delta) );
-    CHECK_THAT( m.m_22, Catch::Matchers::WithinAbs(0.9, delta) );
-    CHECK_THAT( p.m_x, Catch::Matchers::WithinAbs(0.7, delta) );
-    CHECK_THAT( p.m_y, Catch::Matchers::WithinAbs(5.7,delta) );
+    CPPUNIT_ASSERT_DOUBLES_EQUAL( 0.9, m.m_11, delta );
+    CPPUNIT_ASSERT_DOUBLES_EQUAL( 0.4, m.m_12, delta );
+    CPPUNIT_ASSERT_DOUBLES_EQUAL( -0.4, m.m_21, delta );
+    CPPUNIT_ASSERT_DOUBLES_EQUAL( 0.9, m.m_22, delta );
+    CPPUNIT_ASSERT_DOUBLES_EQUAL( 0.7, p.m_x, delta );
+    CPPUNIT_ASSERT_DOUBLES_EQUAL( 5.7, p.m_y, delta );
 }
 
 #if wxUSE_DC_TRANSFORM_MATRIX
@@ -85,7 +108,7 @@ class TransformMatrixTestCaseDCBase : public CppUnit::TestCase
 public:
     TransformMatrixTestCaseDCBase()
     {
-        m_dc = nullptr;
+        m_dc = NULL;
         wxImage::AddHandler(new wxJPEGHandler);
         m_imgOrig.LoadFile(wxS("horse.jpg"));
         CPPUNIT_ASSERT( m_imgOrig.IsOk() );
@@ -95,7 +118,7 @@ public:
     {
     }
 
-    virtual void setUp() override
+    virtual void setUp() wxOVERRIDE
     {
         m_bmpOrig = wxBitmap(m_imgOrig);
         m_bmpUsingMatrix.Create(m_bmpOrig.GetSize(), m_bmpOrig.GetDepth());
@@ -136,20 +159,20 @@ public:
     {
     }
 
-    virtual void setUp() override
+    virtual void setUp() wxOVERRIDE
     {
         TransformMatrixTestCaseDCBase::setUp();
         m_mdc.SelectObject(m_bmpUsingMatrix);
     }
 
-    virtual void tearDown() override
+    virtual void tearDown() wxOVERRIDE
     {
         m_mdc.SelectObject(wxNullBitmap);
         TransformMatrixTestCaseDCBase::tearDown();
     }
 
 protected:
-    virtual void FlushDC() override {}
+    virtual void FlushDC() wxOVERRIDE {}
 
 private:
     CPPUNIT_TEST_SUITE( TransformMatrixTestCaseDC );
@@ -184,7 +207,7 @@ public:
 
     virtual ~TransformMatrixTestCaseGCDC() {}
 
-    virtual void setUp() override
+    virtual void setUp() wxOVERRIDE
     {
         TransformMatrixTestCaseDC::setUp();
 
@@ -195,14 +218,14 @@ public:
         ctx->SetAntialiasMode(wxANTIALIAS_NONE);
     }
 
-    virtual void tearDown() override
+    virtual void tearDown() wxOVERRIDE
     {
         delete m_gcdc;
         TransformMatrixTestCaseDC::tearDown();
     }
 
 protected:
-    virtual void FlushDC() override
+    virtual void FlushDC() wxOVERRIDE
     {
         m_gcdc->GetGraphicsContext()->Flush();
     }
@@ -240,7 +263,7 @@ public:
 
     virtual ~TransformMatrixTestCaseGCDCGDIPlus() {}
 
-    virtual void setUp() override
+    virtual void setUp() wxOVERRIDE
     {
         TransformMatrixTestCaseGCDC::setUp();
 
@@ -276,7 +299,7 @@ public:
 
     virtual ~TransformMatrixTestCaseGCDCDirect2D() {}
 
-    virtual void setUp() override
+    virtual void setUp() wxOVERRIDE
     {
         TransformMatrixTestCaseGCDC::setUp();
 
@@ -285,14 +308,14 @@ public:
         m_gcdc->SetGraphicsContext(ctx);
     }
 
-    virtual void FlushDC() override
+    virtual void FlushDC() wxOVERRIDE
     {
         // Apparently, flushing native Direct2D renderer
         // is not enough to update underlying DC (bitmap)
         // and therefore we have to destroy the renderer
         // to do so.
         TransformMatrixTestCaseGCDC::FlushDC();
-        m_gcdc->SetGraphicsContext(nullptr);
+        m_gcdc->SetGraphicsContext(NULL);
     }
 
 private:
@@ -324,7 +347,7 @@ public:
 
     virtual ~TransformMatrixTestCaseGCDCCairo() {}
 
-    virtual void setUp() override
+    virtual void setUp() wxOVERRIDE
     {
         TransformMatrixTestCaseGCDC::setUp();
 

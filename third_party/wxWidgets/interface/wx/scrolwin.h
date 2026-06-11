@@ -33,12 +33,6 @@ enum wxScrollbarVisibility
       so doesn't handle children specially. This is suitable e.g. for
       implementing scrollable controls such as tree or list controls.
 
-    In addition the wxScrolled<wxControl> specialization is also used internally
-    in wxWidgets. Like with wxControl itself though (and for the same reasons),
-    it is not advised to use this template specialization as a base class for
-    custom scrolling controls (also note the absence of a wxScrolledControl
-    typedef). Use wxScrolledCanvas instead.
-
     @note
     See wxScrolled::Create() if you want to use wxScrolled with a custom class.
 
@@ -63,9 +57,21 @@ enum wxScrollbarVisibility
     set to the size requested by the sizer and the scrollbars will be assigned
     for each orientation according to the need for them and the scrolling
     increment set by SetScrollRate().  As above, scrolling is only enabled in
-    orientations with a non-zero increment. Note that if you add or remove any
-    elements to the sizer, you need to call wxSizer::FitInside() to adjust the
-    virtual size to the new contents.
+    orientations with a non-zero increment.  You can influence the minimum size
+    of the scrolled area controlled by a sizer by calling
+    wxWindow::SetVirtualSizeHints(). (Calling SetScrollbars() has analogous
+    effects in wxWidgets 2.4 -- in later versions it may not continue to
+    override the sizer.)
+
+    Note that if maximum size hints are still supported by
+    wxWindow::SetVirtualSizeHints(), use them at your own dire risk. They may
+    or may not have been removed for 2.4, but it really only makes sense to set
+    minimum size hints here.  We should probably replace
+    wxWindow::SetVirtualSizeHints() with wxWindow::SetMinVirtualSize() or
+    similar and remove it entirely in future.
+
+    @todo review docs for this class replacing SetVirtualSizeHints() with
+          SetMinClientSize().
 
     As with all windows, an application can draw onto a wxScrolled using a
     @ref overview_dc "device context".
@@ -75,9 +81,8 @@ enum wxScrollbarVisibility
     context (prepared by wxScrolled::DoPrepareDC()).
 
     If you don't wish to calculate your own scrolling, you must call
-    PrepareDC() or PrepareReadOnlyDC() when not drawing from within OnDraw(),
-    to set the device origin for the device context according to the current
-    scroll position.
+    DoPrepareDC() when not drawing from within OnDraw(), to set the device
+    origin for the device context according to the current scroll position.
 
     A wxScrolled will normally scroll itself and therefore its child windows
     as well. It might however be desired to scroll a different window than
@@ -95,28 +100,6 @@ enum wxScrollbarVisibility
     window out of the visible area), the child window will report a position
     of (10,-90).
 
-    @section scrolled_autoscroll Automatic scrolling
-
-    Scrolled windows implement automatic scrolling behaviour: when the mouse is
-    captured by the application and the user holds the mouse button down, the
-    window may start and keep scrolling even if the mouse doesn't move,
-    provided that it is in the "autoscroll zone". This is convenient to allow
-    extending selection to the parts of the window currently outside of the
-    visible area, for example.
-
-    By default, autoscrolling is triggered when the mouse is anywhere outside
-    of the window, i.e. the window starts scrolling when the (captured) mouse
-    pointer leaves the window and stops when it re-enters the window. However,
-    this behaviour can be customized using EnableAutoScrollInside() and
-    DisableAutoScrollOutside() functions. The first of them allows to enable
-    autoscrolling even when mouse is inside the window, but close to its
-    border, while the second one allows to disable autoscrolling when mouse is
-    outside the window.
-
-    To disable autoscrolling completely, call DisableAutoScrollOutside()
-    without calling EnableAutoScrollInside().
-
-
     @beginStyleTable
     @style{wxHSCROLL}
            If this style is specified and ::wxVSCROLL isn't, the window will be
@@ -131,6 +114,8 @@ enum wxScrollbarVisibility
     @style{wxALWAYS_SHOW_SB}
            Since wxWidgets 2.9.5, specifying this style makes the window always
            show its scrollbars, even if they are not used. See ShowScrollbars().
+    @style{wxRETAINED}
+           Uses a backing pixmap to speed refreshes. Motif only.
     @endStyleTable
 
 
@@ -283,57 +268,40 @@ public:
         Call this function to prepare the device context for drawing a scrolled
         image.
 
-        It sets the device origin according to the current scroll position and
-        also changes the device scale according to the current scaling factor
-        set by SetScale().
-
+        It sets the device origin according to the current scroll position.
         DoPrepareDC() is called automatically within the default @c wxEVT_PAINT
         event handler, so your OnDraw() override will be passed an already
         'pre-scrolled' device context. However, if you wish to draw from
         outside of OnDraw() (e.g. from your own @c wxEVT_PAINT handler), you
         must call this function yourself.
 
-        Note that this function can be used only with wxPaintDC, but not
-        wxInfoDC, while DoPrepareReadOnlyDC() can be used with either of these
-        classes.
-     */
-    void DoPrepareDC(wxDC& dc);
-
-    /**
-        Call this function to adjust any device context used with this window.
-
-        It sets the device origin according to the current scroll position and
-        also changes the device scale according to the current scaling factor
-        set by SetScale().
-
-        Unlike DoPrepareDC(), this function can be used with wxInfoDC, which
-        makes it useful when computing the coordinates of mouse events, for
-        example:
-
+        For example:
         @code
         void MyWindow::OnEvent(wxMouseEvent& event)
         {
-          wxInfoDC dc(this);
-          DoPrepareReadOnlyDC(dc);
+          wxClientDC dc(this);
+          DoPrepareDC(dc);
 
-          if ( event.Dragging() )
+          dc.SetPen(*wxBLACK_PEN);
+          float x, y;
+          event.Position(&x, &y);
+          if (xpos > -1 && ypos > -1 && event.Dragging())
           {
-            m_lastDragPosition = event.GetLogicalPosition(dc);
-            Refresh();
+            dc.DrawLine(xpos, ypos, x, y);
           }
+          xpos = x;
+          ypos = y;
         }
         @endcode
 
         Notice that the function sets the origin by moving it relatively to the
         current origin position, so you shouldn't change the origin before
-        calling it or, if you do, reset it to (0, 0) later. If you call
-        this function immediately after device context creation, as in the
+        calling DoPrepareDC() or, if you do, reset it to (0, 0) later. If you
+        call DoPrepareDC() immediately after device context creation, as in the
         example above, this problem doesn't arise, of course, so it is
         customary to do it like this.
-
-        @since 3.3.0
     */
-    void DoPrepareReadOnlyDC(wxDC& dc);
+    void DoPrepareDC(wxDC& dc);
 
     /**
         Enable or disable use of wxWindow::ScrollWindow() for scrolling.
@@ -424,7 +392,7 @@ public:
         2-element list (x, y).
         @endWxPerlOnly
 
-        @see SetScrollbars(), Scroll(), GetViewStartPixels()
+        @see SetScrollbars(), Scroll()
     */
     void GetViewStart(int* x, int* y) const;
 
@@ -433,29 +401,6 @@ public:
         for more info.
     */
     wxPoint GetViewStart() const;
-
-    /**
-        Get the position at which the visible portion of the window starts
-        in pixels.
-
-        This is similar to GetViewStart() but returns the position in pixels
-        and not in scroll units.
-
-        @param x
-            Receives the first visible horizontal position in scroll pixels.
-            May be @NULL if not needed.
-        @param y
-            Receives the first visible vertical position in scroll pixels.
-            May be @NULL if not needed.
-
-        @see SetScrollbars(), Scroll(), GetViewStart()
-
-        @since 3.3.2
-    */
-    void GetViewStartPixels(int* x, int* y) const;
-
-    /// @overload
-    wxPoint GetViewStartPixels() const;
 
     /**
         Gets the size in device units of the scrollable window area (as
@@ -480,6 +425,11 @@ public:
     void GetVirtualSize(int* x, int* y) const;
 
     /**
+        Motif only: @true if the window has a backing bitmap.
+    */
+    bool IsRetained() const;
+
+    /**
         Called by the default paint event handler to allow the application to
         define painting behaviour without having to worry about calling
         DoPrepareDC().
@@ -491,32 +441,12 @@ public:
     virtual void OnDraw(wxDC& dc);
 
     /**
-        This function is overridden to call DoPrepareDC().
-
-        It may be more convenient to call this function in the code which only
-        has wxWindow pointer, as this function is available in the base class
-        too, unlike DoPrepareDC().
-
-        Note that, if necessary, you should only override DoPrepareDC(), or
-        DoPrepareReadOnlyDC(), and not this function.
-
-        @see PrepareReadOnlyDC()
+        This function is for backwards compatibility only and simply calls
+        DoPrepareDC() now. Notice that it is not called by the default paint
+        event handle (DoPrepareDC() is), so overriding this method in your
+        derived class is useless.
     */
-    virtual void PrepareDC(wxDC& dc);
-
-    /**
-        This function is overridden to call DoPrepareReadOnlyDC().
-
-        It may be more convenient to call this function in the code which only
-        has wxWindow pointer, as this function is available in the base class
-        too, unlike DoPrepareReadOnlyDC().
-
-        Note that, if necessary, you should only override
-        DoPrepareReadOnlyDC(), and not this function.
-
-        @since 3.3.0
-    */
-    virtual void PrepareReadOnlyDC(wxReadOnlyDC& dc);
+    void PrepareDC(wxDC& dc);
 
     /**
         Scrolls a window so the view start is at the given point.
@@ -624,57 +554,7 @@ public:
     int GetScrollPageSize(int orient) const;
     void SetScrollPageSize(int orient, int pageSize);
     int GetScrollLines( int orient ) const;
-
-    /**
-        Set the width of the autoscroll zone inside the window rectangle.
-
-        Setting inner scroll zone to a non-zero value enables autoscrolling if
-        the distance between the mouse and the closest edge of the window
-        rectangle is less than the given value.
-
-        By default, autoscrolling is not triggered when the mouse is inside the
-        window.
-
-        @see @ref scrolled_autoscroll, SetOuterScrollZone()
-
-        @param insideWidth
-            The width of the inner scroll zone in pixels. If this parameter is
-            set to 0, there is no inner scroll zone
-            and autoscrolling may be triggered only when the mouse is outside
-            of the window (unless it is disabled too).  (Negative values,
-            including ::wxDefaultCoord, are forbidden.)
-
-        @since 3.3.2
-    */
-    void EnableAutoScrollInside(wxCoord insideWidth);
-
-    /**
-        By default, autoscrolling is triggered when the mouse is anywhere
-        outside of the window.  This function disables autoscrolling
-        when the mouse is outside the window.  (Autoscrolling could
-        still be enabled when the mouse is inside the window.)
-
-        @see @ref scrolled_autoscroll, EnableAutoScrollInside()
-
-        @since 3.3.2
-    */
-    void DisableAutoScrollOutside();
-
-    /**
-        Set the scaling factor for the window.
-
-        This method can be used to scale the window contents, provided that
-        DoPrepareDC() or DoPrepareReadOnlyDC() is called.
-
-        @param xs
-            The horizontal scaling factor.
-        @param ys
-            The vertical scaling factor.
-
-        @see GetScaleX(), GetScaleY()
-    */
     void SetScale(double xs, double ys);
-
     double GetScaleX() const;
     double GetScaleY() const;
 

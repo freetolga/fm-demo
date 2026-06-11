@@ -26,7 +26,29 @@
 // test class
 // ----------------------------------------------------------------------------
 
-TEST_CASE("wxFontMapper::NamesAndDesc", "[fontmapper]")
+class FontMapperTestCase : public CppUnit::TestCase
+{
+public:
+    FontMapperTestCase() { }
+
+private:
+    CPPUNIT_TEST_SUITE( FontMapperTestCase );
+        CPPUNIT_TEST( NamesAndDesc );
+    CPPUNIT_TEST_SUITE_END();
+
+    void NamesAndDesc();
+
+    wxDECLARE_NO_COPY_CLASS(FontMapperTestCase);
+};
+
+// register in the unnamed registry so that these tests are run by default
+CPPUNIT_TEST_SUITE_REGISTRATION( FontMapperTestCase );
+
+// also include in its own registry so that these tests can be run alone
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( FontMapperTestCase, "FontMapperTestCase" );
+
+
+void FontMapperTestCase::NamesAndDesc()
 {
     static const wxChar *charsets[] =
     {
@@ -86,8 +108,8 @@ TEST_CASE("wxFontMapper::NamesAndDesc", "[fontmapper]")
     for ( size_t n = 0; n < WXSIZEOF(charsets); n++ )
     {
         wxFontEncoding enc = fmap.CharsetToEncoding(charsets[n]);
-        CHECK( fmap.GetEncodingName(enc).Lower() == names[n] );
-        CHECK( fmap.GetEncodingDescription(enc) == descriptions[n] );
+        CPPUNIT_ASSERT_EQUAL( names[n], fmap.GetEncodingName(enc).Lower() );
+        CPPUNIT_ASSERT_EQUAL( descriptions[n], fmap.GetEncodingDescription(enc) );
     }
 }
 

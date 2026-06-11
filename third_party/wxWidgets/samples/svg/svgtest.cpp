@@ -39,7 +39,7 @@
 class MyApp : public wxApp
 {
 public:
-    bool OnInit() override;
+    bool OnInit() wxOVERRIDE;
 };
 
 // Existing pages:
@@ -91,8 +91,8 @@ class MyPage : public wxScrolledWindow
 {
 public:
     MyPage(wxNotebook *parent, int index);
-    virtual void OnDraw(wxDC& dc) override;
-    bool OnSave(const wxString& filename);
+    virtual void OnDraw(wxDC& dc) wxOVERRIDE;
+    bool OnSave(wxString);
 private:
     int m_index;
 };
@@ -100,7 +100,8 @@ private:
 class MyFrame : public wxFrame
 {
 public:
-    MyFrame(wxWindow *parent, const wxWindowID id, const wxString& title);
+    MyFrame(wxWindow *parent, const wxWindowID id, const wxString& title,
+            const wxPoint& pos, const wxSize& size);
 
     void FileSavePicture(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
@@ -135,8 +136,9 @@ bool MyApp::OnInit()
 {
     // Create the main frame window
 
-    MyFrame* frame = new MyFrame(nullptr, -1, "SVG Demo");
-    frame->SetSize(frame->FromDIP(wxSize(600, 500)));
+    MyFrame* frame = new MyFrame(NULL, -1, "SVG Demo",
+                                 wxDefaultPosition, wxSize(500, 400));
+
     frame->Show(true);
 
     return true;
@@ -148,14 +150,15 @@ bool MyApp::OnInit()
 
 // Define my frame constructor
 
-MyFrame::MyFrame(wxWindow *parent, const wxWindowID id, const wxString& title)
-        : wxFrame(parent, id, title)
+MyFrame::MyFrame(wxWindow *parent, const wxWindowID id, const wxString& title,
+                 const wxPoint& pos, const wxSize& size)
+        : wxFrame(parent, id, title, pos, size)
 {
     SetIcon(wxICON(sample));
 
-#if wxUSE_STATUSBAR
+    #if wxUSE_STATUSBAR
     CreateStatusBar();
-#endif // wxUSE_STATUSBAR
+    #endif // wxUSE_STATUSBAR
 
     // Make a menubar
     wxMenu *file_menu = new wxMenu;
@@ -181,6 +184,7 @@ MyFrame::MyFrame(wxWindow *parent, const wxWindowID id, const wxString& title)
     for (int i = 0; i < Page_Max; ++i)
     {
         m_notebook->AddPage(new MyPage(m_notebook, i), pageNames[i]);
+
     }
 }
 
@@ -226,142 +230,129 @@ void MyFrame::FileSavePicture(wxCommandEvent& WXUNUSED(event))
 
 // Define a constructor for my page
 MyPage::MyPage(wxNotebook *parent, int index)
-    : wxScrolledWindow(parent)
+    : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL|wxHSCROLL)
 {
     SetBackgroundColour(*wxWHITE);
     SetScrollbars(20, 20, 50, 50);
     m_index = index;
 }
 
-bool MyPage::OnSave(const wxString& filename)
+bool MyPage::OnSave(wxString filename)
 {
-    wxSize svgSize;
-    wxSVGFileDC tempSvgDC(svgSize);
-    OnDraw(tempSvgDC);
-
-    svgSize = wxSize(tempSvgDC.MaxX(), tempSvgDC.MaxY());
-    svgSize.IncBy(15); // account for wxPen width exceeding bounds
-
-    wxSVGFileDC svgDC(svgSize, filename, pageNames[m_index]);
-    svgDC.SetBitmapHandler(new wxSVGBitmapEmbedHandler());
-    OnDraw(svgDC);
-
+    wxSVGFileDC svgDC (filename, 600, 650);
+    OnDraw (svgDC);
     return svgDC.IsOk();
 }
 
-namespace
+// Define the repainting behaviour
+void MyPage::OnDraw(wxDC& dc)
 {
-
-// Define this function in an anonymous namespace, to prevent accidentally
-// using (wxWindow::)FromDIP instead of dc.FromDIP().
-void DrawOnDC(wxDC& dc, const int index)
-{
-    // vars to use ...
+     // vars to use ...
     wxPen wP;
     wxBrush wB;
     wxPoint points[6];
     wxColour wC;
 
-    dc.SetFont(wxFontInfo(9).FaceName("Arial").Family(wxFONTFAMILY_SWISS));
+    dc.SetFont(*wxSWISS_FONT);
     dc.SetPen(*wxGREEN_PEN);
 
-    switch (index)
+    switch (m_index)
     {
         case Page_Lines:
             // draw lines to make a cross
-            dc.DrawLine(dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200), dc.FromDIP(200));
-            dc.DrawLine(dc.FromDIP(200), dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200));
+            dc.DrawLine(0, 0, 200, 200);
+            dc.DrawLine(200, 0, 0, 200);
             // draw point colored line and spline
             wP = *wxCYAN_PEN;
             wP.SetWidth(3);
             dc.SetPen(wP);
 
-            dc.DrawPoint(dc.FromDIP(25), dc.FromDIP(15));
-            dc.DrawLine(dc.FromDIP(50), dc.FromDIP(30), dc.FromDIP(200), dc.FromDIP(30));
-            dc.DrawSpline(dc.FromDIP(50), dc.FromDIP(200), dc.FromDIP(50), dc.FromDIP(100), dc.FromDIP(200), dc.FromDIP(10));
+            dc.DrawPoint (25,15);
+            dc.DrawLine(50, 30, 200, 30);
+            dc.DrawSpline(50, 200, 50, 100, 200, 10);
             break;
 
         case Page_Polygons:
             // draw standard shapes
             dc.SetBrush(*wxCYAN_BRUSH);
             dc.SetPen(*wxRED_PEN);
-            dc.DrawRectangle(dc.FromDIP(10), dc.FromDIP(10), dc.FromDIP(100), dc.FromDIP(70));
+            dc.DrawRectangle(10, 10, 100, 70);
             wB = wxBrush ("DARK ORCHID", wxBRUSHSTYLE_TRANSPARENT);
             dc.SetBrush (wB);
-            dc.DrawRoundedRectangle(dc.FromDIP(50), dc.FromDIP(50), dc.FromDIP(100), dc.FromDIP(70), dc.FromDIP(20));
+            dc.DrawRoundedRectangle(50, 50, 100, 70, 20);
             dc.SetBrush (wxBrush("GOLDENROD") );
-            dc.DrawEllipse(dc.FromDIP(100), dc.FromDIP(100), dc.FromDIP(100), dc.FromDIP(50));
+            dc.DrawEllipse(100, 100, 100, 50);
 
-            points[0].x = dc.FromDIP(100); points[0].y = dc.FromDIP(200);
-            points[1].x = dc.FromDIP(70); points[1].y = dc.FromDIP(260);
-            points[2].x = dc.FromDIP(160); points[2].y = dc.FromDIP(230);
-            points[3].x = dc.FromDIP(40); points[3].y = dc.FromDIP(230);
-            points[4].x = dc.FromDIP(130); points[4].y = dc.FromDIP(260);
-            points[5].x = dc.FromDIP(100); points[5].y = dc.FromDIP(200);
+            points[0].x = 100; points[0].y = 200;
+            points[1].x = 70; points[1].y = 260;
+            points[2].x = 160; points[2].y = 230;
+            points[3].x = 40; points[3].y = 230;
+            points[4].x = 130; points[4].y = 260;
+            points[5].x = 100; points[5].y = 200;
 
             dc.DrawPolygon(5, points);
-            dc.DrawLines(6, points, dc.FromDIP(160));
+            dc.DrawLines (6, points, 160);
             break;
 
         case Page_Text:
             // draw text in Arial or similar font
-            dc.DrawLine(dc.FromDIP(50), dc.FromDIP(25), dc.FromDIP(50), dc.FromDIP(35));
-            dc.DrawLine(dc.FromDIP(45), dc.FromDIP(30), dc.FromDIP(55), dc.FromDIP(30));
-            dc.DrawText("This is a Swiss-style string", dc.FromDIP(50), dc.FromDIP(30));
+            dc.DrawLine(50,25,50,35);
+            dc.DrawLine(45,30,55,30);
+            dc.DrawText("This is a Swiss-style string", 50, 30);
             wC = dc.GetTextForeground();
             dc.SetTextForeground ("FIREBRICK");
 
             // no effect in msw ??
             dc.SetTextBackground ("WHEAT");
-            dc.DrawText("This is a Red string", dc.FromDIP(50), dc.FromDIP(200));
-            dc.DrawRotatedText("This is a 45 deg string", dc.FromDIP(50), dc.FromDIP(200), 45);
-            dc.DrawRotatedText("This is a 90 deg string", dc.FromDIP(50), dc.FromDIP(200), 90);
+            dc.DrawText("This is a Red string", 50, 200);
+            dc.DrawRotatedText("This is a 45 deg string", 50, 200, 45);
+            dc.DrawRotatedText("This is a 90 deg string", 50, 200, 90);
             dc.SetFont(wxFontInfo(18)
                         .FaceName("Times New Roman")
                         .Family(wxFONTFAMILY_ROMAN)
                         .Italic().Bold());
             dc.SetTextForeground (wC);
-            dc.DrawText("This is a Times-style string", dc.FromDIP(50), dc.FromDIP(60));
+            dc.DrawText("This is a Times-style string", 50, 60);
             break;
 
         case Page_Arcs:
             // four arcs start and end points, center
             dc.SetBrush(*wxGREEN_BRUSH);
-            dc.DrawArc(dc.FromDIP(200), dc.FromDIP(300), dc.FromDIP(370), dc.FromDIP(230), dc.FromDIP(300), dc.FromDIP(300));
+            dc.DrawArc ( 200,300, 370,230, 300,300 );
             dc.SetBrush(*wxBLUE_BRUSH);
-            dc.DrawArc(dc.FromDIP(270 - 50), dc.FromDIP(270 - 86), dc.FromDIP(270 - 86), dc.FromDIP(270 - 50), dc.FromDIP(270), dc.FromDIP(270));
+            dc.DrawArc ( 270-50, 270-86, 270-86, 270-50, 270,270 );
             dc.SetDeviceOrigin(-10,-10);
-            dc.DrawArc(dc.FromDIP(270 - 50), dc.FromDIP(270 - 86), dc.FromDIP(270 - 86), dc.FromDIP(270 - 50), dc.FromDIP(270), dc.FromDIP(270));
+            dc.DrawArc ( 270-50, 270-86, 270-86, 270-50, 270,270 );
             dc.SetDeviceOrigin(0,0);
 
             wP.SetColour ("CADET BLUE");
             dc.SetPen(wP);
-            dc.DrawArc(dc.FromDIP(75), dc.FromDIP(125), dc.FromDIP(110), dc.FromDIP(40), dc.FromDIP(75), dc.FromDIP(75));
+            dc.DrawArc ( 75,125, 110, 40, 75, 75 );
 
             wP.SetColour ("SALMON");
             dc.SetPen(wP);
             dc.SetBrush(*wxRED_BRUSH);
             //top left corner, width and height, start and end angle
                                  // 315 same center and x-radius as last pie-arc, half Y radius
-            dc.DrawEllipticArc(dc.FromDIP(25), dc.FromDIP(50), dc.FromDIP(100), dc.FromDIP(50), 180.0, 45.0);
+            dc.DrawEllipticArc(25,50,100,50,180.0,45.0);
 
             wP = *wxCYAN_PEN;
             wP.SetWidth(3);
             dc.SetPen(wP);
                                  //wxBRUSHSTYLE_TRANSPARENT));
             dc.SetBrush (wxBrush ("SALMON"));
-            dc.DrawEllipticArc(dc.FromDIP(300), dc.FromDIP(0), dc.FromDIP(200), dc.FromDIP(100), 0.0, 145.0);
+            dc.DrawEllipticArc(300,  0,200,100, 0.0,145.0);
                                  //same end point
-            dc.DrawEllipticArc(dc.FromDIP(300), dc.FromDIP(50), dc.FromDIP(200), dc.FromDIP(100), 90.0, 145.0);
-            dc.DrawEllipticArc(dc.FromDIP(300), dc.FromDIP(100), dc.FromDIP(200), dc.FromDIP(100), 90.0, 345.0);
+            dc.DrawEllipticArc(300, 50,200,100,90.0,145.0);
+            dc.DrawEllipticArc(300,100,200,100,90.0,345.0);
 
             break;
 
         case Page_Checkmarks:
-            dc.DrawCheckMark(dc.FromDIP(30), dc.FromDIP(30), dc.FromDIP(25), dc.FromDIP(25));
+            dc.DrawCheckMark ( 30,30,25,25);
             dc.SetBrush (wxBrush ("SALMON",wxBRUSHSTYLE_TRANSPARENT));
-            dc.DrawCheckMark(dc.FromDIP(80), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75));
-            dc.DrawRectangle(dc.FromDIP(80), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75));
+            dc.DrawCheckMark ( 80,50,75,75);
+            dc.DrawRectangle ( 80,50,75,75);
             break;
 
         case Page_ScaledText:
@@ -369,74 +360,74 @@ void DrawOnDC(wxDC& dc, const int index)
                         .FaceName("Times New Roman")
                         .Family(wxFONTFAMILY_ROMAN)
                         .Italic().Bold());
-            dc.DrawLine(dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200), dc.FromDIP(200));
-            dc.DrawLine(dc.FromDIP(200), dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200));
-            dc.DrawText("This is an 18pt string", dc.FromDIP(50), dc.FromDIP(60));
+            dc.DrawLine(0, 0, 200, 200);
+            dc.DrawLine(200, 0, 0, 200);
+            dc.DrawText("This is an 18pt string", 50, 60);
 
             // rescale and draw in blue
             wP = *wxCYAN_PEN;
             dc.SetPen(wP);
             dc.SetUserScale (2.0,0.5);
-            dc.SetDeviceOrigin(dc.FromDIP(200), dc.FromDIP(0));
-            dc.DrawLine(dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200), dc.FromDIP(200));
-            dc.DrawLine(dc.FromDIP(200), dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200));
-            dc.DrawText("This is an 18pt string 2 x 0.5 UserScaled", dc.FromDIP(50), dc.FromDIP(60));
+            dc.SetDeviceOrigin(200,0);
+            dc.DrawLine(0, 0, 200, 200);
+            dc.DrawLine(200, 0, 0, 200);
+            dc.DrawText("This is an 18pt string 2 x 0.5 UserScaled", 50, 60);
             dc.SetUserScale (2.0,2.0);
-            dc.SetDeviceOrigin(dc.FromDIP(200), dc.FromDIP(200));
-            dc.DrawText("This is an 18pt string 2 x 2 UserScaled", dc.FromDIP(50), dc.FromDIP(60));
+            dc.SetDeviceOrigin(200,200);
+            dc.DrawText("This is an 18pt string 2 x 2 UserScaled", 50, 60);
 
             wP = *wxRED_PEN;
             dc.SetPen(wP);
             dc.SetUserScale (1.0,1.0);
-            dc.SetDeviceOrigin(dc.FromDIP(0), dc.FromDIP(10));
+            dc.SetDeviceOrigin(0,10);
             dc.SetMapMode (wxMM_METRIC); //svg ignores this
-            dc.DrawLine(dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200), dc.FromDIP(200));
-            dc.DrawLine(dc.FromDIP(200), dc.FromDIP(0), dc.FromDIP(0), dc.FromDIP(200));
-            dc.DrawText("This is an 18pt string in MapMode", dc.FromDIP(50), dc.FromDIP(60));
+            dc.DrawLine(0, 0, 200, 200);
+            dc.DrawLine(200, 0, 0, 200);
+            dc.DrawText("This is an 18pt string in MapMode", 50, 60);
             break;
 
         case Page_Bitmaps:
-            dc.DrawIcon(wxICON(sample), dc.FromDIP(10), dc.FromDIP(10));
-            dc.DrawBitmap(wxBitmap(svgbitmap_xpm), dc.FromDIP(50), dc.FromDIP(15));
+            dc.DrawIcon( wxICON(sample), 10, 10 );
+            dc.DrawBitmap ( wxBitmap(svgbitmap_xpm), 50,15);
             break;
 
         case Page_Clipping:
             dc.SetTextForeground("RED");
-            dc.DrawText("Red = Clipping Off", dc.FromDIP(30), dc.FromDIP(5));
+            dc.DrawText("Red = Clipping Off", 30, 5);
             dc.SetTextForeground("GREEN");
-            dc.DrawText("Green = Clipping On", dc.FromDIP(30), dc.FromDIP(25));
+            dc.DrawText("Green = Clipping On", 30, 25);
 
             dc.SetTextForeground("BLACK");
 
             dc.SetPen(*wxRED_PEN);
             dc.SetBrush (wxBrush ("SALMON",wxBRUSHSTYLE_TRANSPARENT));
-            dc.DrawCheckMark(dc.FromDIP(80), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75));
-            dc.DrawRectangle(dc.FromDIP(80), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75));
+            dc.DrawCheckMark ( 80,50,75,75);
+            dc.DrawRectangle ( 80,50,75,75);
 
             dc.SetPen(*wxGREEN_PEN);
 
             // Clipped checkmarks
-            dc.DrawRectangle(dc.FromDIP(180), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75));
-            dc.SetClippingRegion(dc.FromDIP(180), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75)); // x,y,width,height version
-            dc.DrawCheckMark(dc.FromDIP(180), dc.FromDIP(50), dc.FromDIP(75), dc.FromDIP(75));
+            dc.DrawRectangle(180,50,75,75);
+            dc.SetClippingRegion(180,50,75,75);                   // x,y,width,height version
+            dc.DrawCheckMark ( 180,50,75,75);
             dc.DestroyClippingRegion();
 
-            dc.DrawRectangle(wxRect(dc.FromDIP(wxPoint(80, 150)), dc.FromDIP(wxSize(75, 75))));
-            dc.SetClippingRegion(dc.FromDIP(wxPoint(80, 150)), dc.FromDIP(wxSize(75, 75))); // pt,size version
-            dc.DrawCheckMark(dc.FromDIP(80), dc.FromDIP(150), dc.FromDIP(75), dc.FromDIP(75));
+            dc.DrawRectangle(wxRect(80,150,75,75));
+            dc.SetClippingRegion(wxPoint(80,150),wxSize(75,75));  // pt,size version
+            dc.DrawCheckMark ( 80,150,75,75);
             dc.DestroyClippingRegion();
 
-            dc.DrawRectangle(wxRect(dc.FromDIP(wxPoint(180, 150)), dc.FromDIP(wxSize(75, 75))));
-            dc.SetClippingRegion(wxRect(dc.FromDIP(wxPoint(180, 150)), dc.FromDIP(wxSize(75, 75)))); // rect version
-            dc.DrawCheckMark(dc.FromDIP(180), dc.FromDIP(150), dc.FromDIP(75), dc.FromDIP(75));
+            dc.DrawRectangle(wxRect(180,150,75,75));
+            dc.SetClippingRegion(wxRect(180,150,75,75));          // rect version
+            dc.DrawCheckMark ( 180,150,75,75);
             dc.DestroyClippingRegion();
 
-            dc.DrawRectangle(wxRect(dc.FromDIP(wxPoint(80, 250)), dc.FromDIP(wxSize(50, 65))));
-            dc.DrawRectangle(wxRect(dc.FromDIP(wxPoint(105, 260)), dc.FromDIP(wxSize(50, 65))));
-            dc.SetClippingRegion(wxRect(dc.FromDIP(wxPoint(80, 250)), dc.FromDIP(wxSize(50, 65)))); // second call to SetClippingRegion
-            dc.SetClippingRegion(wxRect(dc.FromDIP(wxPoint(105, 260)), dc.FromDIP(wxSize(50, 65)))); // forms intersection with previous
-            dc.DrawCheckMark(dc.FromDIP(80), dc.FromDIP(250), dc.FromDIP(75), dc.FromDIP(75));
-            dc.DestroyClippingRegion(); // only one call to destroy (there's no stack)
+            dc.DrawRectangle(wxRect( 80,250,50,65));
+            dc.DrawRectangle(wxRect(105,260,50,65));
+            dc.SetClippingRegion(wxRect( 80,250,50,65));  // second call to SetClippingRegion
+            dc.SetClippingRegion(wxRect(105,260,50,65));  // forms intersection with previous
+            dc.DrawCheckMark(80,250,75,75);
+            dc.DestroyClippingRegion();                   // only one call to destroy (there's no stack)
 
             /*
             ** Clipping by wxRegion not implemented for SVG.   Should be
@@ -472,16 +463,16 @@ void DrawOnDC(wxDC& dc, const int index)
             // Horizontal text
             txtStr = "Horizontal string";
             dc.GetTextExtent(txtStr, &txtW, &txtH, &txtDescent, &txtEL);
-            txtX = dc.FromDIP(50);
-            txtY = dc.FromDIP(200);
+            txtX = 50;
+            txtY = 300;
             dc.DrawRectangle(txtX, txtY, txtW + 2*txtPad, txtH + 2*txtPad);
             dc.DrawText(txtStr, txtX + txtPad, txtY + txtPad);
 
             // Vertical text
             txtStr = "Vertical string";
             dc.GetTextExtent(txtStr, &txtW, &txtH, &txtDescent, &txtEL);
-            txtX = dc.FromDIP(50);
-            txtY = dc.FromDIP(150);
+            txtX = 50;
+            txtY = 250;
             dc.DrawRectangle(txtX, txtY - (txtW + 2*txtPad), txtH + 2*txtPad, txtW + 2*txtPad);
             dc.DrawRotatedText(txtStr, txtX + txtPad, txtY - txtPad, 90);
 
@@ -491,8 +482,8 @@ void DrawOnDC(wxDC& dc, const int index)
             double lenW = (double)(txtW + 2*txtPad) / sqrt(2.0);
             double lenH = (double)(txtH + 2*txtPad) / sqrt(2.0);
             double padding = (double)txtPad / sqrt(2.0);
-            txtX = dc.FromDIP(150);
-            txtY = dc.FromDIP(100);
+            txtX = 150;
+            txtY = 200;
             dc.DrawLine(txtX - int(padding), txtY, txtX + int(lenW), txtY - int(lenW)); // top
             dc.DrawLine(txtX + int(lenW), txtY - int(lenW), txtX - int(padding + lenH + lenW), txtY + int(lenH - lenW));
             dc.DrawLine(txtX - int(padding), txtY, txtX - int(padding + lenH), txtY + int(lenH));
@@ -500,14 +491,7 @@ void DrawOnDC(wxDC& dc, const int index)
             dc.DrawRotatedText(txtStr, txtX, txtY, 45);
             break;
     }
+
+   wxLogStatus("%s", pageDescriptions[m_index]);
 }
 
-} // namespace
-
-// Define the repainting behaviour
-void MyPage::OnDraw(wxDC& dc)
-{
-    DrawOnDC(dc, m_index);
-
-    wxLogStatus(pageDescriptions[m_index]);
-}

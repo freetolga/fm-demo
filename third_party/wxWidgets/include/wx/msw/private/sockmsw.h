@@ -13,7 +13,7 @@
 #ifndef _WX_MSW_GSOCKMSW_H_
 #define _WX_MSW_GSOCKMSW_H_
 
-#include "wx/private/sockettype.h"
+#include "wx/msw/wrapwin.h"
 
 #if defined(__CYGWIN__)
     //CYGWIN gives annoying warning about runtime stuff if we don't do this
@@ -34,6 +34,8 @@
     #define wxIoctlSocketArg_t u_long
 #endif
 
+#define wxCloseSocket closesocket
+
 // ----------------------------------------------------------------------------
 // MSW-specific socket implementation
 // ----------------------------------------------------------------------------
@@ -45,7 +47,9 @@ public:
 
     virtual ~wxSocketImplMSW();
 
-    virtual void ReenableEvents(wxSocketEventFlags WXUNUSED(flags)) override
+    virtual wxSocketError GetLastError() const wxOVERRIDE;
+
+    virtual void ReenableEvents(wxSocketEventFlags WXUNUSED(flags)) wxOVERRIDE
     {
         // notifications are never disabled in this implementation, there is no
         // need for this as WSAAsyncSelect() only sends notification once when
@@ -53,7 +57,7 @@ public:
         // anything here
     }
 
-    virtual void UpdateBlockingState() override
+    virtual void UpdateBlockingState() wxOVERRIDE
     {
         if ( GetSocketFlags() & wxSOCKET_BLOCK )
         {
@@ -80,8 +84,7 @@ public:
     }
 
 private:
-    virtual wxSocketError GetLastError() const override;
-    virtual void DoClose() override;
+    virtual void DoClose() wxOVERRIDE;
 
     int m_msgnumber;
 

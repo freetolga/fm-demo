@@ -46,7 +46,7 @@ void wxDFBDCImpl::DFBInit(const wxIDirectFBSurfacePtr& surface)
 {
     m_surface = surface;
 
-    wxCHECK_RET( surface != nullptr, "invalid surface" );
+    wxCHECK_RET( surface != NULL, "invalid surface" );
 
     SetFont(DEFAULT_FONT);
     SetPen(DEFAULT_PEN);
@@ -105,7 +105,7 @@ void wxDFBDCImpl::DestroyClippingRegion()
 {
     wxCHECK_RET( IsOk(), wxT("invalid dc") );
 
-    m_surface->SetClip(nullptr);
+    m_surface->SetClip(NULL);
 
     wxDCImpl::DestroyClippingRegion();
 }
@@ -133,11 +133,8 @@ void wxDFBDCImpl::Clear()
     wxColour clr = m_backgroundBrush.GetColour();
     m_surface->Clear(clr.Red(), clr.Green(), clr.Blue(), clr.Alpha());
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-    {
-        wxSize size(GetSize());
-        CalcBoundingBox(XDEV2LOG(0), YDEV2LOG(0), XDEV2LOG(size.x), YDEV2LOG(size.y));
-    }
+    wxSize size(GetSize());
+    CalcBoundingBox(XDEV2LOG(0), YDEV2LOG(0), XDEV2LOG(size.x), YDEV2LOG(size.y));
 }
 
 extern bool wxDoFloodFill(wxDC *dc, wxCoord x, wxCoord y,
@@ -151,7 +148,7 @@ bool wxDFBDCImpl::DoFloodFill(wxCoord x, wxCoord y,
 
 bool wxDFBDCImpl::DoGetPixel(wxCoord x, wxCoord y, wxColour *col) const
 {
-    wxCHECK_MSG( col, false, "null colour parameter in wxDFBDCImpl::GetPixel");
+    wxCHECK_MSG( col, false, "NULL colour parameter in wxDFBDCImpl::GetPixel");
 
     wxFAIL_MSG( "GetPixel not implemented" );
 
@@ -205,8 +202,7 @@ void wxDFBDCImpl::DoDrawLine(wxCoord x1, wxCoord y1, wxCoord x2, wxCoord y2)
 
     m_surface->DrawLine(xx1, yy1, xx2, yy2);
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(x1, y1, x2, y2);
+    CalcBoundingBox(x1, y1, x2, y2);
 }
 
 // Draws an arc of a circle, centred on (xc, yc), with starting point (x1, y1)
@@ -286,8 +282,7 @@ void wxDFBDCImpl::DoDrawRectangle(wxCoord x, wxCoord y, wxCoord width, wxCoord h
         m_surface->DrawRectangle(xx, yy, ww, hh);
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
+    CalcBoundingBox(wxPoint(x, y), wxSize(width, height));
 }
 
 void wxDFBDCImpl::DoDrawRoundedRectangle(wxCoord WXUNUSED(x),
@@ -333,8 +328,7 @@ void wxDFBDCImpl::DoDrawText(const wxString& text, wxCoord x, wxCoord y)
     // update the bounding box
     wxCoord w, h;
     DoGetTextExtent(text, &w, &h);
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
+    CalcBoundingBox(wxPoint(x, y), wxSize(w, h));
 
     // if background mode is solid, DrawText must paint text's background:
     if ( m_backgroundMode == wxBRUSHSTYLE_SOLID )
@@ -485,7 +479,7 @@ wxCoord wxDFBDCImpl::GetCharWidth() const
 
     int w = -1;
     GetCurrentFont()->GetStringWidth("H", 1, &w);
-    // VS: YDEV is correct, it should *not* be XDEV, because fonts are only
+    // VS: YDEV is corrent, it should *not* be XDEV, because font's are only
     //     scaled according to m_scaleY
     return YDEV2LOGREL(w);
 }
@@ -499,7 +493,7 @@ void wxDFBDCImpl::DoGetTextExtent(const wxString& string, wxCoord *x, wxCoord *y
     wxCHECK_RET( !theFont || theFont->IsOk(), wxT("invalid font") );
 
     wxFont oldFont;
-    if ( theFont != nullptr )
+    if ( theFont != NULL )
     {
         oldFont = m_font;
         wxConstCast(this, wxDFBDCImpl)->SetFont(*theFont);
@@ -509,9 +503,9 @@ void wxDFBDCImpl::DoGetTextExtent(const wxString& string, wxCoord *x, wxCoord *y
     DFBRectangle rect;
     wxIDirectFBFontPtr f = GetCurrentFont();
 
-    if ( f->GetStringExtents(string.utf8_str(), -1, &rect, nullptr) )
+    if ( f->GetStringExtents(string.utf8_str(), -1, &rect, NULL) )
     {
-        // VS: YDEV is correct, it should *not* be XDEV, because fonts are
+        // VS: YDEV is corrent, it should *not* be XDEV, because font's are
         //     only scaled according to m_scaleY
         xx = YDEV2LOGREL(rect.w);
         yy = YDEV2LOGREL(rect.h);
@@ -530,7 +524,7 @@ void wxDFBDCImpl::DoGetTextExtent(const wxString& string, wxCoord *x, wxCoord *y
     if ( y ) *y = yy;
     if ( externalLeading ) *externalLeading = 0;
 
-    if ( theFont != nullptr )
+    if ( theFont != NULL )
         wxConstCast(this, wxDFBDCImpl)->SetFont(oldFont);
 }
 
@@ -695,8 +689,7 @@ bool wxDFBDCImpl::DoBlitFromSurface(const wxIDirectFBSurfacePtr& src,
         return false;
     }
 
-    if ( AreAutomaticBoundingBoxUpdatesEnabled() )
-        CalcBoundingBox(wxPoint(dstx, dsty), wxSize(w, h));
+    CalcBoundingBox(wxPoint(dstx, dsty), wxSize(w, h));
 
     DFBRectangle srcRect = { srcx, srcy, w, h };
     DFBRectangle dstRect = { XLOG2DEV(dstx), YLOG2DEV(dsty),

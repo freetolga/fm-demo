@@ -11,7 +11,7 @@ dnl   Copyright (c) 2000      Clark Cooper <coopercc@users.sourceforge.net>
 dnl   Copyright (c) 2000-2005 Fred L. Drake, Jr. <fdrake@users.sourceforge.net>
 dnl   Copyright (c) 2001-2003 Greg Stein <gstein@users.sourceforge.net>
 dnl   Copyright (c) 2006-2012 Karl Waclawek <karl@waclawek.net>
-dnl   Copyright (c) 2016-2026 Sebastian Pipping <sebastian@pipping.org>
+dnl   Copyright (c) 2016-2022 Sebastian Pipping <sebastian@pipping.org>
 dnl   Copyright (c) 2017      S. P. Zeidler <spz@netbsd.org>
 dnl   Copyright (c) 2017      Stephen Groat <stephen@groat.us>
 dnl   Copyright (c) 2017-2020 Joe Orton <jorton@redhat.com>
@@ -22,12 +22,6 @@ dnl   Copyright (c) 2018      KangLin <kl222@126.com>
 dnl   Copyright (c) 2019      Mohammed Khajapasha <mohammed.khajapasha@intel.com>
 dnl   Copyright (c) 2019      Kishore Kunche <kishore.kunche@intel.com>
 dnl   Copyright (c) 2020      Jeffrey Walton <noloader@gmail.com>
-dnl   Copyright (c) 2024      Ferenc Géczi <ferenc.gm@gmail.com>
-dnl   Copyright (c) 2024      Dag-Erling Smørgrav <des@des.dev>
-dnl   Copyright (c) 2025      Matthew Fernandez <matthew.fernandez@gmail.com>
-dnl   Copyright (c) 2025      Alfonso Gregory <gfunni234@gmail.com>
-dnl   Copyright (c) 2026      Rosen Penev <rosenp@gmail.com>
-dnl   Copyright (c) 2026      Gordon Messmer <gordon.messmer@gmail.com>
 dnl   Licensed under the MIT license:
 dnl
 dnl   Permission is  hereby granted,  free of charge,  to any  person obtaining
@@ -66,7 +60,7 @@ m4_define([expat_version],
   m4_ifdef([__gnu__],
            [esyscmd(conftools/get-version.sh lib/expat.h)],
            [2.2.x]))
-AC_INIT([expat], expat_version, [https://github.com/libexpat/libexpat/issues])
+AC_INIT([expat], expat_version, [expat-bugs@libexpat.org])
 m4_undefine([expat_version])
 
 AC_CONFIG_SRCDIR([Makefile.in])
@@ -74,7 +68,6 @@ AC_CONFIG_AUX_DIR([conftools])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
-AM_MAINTAINER_MODE([enable])  # to allow argument --disable-maintainer-mode
 
 
 dnl
@@ -88,18 +81,16 @@ dnl
 dnl If the API changes incompatibly set LIBAGE back to 0
 dnl
 
-LIBCURRENT=12  # sync
-LIBREVISION=2  # with
-LIBAGE=11      # CMakeLists.txt!
+LIBCURRENT=9   # sync
+LIBREVISION=8  # with
+LIBAGE=8       # CMakeLists.txt!
 
 AX_APPEND_FLAG([-DHAVE_EXPAT_CONFIG_H], [AM_CPPFLAGS])
 AC_CONFIG_HEADERS([expat_config.h])
-AH_TOP([#ifndef EXPAT_CONFIG_H
-#define EXPAT_CONFIG_H 1])
-AH_BOTTOM([#endif // ndef EXPAT_CONFIG_H])
 
 AM_PROG_AR
 AC_PROG_INSTALL
+AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 LT_PREREQ([2.4])
@@ -112,21 +103,16 @@ AC_SUBST(LIBAGE)
 AC_LANG([C])
 AC_PROG_CC_C99
 
-AS_IF([test "${ac_cv_prog_cc_c99}" = no],
-  [AC_MSG_ERROR([Expat requires a C99 compiler.])])
-
 AS_IF([test "$GCC" = yes],
   [AX_APPEND_COMPILE_FLAGS([-Wall -Wextra], [AM_CFLAGS])
    dnl Be careful about adding the -fexceptions option; some versions of
    dnl GCC don't support it and it causes extra warnings that are only
    dnl distracting; avoid.
    AX_APPEND_COMPILE_FLAGS([-fexceptions], [AM_CFLAGS])
-   AX_APPEND_COMPILE_FLAGS([-Wstrict-aliasing=3 -Wmissing-prototypes -Wstrict-prototypes], [AM_CFLAGS])
+   AX_APPEND_COMPILE_FLAGS([-fno-strict-aliasing -Wmissing-prototypes -Wstrict-prototypes], [AM_CFLAGS])
    AX_APPEND_COMPILE_FLAGS([-pedantic -Wduplicated-cond -Wduplicated-branches -Wlogical-op], [AM_CFLAGS])
    AX_APPEND_COMPILE_FLAGS([-Wrestrict -Wnull-dereference -Wjump-misses-init -Wdouble-promotion], [AM_CFLAGS])
-   AX_APPEND_COMPILE_FLAGS([-Wshadow -Wformat=2 -Wmisleading-indentation], [AM_CFLAGS])
-   AS_CASE(["${host_os}"], [mingw*], [AX_APPEND_COMPILE_FLAGS([-Wno-pedantic-ms-format], [AM_CFLAGS])])
-  ])
+   AX_APPEND_COMPILE_FLAGS([-Wshadow -Wformat=2 -Wno-pedantic-ms-format -Wmisleading-indentation], [AM_CFLAGS])])
 
 AC_LANG_PUSH([C++])
 AC_PROG_CXX
@@ -137,23 +123,11 @@ AS_IF([test "$GCC" = yes],
    dnl GCC don't support it and it causes extra warnings that are only
    dnl distracting; avoid.
    AX_APPEND_COMPILE_FLAGS([-fexceptions], [AM_CXXFLAGS])
-   AX_APPEND_COMPILE_FLAGS([-Wstrict-aliasing=3], [AM_CXXFLAGS])])
+   AX_APPEND_COMPILE_FLAGS([-fno-strict-aliasing], [AM_CXXFLAGS])])
 AC_LANG_POP([C++])
 
 AS_IF([test "$GCC" = yes],
-  [AX_APPEND_LINK_FLAGS([-Wstrict-aliasing=3],[AM_LDFLAGS])])
-
-AC_ARG_ENABLE([symbol-versioning],
-  [AS_HELP_STRING([--enable-symbol-versioning],
-    [provide symbol versioning for dependency generation @<:@default=no@:>@])],
-  [enable_symbol_versioning=$enableval],
-  [enable_symbol_versioning=no])
-AS_IF([test "x$enable_symbol_versioning" != xno],
-  [VSCRIPT_LDFLAGS="-Wl,--version-script"
-   AC_SUBST([VSCRIPT_LDFLAGS])
-  ])
-AM_CONDITIONAL([HAVE_VSCRIPT],
-  [test "$enable_symbol_versioning" != xno])
+  [AX_APPEND_LINK_FLAGS([-fno-strict-aliasing],[AM_LDFLAGS])])
 
 dnl patching ${archive_cmds} to affect generation of file "libtool" to fix linking with clang (issue #312)
 AS_CASE(["$LD"],[*clang*],
@@ -161,9 +135,8 @@ AS_CASE(["$LD"],[*clang*],
      [*linux*],[archive_cmds='$CC -shared $pic_flag $libobjs $deplibs $compiler_flags $wl-soname $wl$soname -o $lib'])])
 
 EXPATCFG_COMPILER_SUPPORTS_VISIBILITY([
-  AX_APPEND_FLAG([-fvisibility=hidden],              [AM_CFLAGS])
-  AS_IF([test "${enable_shared}" = yes],
-        [AX_APPEND_FLAG([-DXML_ENABLE_VISIBILITY=1], [AM_CPPFLAGS])])])
+  AX_APPEND_FLAG([-fvisibility=hidden],       [AM_CFLAGS])
+  AX_APPEND_FLAG([-DXML_ENABLE_VISIBILITY=1], [AM_CPPFLAGS])])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
@@ -180,6 +153,7 @@ AC_C_BIGENDIAN([AC_DEFINE([WORDS_BIGENDIAN], 1)
 AC_DEFINE_UNQUOTED([BYTEORDER], $BYTEORDER, [1234 = LILENDIAN, 4321 = BIGENDIAN])
 
 AC_C_CONST
+AC_TYPE_SIZE_T
 
 AC_ARG_WITH([xmlwf],
   [AS_HELP_STRING([--without-xmlwf], [do not build xmlwf])],
@@ -199,8 +173,6 @@ AC_ARG_WITH([tests],
   [with_tests=yes])
 AM_CONDITIONAL([WITH_TESTS], [test x${with_tests} = xyes])
 
-AS_IF([test x${with_tests} = xyes],
-      [AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])])
 
 AS_VAR_SET([EXPATCFG_ON_MINGW],[no])
 AS_CASE("${host_os}",
@@ -217,12 +189,24 @@ AM_CONDITIONAL([_INTERNAL_LARGE_SIZE], [echo -- "${CPPFLAGS}${CFLAGS}" | ${FGREP
 
 LT_LIB_M
 
-AC_MSG_CHECKING([for arc4random_buf (BSD or glibc 2.36+)])
+AC_ARG_WITH([libbsd],
+  [AS_HELP_STRING([--with-libbsd], [utilize libbsd (for arc4random_buf)])],
+  [],
+  [with_libbsd=no])
+AS_IF([test "x${with_libbsd}" != xno],
+  [AC_CHECK_LIB([bsd],
+     [arc4random_buf],
+     [],
+     [AS_IF([test "x${with_libbsd}" = xyes],
+        [AC_MSG_ERROR([Enforced use of libbsd cannot be satisfied.])])])])
+AC_MSG_CHECKING([for arc4random_buf (BSD or libbsd)])
 AC_LINK_IFELSE([AC_LANG_SOURCE([
-    #include <stdlib.h>
-    int main(void) {
-      char dummy[[123]];  // double brackets for m4
-      arc4random_buf(dummy, 0U);
+    #include <stdlib.h>  /* for arc4random_buf on BSD, for NULL */
+    #if defined(HAVE_LIBBSD)
+    # include <bsd/stdlib.h>
+    #endif
+    int main() {
+      arc4random_buf(NULL, 0U);
       return 0;
     }
   ])],
@@ -230,10 +214,14 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([
    AC_MSG_RESULT([yes])],
   [AC_MSG_RESULT([no])
 
-   AC_MSG_CHECKING([for arc4random (BSD, macOS, or glibc 2.36+)])
+   AC_MSG_CHECKING([for arc4random (BSD, macOS or libbsd)])
    AC_LINK_IFELSE([AC_LANG_SOURCE([
-       #include <stdlib.h>
-       int main(void) {
+       #if defined(HAVE_LIBBSD)
+       # include <bsd/stdlib.h>
+       #else
+       # include <stdlib.h>
+       #endif
+       int main() {
           arc4random();
           return 0;
        }
@@ -255,7 +243,7 @@ AS_IF([test "x$with_getrandom" != xno],
    AC_LINK_IFELSE([AC_LANG_SOURCE([
        #include <stdlib.h>  /* for NULL */
        #include <sys/random.h>
-       int main(void) {
+       int main() {
          return getrandom(NULL, 0U, 0U);
        }
      ])],
@@ -276,11 +264,10 @@ AS_HELP_STRING([--without-sys-getrandom],
 AS_IF([test "x$with_sys_getrandom" != xno],
   [AC_MSG_CHECKING([for syscall SYS_getrandom (Linux 3.17+)])
    AC_LINK_IFELSE([AC_LANG_SOURCE([
-       #define _GNU_SOURCE
        #include <stdlib.h>  /* for NULL */
        #include <unistd.h>  /* for syscall */
        #include <sys/syscall.h>  /* for SYS_getrandom */
-       int main(void) {
+       int main() {
          syscall(SYS_getrandom, NULL, 0, 0);
          return 0;
      }
@@ -305,8 +292,6 @@ AC_SUBST(FILEMAP)
 dnl Some basic configuration:
 AC_DEFINE([XML_NS], 1,
           [Define to make XML Namespaces functionality available.])
-AC_DEFINE([XML_GE], 1,
-          [Define as 1/0 to enable/disable support for general entities.])
 AC_DEFINE([XML_DTD], 1,
           [Define to make parameter entity parsing functionality available.])
 AC_DEFINE([XML_DEV_URANDOM], 1,
@@ -331,10 +316,9 @@ AS_HELP_STRING([--disable-xml-context],
 AS_IF([test "x${enable_xml_context}" != "xno"],
   [AS_IF([test "x${enable_xml_context}" = "xyes" \
             -o "x${enable_xml_context}" = "x"],
-     [AS_VAR_SET(enable_xml_context,1024)])],
-  [AS_VAR_SET(enable_xml_context,0)])
-AC_DEFINE_UNQUOTED([XML_CONTEXT_BYTES], [${enable_xml_context}],
-  [Define to specify how much context to retain around the current parse point, 0 to disable.])
+     [AS_VAR_SET(enable_xml_context,1024)])
+   AC_DEFINE_UNQUOTED([XML_CONTEXT_BYTES], [${enable_xml_context}],
+     [Define to specify how much context to retain around the current parse point.])])
 
 AC_ARG_WITH([docbook],
   [AS_HELP_STRING([--with-docbook],
@@ -358,37 +342,17 @@ AS_IF([test "x${DOCBOOK_TO_MAN}" != x -a "x$with_docbook" != xno],
   You can also configure using --without-docbook if you can do without a man
   page for xmlwf.])])])
 
-dnl This will make sure that a release tarball shipping a pre-rendered xmlwf man page will
-dnl get it installed, when no working flavor of docbook2man is available (or wanted).
-dnl This relies on file xmlwf.1 being at least as recent as its source file xmlwf.xml.
-AS_IF([test -f "${srcdir}"/doc/xmlwf.1],
-  [AM_CONDITIONAL(WITH_MANPAGE, [true])
-   AS_IF([test "x$with_docbook" = xno -o "x${DOCBOOK_TO_MAN}" = x],
-     [AM_CONDITIONAL(WITH_PREBUILT_MANPAGE, [true])
-      AM_CONDITIONAL(WITH_DISTRIBUTABLE_MANPAGE, [false])],
-     [AM_CONDITIONAL(WITH_PREBUILT_MANPAGE, [false])
-      AM_CONDITIONAL(WITH_DISTRIBUTABLE_MANPAGE, [true])])
-   ],
-  [AS_IF([test "x$with_docbook" != xno -a "x${DOCBOOK_TO_MAN}" != x],
-     [AM_CONDITIONAL(WITH_MANPAGE, [true])
-      AM_CONDITIONAL(WITH_DISTRIBUTABLE_MANPAGE, [true])],
-     [AM_CONDITIONAL(WITH_MANPAGE, [false])
-      AM_CONDITIONAL(WITH_DISTRIBUTABLE_MANPAGE, [false])])
-   AM_CONDITIONAL(WITH_PREBUILT_MANPAGE, [false])])
+AM_CONDITIONAL(WITH_DOCBOOK, [test "x${DOCBOOK_TO_MAN}" != x])
+
 
 dnl Configure CMake file templates
 dnl NOTE: The *_TRUE variables read here are Automake conditionals
 dnl       that are either set to "" when enabled or to "#" when disabled
 dnl       (because they are used to dynamically comment out certain things)
 AS_IF([test "x${enable_xml_attr_info}" = xyes],
-  [EXPAT_ATTR_INFO=ON
-   _EXPAT_COMMENT_ATTR_INFO=" "],
-  [EXPAT_ATTR_INFO=OFF
-   _EXPAT_COMMENT_ATTR_INFO="#"])
-AC_SUBST([_EXPAT_COMMENT_ATTR_INFO])
+  [EXPAT_ATTR_INFO=ON],
+  [EXPAT_ATTR_INFO=OFF])
 EXPAT_DTD=ON
-_EXPAT_COMMENT_DTD_OR_GE=" "
-AC_SUBST([_EXPAT_COMMENT_DTD_OR_GE])
 AS_IF([test "x${_INTERNAL_LARGE_SIZE_TRUE}" = x],
   [EXPAT_LARGE_SIZE=ON],
   [EXPAT_LARGE_SIZE=OFF])
@@ -410,6 +374,7 @@ LIBDIR_BASENAME="$(basename "${libdir}")"
 SO_MAJOR="$(expr "${LIBCURRENT}" - "${LIBAGE}")"
 SO_MINOR="${LIBAGE}"
 SO_PATCH="${LIBREVISION}"
+AC_CHECK_SIZEOF([void *])  # sets ac_cv_sizeof_void_p
 AC_SUBST([EXPAT_ATTR_INFO])
 AC_SUBST([EXPAT_DTD])
 AC_SUBST([EXPAT_LARGE_SIZE])
@@ -422,13 +387,8 @@ AC_SUBST([LIBDIR_BASENAME])
 AC_SUBST([SO_MAJOR])
 AC_SUBST([SO_MINOR])
 AC_SUBST([SO_PATCH])
+AC_SUBST([ac_cv_sizeof_void_p])
 
-dnl The canonical way of doing this is AC_CHECK_SIZEOF(void *), but
-dnl that adds SIZEOF_VOID_P to expat_config.h.in, making it difficult
-dnl to have 32-bit and 64-bit versions of libexpat installed on the
-dnl same system with a single, shared copy of the header.
-AC_COMPUTE_INT(SIZEOF_VOID_P, [sizeof(void *)])
-AC_SUBST([SIZEOF_VOID_P])
 
 dnl write the Automake flags we set
 AC_SUBST([AM_CPPFLAGS])
@@ -445,28 +405,17 @@ AC_MSG_RESULT([${CMAKE_SHARED_LIBRARY_PREFIX}])
 AC_SUBST([CMAKE_SHARED_LIBRARY_PREFIX])
 
 AS_CASE("${host_os}",
-  [darwin*], [
-    CMAKE_SOURCE=cmake/autotools/expat__macos.cmake.in
-    CMAKE_NOCONFIG_SOURCE=cmake/autotools/expat-noconfig__macos.cmake.in
-  ],
-  [mingw*|cygwin*], [
-    CMAKE_SOURCE=cmake/autotools/expat__windows.cmake.in
-    CMAKE_NOCONFIG_SOURCE=cmake/autotools/expat-noconfig__windows.cmake.in
-  ],
-  [
-    CMAKE_SOURCE=cmake/autotools/expat__linux.cmake.in
-    CMAKE_NOCONFIG_SOURCE=cmake/autotools/expat-noconfig__linux.cmake.in
-  ])
+  [darwin*], [CMAKE_NOCONFIG_SOURCE=cmake/autotools/expat-noconfig__macos.cmake.in],
+  [mingw*|cygwin*], [CMAKE_NOCONFIG_SOURCE=cmake/autotools/expat-noconfig__windows.cmake.in],
+  [CMAKE_NOCONFIG_SOURCE=cmake/autotools/expat-noconfig__linux.cmake.in])
 AC_CONFIG_FILES([Makefile]
   [expat.pc]
   [cmake/expat-config.cmake]
-  [cmake/autotools/expat.cmake:${CMAKE_SOURCE}]
   [cmake/autotools/expat-config-version.cmake]
   [cmake/autotools/expat-noconfig.cmake:${CMAKE_NOCONFIG_SOURCE}]
   [doc/Makefile]
   [examples/Makefile]
   [lib/Makefile]
-  [lib/libexpat.map]
   [tests/Makefile]
   [tests/benchmark/Makefile]
   [xmlwf/Makefile])

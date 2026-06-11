@@ -17,25 +17,28 @@ typedef struct _GdkRGBA GdkRGBA;
 // wxColour
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxColourImpl : public wxColourBase
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxColour : public wxColourBase
 {
 public:
-    wxColourImpl() = default;
-
-    // port-specific constructors
+    // constructors
     // ------------
-    wxColourImpl(const GdkColor& gdkColor);
+    DEFINE_STD_WXCOLOUR_CONSTRUCTORS
+    wxColour(const GdkColor& gdkColor);
 #ifdef __WXGTK3__
-    wxColourImpl(const GdkRGBA& gdkRGBA);
+    wxColour(const GdkRGBA& gdkRGBA);
 #endif
 
-    bool operator==(const wxColourImpl& col) const;
-    bool operator!=(const wxColourImpl& col) const { return !(*this == col); }
+    wxDECLARE_DEFAULT_COPY(wxColour)
 
-    unsigned char Red() const override;
-    unsigned char Green() const override;
-    unsigned char Blue() const override;
-    unsigned char Alpha() const override;
+    virtual ~wxColour();
+
+    bool operator==(const wxColour& col) const;
+    bool operator!=(const wxColour& col) const { return !(*this == col); }
+
+    unsigned char Red() const wxOVERRIDE;
+    unsigned char Green() const wxOVERRIDE;
+    unsigned char Blue() const wxOVERRIDE;
+    unsigned char Alpha() const wxOVERRIDE;
 
     // Implementation part
 #ifdef __WXGTK3__
@@ -48,7 +51,11 @@ public:
 
 protected:
     virtual void
-    InitRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) override;
+    InitRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) wxOVERRIDE;
+
+    virtual bool FromString(const wxString& str) wxOVERRIDE;
+
+    wxDECLARE_DYNAMIC_CLASS(wxColour);
 };
 
 #endif // _WX_GTK_COLOUR_H_

@@ -11,18 +11,6 @@
 #ifndef _WX_OSX_IPHONE_CHKCONF_H_
 #define _WX_OSX_IPHONE_CHKCONF_H_
 
-#if wxUSE_MIMETYPE
-#undef wxUSE_MIMETYPE
-#define wxUSE_MIMETYPE 0
-#endif
-
-#if wxUSE_SECRETSTORE
-    #undef wxUSE_SECRETSTORE
-    #define wxUSE_SECRETSTORE 0
-#endif
-
-#if wxUSE_GUI
-
 /*
  * text rendering system
  */
@@ -39,6 +27,11 @@
 /*
  * turning off capabilities that don't work under iphone yet
  */
+
+#if wxUSE_MIMETYPE
+#undef wxUSE_MIMETYPE
+#define wxUSE_MIMETYPE 0
+#endif
 
 #if wxUSE_MDI
 #undef wxUSE_MDI
@@ -65,6 +58,16 @@
 #define wxUSE_TOOLTIPS 0
 #endif
 
+#if wxUSE_DATAVIEWCTRL
+#undef wxUSE_DATAVIEWCTRL
+#define wxUSE_DATAVIEWCTRL 0
+#endif
+
+#if wxUSE_TREELISTCTRL
+#undef wxUSE_TREELISTCTRL
+#define wxUSE_TREELISTCTRL 0
+#endif
+
 #if wxUSE_DRAG_AND_DROP
 #undef wxUSE_DRAG_AND_DROP
 #define wxUSE_DRAG_AND_DROP 0
@@ -82,6 +85,11 @@
 #define wxUSE_CARET 0
 #endif
 
+#if wxUSE_CHOICE
+#undef wxUSE_CHOICE
+#define wxUSE_CHOICE 0
+#endif
+
 #if wxUSE_COMBOBOX
 #undef wxUSE_COMBOBOX
 #define wxUSE_COMBOBOX 0
@@ -97,6 +105,7 @@
 #undef wxUSE_ABOUTDLG
 #undef wxUSE_STATLINE
 #undef wxUSE_COLLPANE
+#undef wxUSE_STATBMP
 #undef wxUSE_STATBOX
 #undef wxUSE_RADIOBTN
 #undef wxUSE_RADIOBOX
@@ -108,10 +117,15 @@
 #define wxUSE_ABOUTDLG 0
 #define wxUSE_STATLINE 0
 #define wxUSE_COLLPANE 0
+#define wxUSE_STATBMP 0
 #define wxUSE_STATBOX 0
 #define wxUSE_RADIOBTN 0
 #define wxUSE_RADIOBOX 0
 #define wxUSE_TOGGLEBTN 0
+
+#undef wxUSE_HTML
+
+#define wxUSE_HTML 0
 
 #undef wxUSE_RICHTEXT
 #define wxUSE_RICHTEXT 0
@@ -126,10 +140,14 @@
 #undef wxUSE_BMPBUTTON
 #undef wxUSE_CHECKLISTBOX
 #undef wxUSE_GRID
+#undef wxUSE_LISTBOX
 #undef wxUSE_LISTCTRL
+#undef wxUSE_NOTEBOOK
 #undef wxUSE_SPINBTN
 #undef wxUSE_SPINCTRL
+#undef wxUSE_TREECTRL
 #undef wxUSE_DATEPICKCTRL
+#undef wxUSE_DATAVIEWCTRL
 #undef wxUSE_EDITABLELISTBOX
 #undef wxUSE_FILEPICKERCTRL
 #undef wxUSE_DIRPICKERCTRL
@@ -153,10 +171,14 @@
 #define wxUSE_BMPBUTTON 0
 #define wxUSE_CHECKLISTBOX 0
 #define wxUSE_GRID 0
+#define wxUSE_LISTBOX 0
 #define wxUSE_LISTCTRL 0
+#define wxUSE_NOTEBOOK 0
 #define wxUSE_SPINBTN 0
 #define wxUSE_SPINCTRL 0
+#define wxUSE_TREECTRL 0
 #define wxUSE_DATEPICKCTRL 0
+#define wxUSE_DATAVIEWCTRL 0
 #define wxUSE_EDITABLELISTBOX 0
 #define wxUSE_FILEPICKERCTRL 0
 #define wxUSE_DIRPICKERCTRL 0
@@ -362,12 +384,15 @@
 #define wxUSE_WEBVIEW 0
 #endif
 
+#if wxUSE_SECRETSTORE
+    #undef wxUSE_SECRETSTORE
+    #define wxUSE_SECRETSTORE 0
+#endif
+
 // IconRef datatype does not exist on iOS
 
 #undef wxOSX_USE_ICONREF
 #define wxOSX_USE_ICONREF 0
-
-#endif // wxUSE_GUI
 
 #endif
     /* _WX_OSX_IPHONE_CHKCONF_H_ */

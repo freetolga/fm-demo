@@ -2,6 +2,7 @@
 // Name:        wx/frame.h
 // Purpose:     wxFrame class interface
 // Author:      Vadim Zeitlin
+// Modified by:
 // Created:     15.11.99
 // Copyright:   (c) wxWidgets team
 // Licence:     wxWindows licence
@@ -72,13 +73,8 @@ public:
 
     // get the origin of the client area (which may be different from (0, 0)
     // if the frame has a toolbar) in client coordinates
-    virtual wxPoint GetClientAreaOrigin() const override;
+    virtual wxPoint GetClientAreaOrigin() const wxOVERRIDE;
 
-    // frame modality
-    // ------------------
-
-    // Changing the frame modality after it has been shown has no effect
-    virtual void SetWindowModality(wxWindowMode modality);
 
     // menu bar functions
     // ------------------
@@ -166,15 +162,15 @@ public:
 #endif // wxUSE_STATUSBAR
 
     // send wxUpdateUIEvents for all menu items in the menubar,
-    // or just for menu if non-null
-    virtual void DoMenuUpdates(wxMenu* menu = nullptr);
+    // or just for menu if non-NULL
+    virtual void DoMenuUpdates(wxMenu* menu = NULL);
 #endif // wxUSE_MENUS
 
     // do the UI update processing for this window
-    virtual void UpdateWindowUI(long flags = wxUPDATE_UI_NONE) override;
+    virtual void UpdateWindowUI(long flags = wxUPDATE_UI_NONE) wxOVERRIDE;
 
     // Implement internal behaviour (menu updating on some platforms)
-    virtual void OnInternalIdle() override;
+    virtual void OnInternalIdle() wxOVERRIDE;
 
 #if wxUSE_MENUS || wxUSE_TOOLBAR
     // show help text for the currently selected menu or toolbar item
@@ -183,9 +179,7 @@ public:
     virtual void DoGiveHelp(const wxString& text, bool show);
 #endif
 
-    virtual void RemoveChild(wxWindowBase *child) override;
-
-    virtual bool IsClientAreaChild(const wxWindow *child) const override
+    virtual bool IsClientAreaChild(const wxWindow *child) const wxOVERRIDE
     {
         return !IsOneOfBars(child) && wxTopLevelWindow::IsClientAreaChild(child);
     }
@@ -199,7 +193,7 @@ protected:
     void DeleteAllBars();
 
     // test whether this window makes part of the frame
-    virtual bool IsOneOfBars(const wxWindow *win) const override;
+    virtual bool IsOneOfBars(const wxWindow *win) const wxOVERRIDE;
 
 #if wxUSE_MENUBAR
     // override to update menu bar position when the frame size changes
@@ -219,7 +213,7 @@ protected:
     static bool ShouldUpdateMenuFromIdle();
 
 #if wxUSE_MENUBAR
-    wxMenuBar *m_frameMenuBar = nullptr;
+    wxMenuBar *m_frameMenuBar;
 #endif // wxUSE_MENUBAR
 
 #if wxUSE_STATUSBAR && (wxUSE_MENUS || wxUSE_TOOLBAR)
@@ -240,22 +234,19 @@ protected:
     // return false if there is no help for such item
     bool ShowMenuHelp(int helpid);
 
-    wxStatusBar *m_frameStatusBar = nullptr;
+    wxStatusBar *m_frameStatusBar;
 #endif // wxUSE_STATUSBAR
 
 
-    int m_statusBarPane = 0;
+    int m_statusBarPane;
 
 #if wxUSE_TOOLBAR
     // override to update status bar position (or anything else) when
     // something changes
     virtual void PositionToolBar() { }
 
-    wxToolBar *m_frameToolBar = nullptr;
+    wxToolBar *m_frameToolBar;
 #endif // wxUSE_TOOLBAR
-
-    // The frame is not modal by default.
-    wxWindowMode m_modality = wxWindowMode::Normal;
 
 #if wxUSE_MENUS
     wxDECLARE_EVENT_TABLE();
@@ -270,8 +261,12 @@ protected:
 #else // !__WXUNIVERSAL__
     #if defined(__WXMSW__)
         #include "wx/msw/frame.h"
-    #elif defined(__WXGTK__)
+    #elif defined(__WXGTK20__)
         #include "wx/gtk/frame.h"
+    #elif defined(__WXGTK__)
+        #include "wx/gtk1/frame.h"
+    #elif defined(__WXMOTIF__)
+        #include "wx/motif/frame.h"
     #elif defined(__WXMAC__)
         #include "wx/osx/frame.h"
     #elif defined(__WXQT__)

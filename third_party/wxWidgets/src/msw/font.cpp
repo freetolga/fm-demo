@@ -2,6 +2,7 @@
 // Name:        src/msw/font.cpp
 // Purpose:     wxFont class
 // Author:      Julian Smart
+// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) wxWidgets team
 // Licence:     wxWindows licence
@@ -22,6 +23,7 @@
 #include "wx/font.h"
 
 #ifndef WX_PRECOMP
+    #include "wx/list.h"
     #include "wx/utils.h"
     #include "wx/app.h"
     #include "wx/log.h"
@@ -54,10 +56,10 @@ wxString wxGetMSWFaceNameFromHFONT(HFONT hFont)
     ScreenHDC hdc;
     SelectInHDC selectFont(hdc, hFont);
 
-    UINT otmSize = GetOutlineTextMetrics(hdc, 0, nullptr);
+    UINT otmSize = GetOutlineTextMetrics(hdc, 0, NULL);
     if ( !otmSize )
     {
-        wxLogLastError("GetOutlineTextMetrics(nullptr)");
+        wxLogLastError("GetOutlineTextMetrics(NULL)");
         return wxString();
     }
 
@@ -303,7 +305,6 @@ protected:
             const_cast<wxFontRefData *>(this)->Alloc();
     }
 
-
     // are we using m_nativeFontInfo.lf.lfHeight for point size or pixel size?
     bool             m_sizeUsingPixels;
 
@@ -326,7 +327,7 @@ protected:
 
 wxFontRefData::wxFontRefData(const wxFontInfo& info)
 {
-    m_hFont = nullptr;
+    m_hFont = NULL;
 
     m_sizeUsingPixels = info.IsUsingSizeInPixels();
     if ( m_sizeUsingPixels )
@@ -835,6 +836,10 @@ bool wxFont::DoCreate(const wxFontInfo& info)
     return RealizeResource();
 }
 
+wxFont::~wxFont()
+{
+}
+
 // ----------------------------------------------------------------------------
 // real implementation
 // ----------------------------------------------------------------------------
@@ -853,8 +858,8 @@ bool wxFont::RealizeResource()
 {
     // NOTE: the GetHFONT() call automatically triggers a reallocation of
     //       the HFONT if necessary (will do nothing if we already have the resource);
-    //       it returns nullptr only if there is a failure in wxFontRefData::Alloc()...
-    return GetHFONT() != nullptr;
+    //       it returns NULL only if there is a failure in wxFontRefData::Alloc()...
+    return GetHFONT() != NULL;
 }
 
 bool wxFont::FreeResource(bool WXUNUSED(force))
@@ -1055,7 +1060,7 @@ wxFontEncoding wxFont::GetEncoding() const
 
 const wxNativeFontInfo *wxFont::GetNativeFontInfo() const
 {
-    return IsOk() ? &(M_FONTDATA->GetNativeFontInfo()) : nullptr;
+    return IsOk() ? &(M_FONTDATA->GetNativeFontInfo()) : NULL;
 }
 
 bool wxFont::IsFixedWidth() const
@@ -1106,8 +1111,8 @@ class wxPrivateFontsListModule : public wxModule
 public:
     wxPrivateFontsListModule() { }
 
-    bool OnInit() override { return true; }
-    void OnExit() override { gs_privateFontFileNames.clear(); }
+    bool OnInit() wxOVERRIDE { return true; }
+    void OnExit() wxOVERRIDE { gs_privateFontFileNames.clear(); }
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxPrivateFontsListModule);

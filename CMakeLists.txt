@@ -10,4 +10,4 @@ add_library(block1 block1.cpp fft.cpp)
 
 add_executable(gui gui.cpp)
 target_link_libraries(gui PUBLIC wx::core wx::base block1 wxmathplot)
-target_include_directories(gui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wxMathPlot)
+target_include_directories(gui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wxMathPlot/mathplot)

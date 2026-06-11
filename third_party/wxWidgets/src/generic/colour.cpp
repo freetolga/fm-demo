@@ -1,7 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/generic/colour.cpp
-// Purpose:     wxColourImpl class
+// Purpose:     wxColour class
 // Author:      Julian Smart
+// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -19,7 +20,16 @@
 
 // Colour
 
-void wxColourImpl::InitRGBA(unsigned char r,
+void wxColour::Init()
+{
+    m_red =
+    m_blue =
+    m_green = 0;
+    m_alpha = wxALPHA_OPAQUE;
+    m_isInit = false;
+}
+
+void wxColour::InitRGBA(unsigned char r,
                         unsigned char g,
                         unsigned char b,
                         unsigned char a)
@@ -31,7 +41,7 @@ void wxColourImpl::InitRGBA(unsigned char r,
     m_isInit = true;
 }
 
-wxColourImpl& wxColourImpl::operator=(const wxColourImpl& col)
+wxColour& wxColour::operator=(const wxColour& col)
 {
     m_red = col.m_red;
     m_green = col.m_green;

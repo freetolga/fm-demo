@@ -11,8 +11,6 @@
 
 #include "wx/image.h"
 
-#include <vector>
-
 
 //-----------------------------------------------------------------------------
 // wxGIFHandler
@@ -28,31 +26,33 @@
 
 struct wxRGB;
 struct GifHashTableType;
+class WXDLLIMPEXP_FWD_CORE wxImageArray; // anidecod.h
 
 class WXDLLIMPEXP_CORE wxGIFHandler : public wxImageHandler
 {
 public:
-    wxGIFHandler() : wxImageHandler(
-        wxT("GIF file"),
-        wxT("gif"),
-        wxBITMAP_TYPE_GIF,
-        wxT("image/gif"))
+    inline wxGIFHandler()
     {
+        m_name = wxT("GIF file");
+        m_extension = wxT("gif");
+        m_type = wxBITMAP_TYPE_GIF;
+        m_mime = wxT("image/gif");
+        m_hashTable = NULL;
     }
 
 #if wxUSE_STREAMS
     virtual bool LoadFile(wxImage *image, wxInputStream& stream,
-                          bool verbose = true, int index = -1) override;
+                          bool verbose = true, int index = -1) wxOVERRIDE;
     virtual bool SaveFile(wxImage *image, wxOutputStream& stream,
-                          bool verbose=true) override;
+                          bool verbose=true) wxOVERRIDE;
 
     // Save animated gif
-    bool SaveAnimation(const std::vector<wxImage>& images, wxOutputStream *stream,
+    bool SaveAnimation(const wxImageArray& images, wxOutputStream *stream,
         bool verbose = true, int delayMilliSecs = 1000);
 
 protected:
-    virtual int DoGetImageCount(wxInputStream& stream) override;
-    virtual bool DoCanRead(wxInputStream& stream) override;
+    virtual int DoGetImageCount(wxInputStream& stream) wxOVERRIDE;
+    virtual bool DoCanRead(wxInputStream& stream) wxOVERRIDE;
 
     bool DoSaveFile(const wxImage&, wxOutputStream *, bool verbose,
         bool first, int delayMilliSecs, bool loop,
@@ -65,7 +65,7 @@ protected:
 
     unsigned long m_crntShiftDWord;   /* For bytes decomposition into codes. */
     int m_pixelCount;
-    struct GifHashTableType *m_hashTable = nullptr;
+    struct GifHashTableType *m_hashTable;
     wxInt16
       m_EOFCode,     /* The EOF LZ code. */
       m_clearCode,   /* The CLEAR LZ code. */

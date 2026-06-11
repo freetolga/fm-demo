@@ -123,8 +123,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer1->SetData(std::move(x), std::move(y));
     vectorLayer1->SetContinuity(true);
     vectorLayer1->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
-    vectorLayer1->SetDrawOutsideMargins(true);
-    m_plot->DelLayer(vectorLayer1);
+    vectorLayer1->SetDrawOutsideMargins(false);
+    m_plot->DelLayer(vectorLayer1, mpDeleteAction::mpNoDelete, true, true);
     m_plot->AddLayer(vectorLayer1);
     m_plot->Fit();
 
@@ -148,8 +148,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetData(std::move(x2), std::move(y2));
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
-    vectorLayer2->SetDrawOutsideMargins(true);
-    mf_plot->DelLayer(vectorLayer2);
+    vectorLayer2->SetDrawOutsideMargins(false);
+    mf_plot->DelLayer(vectorLayer2, mpDeleteAction::mpNoDelete, true, true);
     mf_plot->AddLayer(vectorLayer2);
     mf_plot->Fit();
 
@@ -169,8 +169,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetData(std::move(x3), std::move(y3));
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
-    vectorLayer2->SetDrawOutsideMargins(true);
-    s_plot->DelLayer(vectorLayer3);
+    vectorLayer2->SetDrawOutsideMargins(false);
+    s_plot->DelLayer(vectorLayer3, mpDeleteAction::mpNoDelete, true, true);
     s_plot->AddLayer(vectorLayer3);
     s_plot->Fit();
 
@@ -188,11 +188,11 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
 
 
     mpFXYVector *vectorLayer4 = new mpFXYVector("Modulated signal(freq)");
-    vectorLayer2->SetData(std::move(x4), std::move(y4));
+    vectorLayer2->SetData(std::move(x4),std::move( y4));
     vectorLayer2->SetContinuity(true);
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
-    vectorLayer2->SetDrawOutsideMargins(true);
-    sf_plot->DelLayer(vectorLayer4);
+    vectorLayer2->SetDrawOutsideMargins(false);
+    sf_plot->DelLayer(vectorLayer4, mpDeleteAction::mpNoDelete, true, true);
     sf_plot->AddLayer(vectorLayer4);
     sf_plot->Fit();
 

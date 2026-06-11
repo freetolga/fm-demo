@@ -2,6 +2,7 @@
 // Name:        src/osx/cocoa/utils.mm
 // Purpose:     various cocoa utility functions
 // Author:      Stefan Csomor
+// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -13,6 +14,7 @@
 #include "wx/platinfo.h"
 
 #ifndef WX_PRECOMP
+    #include "wx/intl.h"
     #include "wx/app.h"
     #if wxUSE_GUI
         #include "wx/dialog.h"
@@ -47,15 +49,15 @@ void wxBell()
 - (void)applicationWillFinishLaunching:(NSNotification *)application
 {
     wxUnusedVar(application);
-
+    
     // we must install our handlers later than setting the app delegate, because otherwise our handlers
     // get overwritten in the meantime
 
     NSAppleEventManager *appleEventManager = [NSAppleEventManager sharedAppleEventManager];
-
+    
     [appleEventManager setEventHandler:self andSelector:@selector(handleGetURLEvent:withReplyEvent:)
                          forEventClass:kInternetEventClass andEventID:kAEGetURL];
-
+    
     [appleEventManager setEventHandler:self andSelector:@selector(handleOpenAppEvent:withReplyEvent:)
                          forEventClass:kCoreEventClass andEventID:kAEOpenApplication];
 
@@ -106,7 +108,7 @@ void wxBell()
         CFURLRef url = CFBundleCopyBundleURL(CFBundleGetMainBundle() ) ;
         CFStringRef path = CFURLCopyFileSystemPath ( url , kCFURLPOSIXPathStyle ) ;
         CFRelease( url ) ;
-        wxString app = wxCFStringRef(path).AsString();
+        wxString app = wxCFStringRef(path).AsString(wxLocale::GetSystemEncoding());
         if ( !app.EndsWith(".app") )
         {
             [NSApp setActivationPolicy: NSApplicationActivationPolicyRegular];
@@ -162,12 +164,12 @@ void wxBell()
     {
         fileList.Add( wxCFStringRef::AsStringWithNormalizationFormC([fileNames objectAtIndex:i]) );
     }
-
+    
     if ( wxTheApp->OSXInitWasCalled() )
         wxTheApp->MacPrintFiles(fileList);
     else
         wxTheApp->OSXStorePrintFiles(fileList);
-
+    
     return NSPrintingSuccess;
 }
 
@@ -231,7 +233,7 @@ void wxBell()
     wxUnusedVar(sender);
     if ( !wxTheApp->OSXOnShouldTerminate() )
         return NSTerminateCancel;
-
+    
     return NSTerminateNow;
 }
 
@@ -257,14 +259,14 @@ void wxBell()
          ++i )
     {
         wxTopLevelWindow * const win = static_cast<wxTopLevelWindow *>(*i);
-        wxNonOwnedWindowImpl* winimpl = win ? win->GetNonOwnedPeer() : nullptr;
+        wxNonOwnedWindowImpl* winimpl = win ? win->GetNonOwnedPeer() : NULL;
         WXWindow nswindow = win ? win->GetWXWindow() : nil;
-
+        
         if ( nswindow && [nswindow hidesOnDeactivate] == NO && winimpl)
             winimpl->RestoreWindowLevel();
     }
     if ( wxTheApp )
-        wxTheApp->SetActive( true , nullptr ) ;
+        wxTheApp->SetActive( true , NULL ) ;
 }
 
 - (void)applicationWillResignActive:(NSNotification *)notification
@@ -277,7 +279,7 @@ void wxBell()
     {
         wxTopLevelWindow * const win = static_cast<wxTopLevelWindow *>(*i);
         WXWindow nswindow = win ? win->GetWXWindow() : nil;
-
+        
         if ( nswindow && [nswindow level] == kCGFloatingWindowLevel && [nswindow hidesOnDeactivate] == NO )
             [nswindow setLevel:kCGNormalWindowLevel];
     }
@@ -287,7 +289,7 @@ void wxBell()
 {
     wxUnusedVar(notification);
     if ( wxTheApp )
-        wxTheApp->SetActive( false , nullptr ) ;
+        wxTheApp->SetActive( false , NULL ) ;
 }
 
 - (BOOL)applicationSupportsSecureRestorableState:(NSApplication *)app
@@ -310,7 +312,7 @@ void wxBell()
     {
         sheetFinished = NO;
         resultCode = -1;
-        impl = nullptr;
+        impl = 0;
     }
     return self;
 }
@@ -346,7 +348,7 @@ void wxBell()
     // NSAlerts don't need nor respond to orderOut
     if ([sheet respondsToSelector:@selector(orderOut:)])
         [sheet orderOut: self];
-
+        
     if (impl)
         impl->ModalFinishedCallback(sheet, returnCode);
 }
@@ -381,12 +383,12 @@ void wxBell()
     if ([anEvent type] == NSKeyUp && ([anEvent modifierFlags] & NSCommandKeyMask))
         [[self keyWindow] sendEvent:anEvent];
     else
-        [super sendEvent:anEvent];
+        [super sendEvent:anEvent];    
 }
 
 @end
 
-static WX_NSObject appcontroller = nil;
+WX_NSObject appcontroller = nil;
 
 NSLayoutManager* gNSLayoutManager = nil;
 
@@ -408,7 +410,7 @@ bool wxApp::DoInitGui()
         [NSColor setIgnoresAlpha:NO];
     }
     gNSLayoutManager = [[NSLayoutManager alloc] init];
-
+    
     // This call makes it so that appplication:openFile: doesn't get bogus calls
     // from Cocoa doing its own parsing of the argument string. And yes, we need
     // to use a string with a boolean value in it. That's just how it works.
@@ -432,7 +434,7 @@ bool wxApp::CallOnInit()
         NSEvent *event = [NSEvent otherEventWithType:NSApplicationDefined
                                     location:NSMakePoint(0.0, 0.0)
                                modifierFlags:0
-                                   timestamp:[[NSProcessInfo processInfo] systemUptime]
+                                   timestamp:0
                                 windowNumber:0
                                      context:nil
                                      subtype:0 data1:0 data2:0];
@@ -482,43 +484,11 @@ void wxApp::OSXEnableAutomaticTabbing(bool enable)
 #endif // macOS 10.12+
 }
 
-wxApp::AppearanceResult wxApp::SetAppearance(Appearance appearance)
-{
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-    if ( WX_IS_MACOS_AVAILABLE(10, 14) )
-    {
-        NSString* name = nil;
-        switch ( appearance )
-        {
-            case Appearance::System:
-                name = [[NSAppearance currentAppearance] name];
-                break;
-
-            case Appearance::Light:
-                name = NSAppearanceNameAqua;
-                break;
-
-            case Appearance::Dark:
-                name = NSAppearanceNameDarkAqua;
-                break;
-        }
-
-        [NSApp setAppearance:[NSAppearance appearanceNamed:name]];
-
-        return AppearanceResult::Ok;
-    }
-#endif // macOS 10.14+
-
-    wxUnusedVar(appearance);
-
-    return AppearanceResult::Failure;
-}
-
 extern // used from src/osx/core/display.cpp
 wxRect wxOSXGetMainDisplayClientArea()
 {
     NSRect displayRect = [wxOSXGetMenuScreen() visibleFrame];
-    return wxFromNSRect( nullptr, displayRect );
+    return wxFromNSRect( NULL, displayRect );
 }
 
 static NSScreen* wxOSXGetScreenFromDisplay( CGDirectDisplayID ID)
@@ -529,19 +499,19 @@ static NSScreen* wxOSXGetScreenFromDisplay( CGDirectDisplayID ID)
         if ( displayID == ID )
             return screen;
     }
-    return nullptr;
+    return NULL;
 }
 
 extern // used from src/osx/core/display.cpp
 wxRect wxOSXGetDisplayClientArea(CGDirectDisplayID ID)
 {
     NSRect displayRect = [wxOSXGetScreenFromDisplay(ID) visibleFrame];
-    return wxFromNSRect( nullptr, displayRect );
+    return wxFromNSRect( NULL, displayRect );
 }
 
 void wxGetMousePosition( int* x, int* y )
 {
-    wxPoint pt = wxFromNSPoint(nullptr, [NSEvent mouseLocation]);
+    wxPoint pt = wxFromNSPoint(NULL, [NSEvent mouseLocation]);
     if ( x )
         *x = pt.x;
     if ( y )
@@ -551,23 +521,23 @@ void wxGetMousePosition( int* x, int* y )
 wxMouseState wxGetMouseState()
 {
     wxMouseState ms;
-
+    
     wxPoint pt = wxGetMousePosition();
     ms.SetX(pt.x);
     ms.SetY(pt.y);
-
+    
     NSUInteger modifiers = [NSEvent modifierFlags];
     NSUInteger buttons = [NSEvent pressedMouseButtons];
-
+    
     ms.SetLeftDown( (buttons & 0x01) != 0 );
     ms.SetMiddleDown( (buttons & 0x04) != 0 );
     ms.SetRightDown( (buttons & 0x02) != 0 );
-
+    
     ms.SetRawControlDown(modifiers & NSControlKeyMask);
     ms.SetShiftDown(modifiers & NSShiftKeyMask);
     ms.SetAltDown(modifiers & NSAlternateKeyMask);
     ms.SetControlDown(modifiers & NSCommandKeyMask);
-
+    
     return ms;
 }
 
@@ -576,9 +546,9 @@ wxTimerImpl* wxGUIAppTraits::CreateTimerImpl(wxTimer *timer)
     return new wxOSXTimerImpl(timer);
 }
 
-static int gs_wxBusyCursorCount = 0;
+int gs_wxBusyCursorCount = 0;
 extern wxCursor    gMacCurrentCursor;
-static wxCursor gMacStoredActiveCursor;
+wxCursor        gMacStoredActiveCursor;
 
 // Set the cursor to the busy cursor for all windows
 void wxBeginBusyCursor(const wxCursor *cursor)
@@ -587,10 +557,10 @@ void wxBeginBusyCursor(const wxCursor *cursor)
     {
         NSEnumerator *enumerator = [[[NSApplication sharedApplication] windows] objectEnumerator];
         id object;
-
+        
         while ((object = [enumerator nextObject])) {
             [(NSWindow*) object disableCursorRects];
-        }
+        }        
 
         gMacStoredActiveCursor = gMacCurrentCursor;
         cursor->MacInstall();
@@ -610,10 +580,10 @@ void wxEndBusyCursor()
     {
         NSEnumerator *enumerator = [[[NSApplication sharedApplication] windows] objectEnumerator];
         id object;
-
+        
         while ((object = [enumerator nextObject])) {
             [(NSWindow*) object enableCursorRects];
-        }
+        }        
 
         wxSetCursor(wxNullCursor);
 
@@ -637,7 +607,7 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
 
     const wxSize bitmapSize(subrect ? subrect->GetSize() : m_window->GetSize());
     wxBitmap bitmap;
-    bitmap.CreateWithLogicalSize(bitmapSize, m_contentScaleFactor);
+    bitmap.CreateWithDIPSize(bitmapSize, m_contentScaleFactor);
 
     NSView* view = (NSView*) m_window->GetHandle();
     if ( [view isHiddenOrHasHiddenAncestor] == NO )
@@ -646,10 +616,10 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
         // however the new implementation does not take into account the backgroundViews, and I'm not sure about
         // until we're
         // sure the replacement is always better
-
+         
         bool useOldImplementation = false;
         NSBitmapImageRep *rep = nil;
-
+        
         if ( useOldImplementation )
         {
             [view lockFocus];
@@ -664,19 +634,19 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
             rep = [view bitmapImageRepForCachingDisplayInRect:[view bounds]];
             [view cacheDisplayInRect:[view bounds] toBitmapImageRep:rep];
         }
-
+        
         CGImageRef cgImageRef = (CGImageRef)[rep CGImage];
 
         CGRect r = CGRectMake( 0 , 0 , CGImageGetWidth(cgImageRef)  , CGImageGetHeight(cgImageRef) );
 
-        // The bitmap created by wxBitmap::CreateWithLogicalSize() above is scaled,
+        // The bitmap created by wxBitmap::CreateWithDIPSize() above is scaled,
         // so we need to adjust the coordinates for it.
         r.size.width /= m_contentScaleFactor;
         r.size.height /= m_contentScaleFactor;
 
         // since our context is upside down we dont use CGContextDrawImage
         wxMacDrawCGImage( (CGContextRef) bitmap.GetHBITMAP() , &r, cgImageRef ) ;
-
+        
         if ( useOldImplementation )
             [rep release];
     }

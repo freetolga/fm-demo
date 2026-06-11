@@ -366,7 +366,7 @@ public:
         // instead and only after checking that it is still valid.
         if ( GTK_IS_ENTRY(m_widgetEntry) )
         {
-            gtk_entry_set_completion(m_widgetEntry, nullptr);
+            gtk_entry_set_completion(m_widgetEntry, NULL);
 
             g_signal_handlers_disconnect_by_data(m_widgetEntry, this);
         }
@@ -385,6 +385,10 @@ protected:
         : m_entry(entry),
           m_widgetEntry(entry->GetEntry())
     {
+        // This will be really set in ToggleProcessEnterFlag().
+        m_popupShownCount = 0;
+        m_hadProcessEnterFlag = false;
+
         GtkEntryCompletion* const completion = gtk_entry_completion_new();
 
         gtk_entry_completion_set_text_column (completion, 0);
@@ -411,7 +415,7 @@ protected:
         gtk_list_store_set (store, &iter, 0, (const gchar *)s.utf8_str(), -1);
     }
 
-    // Really change the completion model (which may be null).
+    // Really change the completion model (which may be NULL).
     void UseModel(GtkListStore* store)
     {
         GtkEntryCompletion* const c = gtk_entry_get_completion(m_widgetEntry);
@@ -428,11 +432,11 @@ protected:
 
     // Number of times GTKOnPopupShown() was called with true argument minus
     // the number of times it was called with false argument.
-    int m_popupShownCount = 0;
+    int m_popupShownCount;
 
     // True if the window had wxTE_PROCESS_ENTER flag before we turned it off
     // in GTKOnPopupShown().
-    bool m_hadProcessEnterFlag = false;
+    bool m_hadProcessEnterFlag;
 
     wxDECLARE_NO_COPY_CLASS(wxTextAutoCompleteData);
 };
@@ -441,16 +445,16 @@ protected:
 class wxTextAutoCompleteFixed : public wxTextAutoCompleteData
 {
 public:
-    // Factory function, may return nullptr if entry is invalid.
+    // Factory function, may return NULL if entry is invalid.
     static wxTextAutoCompleteFixed* New(wxTextEntry *entry)
     {
         if ( !CanComplete(entry) )
-            return nullptr;
+            return NULL;
 
         return new wxTextAutoCompleteFixed(entry);
     }
 
-    virtual bool ChangeStrings(const wxArrayString& strings) override
+    virtual bool ChangeStrings(const wxArrayString& strings) wxOVERRIDE
     {
         wxGtkObject<GtkListStore> store(gtk_list_store_new (1, G_TYPE_STRING));
 
@@ -466,7 +470,7 @@ public:
         return true;
     }
 
-    virtual bool ChangeCompleter(wxTextCompleter*) override
+    virtual bool ChangeCompleter(wxTextCompleter*) wxOVERRIDE
     {
         return false;
     }
@@ -488,11 +492,11 @@ public:
     static wxTextAutoCompleteDynamic* New(wxTextEntry *entry)
     {
         if ( !CanComplete(entry) )
-            return nullptr;
+            return NULL;
 
         wxWindow * const win = GetEditableWindow(entry);
         if ( !win )
-            return nullptr;
+            return NULL;
 
         return new wxTextAutoCompleteDynamic(entry, win);
     }
@@ -504,13 +508,13 @@ public:
         m_win->Unbind(wxEVT_TEXT, &wxTextAutoCompleteDynamic::OnEntryChanged, this);
     }
 
-    virtual bool ChangeStrings(const wxArrayString&) override
+    virtual bool ChangeStrings(const wxArrayString&) wxOVERRIDE
     {
         return false;
     }
 
-    // Takes ownership of the pointer which must be non-null.
-    virtual bool ChangeCompleter(wxTextCompleter *completer) override
+    // Takes ownership of the pointer which must be non-NULL.
+    virtual bool ChangeCompleter(wxTextCompleter *completer) wxOVERRIDE
     {
         delete m_completer;
         m_completer = completer;
@@ -526,7 +530,7 @@ private:
         : wxTextAutoCompleteData(entry),
           m_win(win)
     {
-        m_completer = nullptr;
+        m_completer = NULL;
 
         win->Bind(wxEVT_TEXT, &wxTextAutoCompleteDynamic::OnEntryChanged, this);
     }
@@ -560,7 +564,7 @@ private:
         }
         else
         {
-            UseModel(nullptr);
+            UseModel(NULL);
         }
     }
 
@@ -612,8 +616,8 @@ wx_gtk_entry_parent_grab_notify (GtkWidget *widget,
 
 wxTextEntry::wxTextEntry()
 {
-    m_autoCompleteData = nullptr;
-    m_coalesceData = nullptr;
+    m_autoCompleteData = NULL;
+    m_coalesceData = NULL;
     m_isUpperCase = false;
 }
 
@@ -644,7 +648,7 @@ void wxTextEntry::WriteText(const wxString& value)
     gtk_editable_insert_text
     (
         edit,
-        value.utf8_str(),
+        wxGTK_CONV_FONT(value, GetEditableWindow()->GetFont()),
         -1,     // text: length: compute it using strlen()
         &len    // will be updated to position after the text end
     );
@@ -691,7 +695,8 @@ wxString wxTextEntry::DoGetValue() const
 {
     const wxGtkString value(gtk_editable_get_chars(GetEditable(), 0, -1));
 
-    return wxString::FromUTF8Unchecked(value);
+    return wxGTK_CONV_BACK_FONT(value,
+            const_cast<wxTextEntry *>(this)->GetEditableWindow()->GetFont());
 }
 
 void wxTextEntry::Remove(long from, long to)
@@ -854,7 +859,7 @@ bool wxTextEntry::DoAutoCompleteStrings(const wxArrayString& choices)
     if ( !m_autoCompleteData || !m_autoCompleteData->ChangeStrings(choices) )
     {
         delete m_autoCompleteData;
-        m_autoCompleteData = nullptr;
+        m_autoCompleteData = NULL;
 
         // If it failed, try creating a new object for fixed completion.
         wxTextAutoCompleteFixed* const ac = wxTextAutoCompleteFixed::New(this);
@@ -877,7 +882,7 @@ bool wxTextEntry::DoAutoCompleteCustom(wxTextCompleter *completer)
         if ( m_autoCompleteData )
         {
             delete m_autoCompleteData;
-            m_autoCompleteData = nullptr;
+            m_autoCompleteData = NULL;
         }
         //else: Nothing to do, we hadn't used auto-completion even before.
     }
@@ -889,7 +894,7 @@ bool wxTextEntry::DoAutoCompleteCustom(wxTextCompleter *completer)
                 !m_autoCompleteData->ChangeCompleter(completer) )
         {
             delete m_autoCompleteData;
-            m_autoCompleteData = nullptr;
+            m_autoCompleteData = NULL;
 
             wxTextAutoCompleteDynamic* const
                 ac = wxTextAutoCompleteDynamic::New(this);
@@ -1122,9 +1127,13 @@ bool wxTextEntry::SetHint(const wxString& hint)
 {
 #if GTK_CHECK_VERSION(3,2,0)
     GtkEntry *entry = GetEntry();
-    if (entry && gtk_check_version(3,2,0) == nullptr)
+    if (entry && gtk_check_version(3,2,0) == NULL)
     {
-        gtk_entry_set_placeholder_text(entry, hint.utf8_str());
+        gtk_entry_set_placeholder_text
+        (
+            entry,
+            wxGTK_CONV_FONT(hint, GetEditableWindow()->GetFont())
+        );
         return true;
     }
 #endif
@@ -1135,9 +1144,13 @@ wxString wxTextEntry::GetHint() const
 {
 #if GTK_CHECK_VERSION(3,2,0)
     GtkEntry *entry = GetEntry();
-    if (entry && gtk_check_version(3,2,0) == nullptr)
+    if (entry && gtk_check_version(3,2,0) == NULL)
     {
-        return wxString::FromUTF8(gtk_entry_get_placeholder_text(entry));
+        return wxGTK_CONV_BACK_FONT
+               (
+                gtk_entry_get_placeholder_text(entry),
+                const_cast<wxTextEntry *>(this)->GetEditableWindow()->GetFont()
+               );
     }
 #endif
     return wxTextEntryBase::GetHint();
@@ -1147,7 +1160,7 @@ wxString wxTextEntry::GetHint() const
 bool wxTextEntry::ClickDefaultButtonIfPossible()
 {
     GtkWidget* const widget = GTK_WIDGET(GetEntry());
-    if (widget == nullptr)
+    if (widget == NULL)
         return false;
 
     // This does the same thing as gtk_entry_real_activate() in GTK itself.

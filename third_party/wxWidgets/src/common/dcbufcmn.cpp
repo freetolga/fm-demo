@@ -2,6 +2,7 @@
 // Name:        src/common/dcbufcmn.cpp
 // Purpose:     Buffered DC implementation
 // Author:      Ron Lee, Jaakko Salli
+// Modified by:
 // Created:     Sep-20-2006
 // Copyright:   (c) wxWidgets team
 // Licence:     wxWindows licence
@@ -41,21 +42,22 @@ class wxSharedDCBufferManager : public wxModule
 public:
     wxSharedDCBufferManager() { }
 
-    virtual bool OnInit() override { return true; }
-    virtual void OnExit() override { wxDELETE(ms_buffer); }
+    virtual bool OnInit() wxOVERRIDE { return true; }
+    virtual void OnExit() wxOVERRIDE { wxDELETE(ms_buffer); }
 
-    static wxBitmap* GetBuffer(wxDC* dc, wxSize size)
+    static wxBitmap* GetBuffer(wxDC* dc, int w, int h)
     {
         if ( ms_usingSharedBuffer )
-            return DoCreateBuffer(dc, size);
+            return DoCreateBuffer(dc, w, h);
 
         if ( !ms_buffer ||
-                !ms_buffer->GetLogicalSize().IsAtLeast(size) ||
+                w > ms_buffer->GetLogicalWidth() ||
+                h > ms_buffer->GetLogicalHeight() ||
                 (dc && dc->GetContentScaleFactor() != ms_buffer->GetScaleFactor()) )
         {
             delete ms_buffer;
 
-            ms_buffer = DoCreateBuffer(dc, size);
+            ms_buffer = DoCreateBuffer(dc, w, h);
         }
 
         ms_usingSharedBuffer = true;
@@ -76,14 +78,10 @@ public:
     }
 
 private:
-    static wxBitmap* DoCreateBuffer(wxDC* dc, wxSize size)
+    static wxBitmap* DoCreateBuffer(wxDC* dc, int w, int h)
     {
         const double scale = dc ? dc->GetContentScaleFactor() : 1.0;
         wxBitmap* const buffer = new wxBitmap;
-
-        // we must always return a valid bitmap but creating a bitmap of
-        // size 0 would fail, so create a 1*1 bitmap in this case
-        size.IncTo(wxSize(1, 1));
 
         // Explicitly request 24bpp bitmap under MSW to avoid slow down when
         // drawing bitmaps with alpha channel on 32bpp bitmap: as explained in
@@ -92,14 +90,16 @@ private:
         // bitmap to DIB and back and may be very slow. As we don't really care
         // about the alpha values in the backing store bitmap (everything is
         // already blended when drawing to it), use 24bpp bitmap to avoid this.
-        constexpr int depth =
+        const int depth =
 #if defined(__WXMSW__)
             24;
 #else
             wxBITMAP_SCREEN_DEPTH;
 #endif
 
-        buffer->CreateWithLogicalSize(size, scale, depth);
+        // we must always return a valid bitmap but creating a bitmap of
+        // size 0 would fail, so create a 1*1 bitmap in this case
+        buffer->CreateWithDIPSize(wxMax(w, 1), wxMax(h, 1), scale, depth);
 
         return buffer;
     }
@@ -110,7 +110,7 @@ private:
     wxDECLARE_DYNAMIC_CLASS(wxSharedDCBufferManager);
 };
 
-wxBitmap* wxSharedDCBufferManager::ms_buffer = nullptr;
+wxBitmap* wxSharedDCBufferManager::ms_buffer = NULL;
 bool wxSharedDCBufferManager::ms_usingSharedBuffer = false;
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxSharedDCBufferManager, wxModule);
@@ -119,18 +119,18 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxSharedDCBufferManager, wxModule);
 // wxBufferedDC
 // ============================================================================
 
-void wxBufferedDC::UseBuffer(wxSize size)
+void wxBufferedDC::UseBuffer(wxCoord w, wxCoord h)
 {
-    wxCHECK_RET( size.x >= -1 && size.y >= -1, "Invalid buffer size" );
+    wxCHECK_RET( w >= -1 && h >= -1, "Invalid buffer size" );
 
     if ( !m_buffer || !m_buffer->IsOk() )
     {
-        if ( !size.IsFullySpecified() )
-            size = m_dc->GetSize();
+        if ( w == -1 || h == -1 )
+            m_dc->GetSize(&w, &h);
 
-        m_buffer = wxSharedDCBufferManager::GetBuffer(m_dc, size);
+        m_buffer = wxSharedDCBufferManager::GetBuffer(m_dc, w, h);
         m_style |= wxBUFFER_USES_SHARED_BUFFER;
-        m_area = size;
+        m_area.Set(w,h);
     }
     else
         m_area = m_buffer->GetSize();
@@ -176,7 +176,7 @@ void wxBufferedDC::UnMask()
 
     const wxPoint origin = GetLogicalOrigin();
     m_dc->Blit(-origin.x, -origin.y, width, height, this, -x, -y);
-    m_dc = nullptr;
+    m_dc = NULL;
 
     if ( m_style & wxBUFFER_USES_SHARED_BUFFER )
         wxSharedDCBufferManager::ReleaseBuffer(m_buffer);

@@ -21,7 +21,7 @@ class WXDLLIMPEXP_CORE wxMiniFrame: public wxFrame
     wxDECLARE_DYNAMIC_CLASS(wxMiniFrame);
 
 public:
-    wxMiniFrame() = default;
+    wxMiniFrame() {}
     wxMiniFrame(wxWindow *parent,
             wxWindowID id,
             const wxString& title,
@@ -42,23 +42,23 @@ public:
             long style = wxCAPTION | wxRESIZE_BORDER,
             const wxString& name = wxASCII_STR(wxFrameNameStr));
 
-    virtual void SetTitle( const wxString &title ) override;
+    virtual void SetTitle( const wxString &title ) wxOVERRIDE;
 
 protected:
     virtual void DoSetSizeHints( int minW, int minH,
                                  int maxW, int maxH,
-                                 int incW, int incH ) override;
-    virtual void DoGetClientSize(int* width, int* height) const override;
+                                 int incW, int incH ) wxOVERRIDE;
+    virtual void DoGetClientSize(int* width, int* height) const wxOVERRIDE;
 
  // implementation
 public:
 #ifndef __WXGTK4__
-    bool m_isDragMove = false;
+    bool m_isDragMove;
     wxSize m_dragOffset;
 #endif
     wxBitmap  m_closeButton;
-    int m_miniEdge = 0;
-    int m_miniTitle = 0;
+    int m_miniEdge;
+    int m_miniTitle;
 };
 
 #endif // _WX_GTK_MINIFRAME_H_

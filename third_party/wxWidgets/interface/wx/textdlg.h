@@ -96,8 +96,7 @@ public:
                       const wxString& caption = wxGetTextFromUserPromptStr,
                       const wxString& value = wxEmptyString,
                       long style = wxTextEntryDialogStyle,
-                      const wxPoint& pos = wxDefaultPosition,
-                      const wxSize sz = wxDefaultSize);
+                      const wxPoint& pos = wxDefaultPosition);
 
     /**
         @param parent
@@ -116,8 +115,6 @@ public:
             make sense for this dialog, used for text input.
         @param pos
             Dialog position.
-        @param sz
-            The size of the dialog (this parameter is only available since wxWidgets 3.3.0).
 
         @since 2.9.5
     */
@@ -125,8 +122,7 @@ public:
                       const wxString& caption = wxGetTextFromUserPromptStr,
                       const wxString& value = wxEmptyString,
                       long style = wxTextEntryDialogStyle,
-                      const wxPoint& pos = wxDefaultPosition,
-                      const wxSize sz = wxDefaultSize);
+                      const wxPoint& pos = wxDefaultPosition);
 
     /**
         Destructor.
@@ -177,15 +173,6 @@ public:
         Sets the default text value.
     */
     void SetValue(const wxString& value);
-
-    /**
-        Sets the hint shown in the empty text control.
-
-        @see wxTextEntry::SetHint()
-
-        @since 3.3.2
-    */
-    void SetHint(const wxString &hint);
 
     /**
         Convert all text entered into the text control used by the dialog to upper case.
@@ -239,7 +226,7 @@ public:
 wxString wxGetTextFromUser(const wxString& message,
                            const wxString& caption = wxGetTextFromUserPromptStr,
                            const wxString& default_value = wxEmptyString,
-                           wxWindow* parent = nullptr,
+                           wxWindow* parent = NULL,
                            int x = wxDefaultCoord,
                            int y = wxDefaultCoord,
                            bool centre = true);
@@ -254,7 +241,7 @@ wxString wxGetTextFromUser(const wxString& message,
 wxString wxGetPasswordFromUser(const wxString& message,
                                const wxString& caption = wxGetPasswordFromUserPromptStr,
                                const wxString& default_value = wxEmptyString,
-                               wxWindow* parent = nullptr,
+                               wxWindow* parent = NULL,
                                int x = wxDefaultCoord,
                                int y = wxDefaultCoord,
                                bool centre = true);

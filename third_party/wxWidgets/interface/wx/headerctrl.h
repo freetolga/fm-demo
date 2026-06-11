@@ -447,15 +447,13 @@ protected:
 
     /**
         Method called when the columns order is changed in the customization
-        dialog @em or when the EVT_HEADER_END_REORDER event is not handled after
-        dragging a single column.
+        dialog.
 
-        This method is always called from ShowCustomizeDialog() when the user
-        changes the order of columns. In case a single column changes place
-        because the user dragged it to a new location, the EVT_HEADER_END_REORDER
-        event handler can be used to react to this. If this event
-        handler is not defined though UpdateColumnsOrder() will be called
-        instead.
+        This method is only called from ShowCustomizeDialog() when the user
+        changes the order of columns. In particular it is @em not called if a
+        single column changes place because the user dragged it to the new
+        location, the EVT_HEADER_END_REORDER event handler should be used to
+        react to this.
 
         A typical implementation in a derived class will update the display
         order of the columns in the associated control, if any. Notice that
@@ -606,13 +604,6 @@ public:
     void AppendColumn(const wxHeaderColumnSimple& col);
 
     /**
-        Delete all columns.
-
-        @see DeleteColumn()
-     */
-    void DeleteAllColumns();
-
-    /**
         Delete the column at the given position.
 
         @see InsertColumn(), AppendColumn()
@@ -658,11 +649,11 @@ public:
             The column to set the sort indicator for.
             If @c -1 is given, then the currently shown sort indicator
             will be removed.
-        @param ascending
+        @param sortOrder
             If @true or @false show the sort indicator corresponding to
             ascending or descending sort order respectively.
      */
-    void ShowSortIndicator(unsigned int idx, bool ascending = true);
+    void ShowSortIndicator(unsigned int idx, bool sortOrder = true);
 
     /**
         Remove the sort indicator from the column being used as sort key.

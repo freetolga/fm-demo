@@ -2,6 +2,7 @@
 // Name:        src/msw/colour.cpp
 // Purpose:     wxColour class
 // Author:      Julian Smart
+// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -23,8 +24,18 @@
 
 // Colour
 
-void wxColourImpl::InitRGBA(unsigned char r, unsigned char g, unsigned char b,
-                            unsigned char a)
+void wxColour::Init()
+{
+    m_isInit = false;
+    m_pixel = 0;
+    m_alpha =
+    m_red =
+    m_blue =
+    m_green = 0;
+}
+
+void wxColour::InitRGBA(unsigned char r, unsigned char g, unsigned char b,
+                        unsigned char a)
 {
     m_red = r;
     m_green = g;

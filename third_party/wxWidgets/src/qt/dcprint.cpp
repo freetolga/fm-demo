@@ -8,120 +8,195 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-#if wxUSE_PRINTING_ARCHITECTURE
-
 #include "wx/dcprint.h"
 #include "wx/qt/dcprint.h"
-#include "wx/qt/printdlg.h"
-#include "wx/qt/private/converter.h"
 
-#include <QtGui/QPainter>
+wxIMPLEMENT_CLASS(wxPrinterDCImpl,wxDCImpl)
 
-#include <QPrinter>
-
-wxIMPLEMENT_ABSTRACT_CLASS(wxPrinterDCImpl, wxQtDCImpl)
-
-wxPrinterDCImpl::wxPrinterDCImpl(wxPrinterDC* owner, const wxPrintData& data)
-    : wxQtDCImpl(owner)
-    , m_printData(data)
+wxPrinterDCImpl::wxPrinterDCImpl( wxPrinterDC *owner, const wxPrintData & )
+    : wxDCImpl( owner )
 {
-    if ( m_printData.IsOk() )
-    {
-        auto* nativeData =
-            static_cast<wxQtPrintNativeData*>(m_printData.GetNativeData());
-
-        m_qtPrinter = nativeData->GetQtPrinter();
-        m_qtPainter = new QPainter();
-
-        m_ok = m_qtPainter->begin(m_qtPrinter);
-    }
 }
 
-wxPrinterDCImpl::~wxPrinterDCImpl() = default;
 
-wxRect wxPrinterDCImpl::GetPaperRect() const
+bool wxPrinterDCImpl::CanDrawBitmap() const
 {
-    if ( !IsOk() )
-    {
-        return wxRect{};
-    }
-
-    return wxQtConvertRect(m_qtPrinter->paperRect(QPrinter::DevicePixel).toRect());
+    return false;
 }
 
-int wxPrinterDCImpl::GetResolution() const
+bool wxPrinterDCImpl::CanGetTextExtent() const
 {
-    if ( IsOk() )
-    {
-        return m_qtPrinter->resolution();
-    }
+    return false;
+}
 
-    return wxQtDCImpl::GetResolution();
+void wxPrinterDCImpl::DoGetSize(int *WXUNUSED(width), int *WXUNUSED(height)) const
+{
+}
+
+void wxPrinterDCImpl::DoGetSizeMM(int* WXUNUSED(width), int* WXUNUSED(height)) const
+{
+}
+
+int wxPrinterDCImpl::GetDepth() const
+{
+    return 0;
 }
 
 wxSize wxPrinterDCImpl::GetPPI() const
 {
-    if ( IsOk() )
-    {
-        return wxSize(m_qtPrinter->logicalDpiX(),
-                      m_qtPrinter->logicalDpiY());
-    }
-
-    return wxQtDCImpl::GetPPI();
+    return wxSize();
 }
 
-void wxPrinterDCImpl::DoGetSize(int* width, int* height) const
-{
-    const int w = m_qtPrinter ? m_qtPrinter->width() : 0;
-    const int h = m_qtPrinter ? m_qtPrinter->height() : 0;
-
-    if ( width )
-        *width = w;
-    if ( height )
-        *height = h;
-}
-
-void wxPrinterDCImpl::DoGetSizeMM(int* width, int* height) const
-{
-    const int w = m_qtPrinter ? m_qtPrinter->widthMM() : 0;
-    const int h = m_qtPrinter ? m_qtPrinter->heightMM() : 0;
-
-    if ( width )
-        *width = w;
-    if ( height )
-        *height = h;
-}
-
-bool wxPrinterDCImpl::StartDoc(const wxString& message)
-{
-    if ( m_ok )
-    {
-        // Commented out because Qt doesn't allow us to change the document name
-        // after calling m_qtPainter->begin(m_qtPrinter) and logs this message:
-        // 'QPrinter::setDocName: Cannot be changed while printer is active'
-
-        // m_qtPrinter->setDocName(wxQtConvertString(message));
-
-        wxUnusedVar(message);
-    }
-
-    return m_ok;
-}
-
-void wxPrinterDCImpl::EndDoc()
-{
-    if ( m_ok )
-    {
-        m_qtPainter->end();
-    }
-}
-
-void wxPrinterDCImpl::StartPage()
+void wxPrinterDCImpl::SetFont(const wxFont& WXUNUSED(font))
 {
 }
 
-void wxPrinterDCImpl::EndPage()
+void wxPrinterDCImpl::SetPen(const wxPen& WXUNUSED(pen))
 {
 }
 
-#endif // wxUSE_PRINTING_ARCHITECTURE
+void wxPrinterDCImpl::SetBrush(const wxBrush& WXUNUSED(brush))
+{
+}
+
+void wxPrinterDCImpl::SetBackground(const wxBrush& WXUNUSED(brush))
+{
+}
+
+void wxPrinterDCImpl::SetBackgroundMode(int WXUNUSED(mode))
+{
+}
+
+
+#if wxUSE_PALETTE
+void wxPrinterDCImpl::SetPalette(const wxPalette& WXUNUSED(palette))
+{
+}
+#endif // wxUSE_PALETTE
+
+void wxPrinterDCImpl::SetLogicalFunction(wxRasterOperationMode WXUNUSED(function))
+{
+}
+
+wxCoord wxPrinterDCImpl::GetCharHeight() const
+{
+    return wxCoord();
+}
+
+wxCoord wxPrinterDCImpl::GetCharWidth() const
+{
+    return wxCoord();
+}
+
+void wxPrinterDCImpl::DoGetTextExtent(const wxString& WXUNUSED(string),
+                             wxCoord *WXUNUSED(x), wxCoord *WXUNUSED(y),
+                             wxCoord *WXUNUSED(descent),
+                             wxCoord *WXUNUSED(externalLeading),
+                             const wxFont *WXUNUSED(theFont) ) const
+{
+}
+
+void wxPrinterDCImpl::Clear()
+{
+}
+
+void wxPrinterDCImpl::DoSetClippingRegion(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
+                                 wxCoord WXUNUSED(width), wxCoord WXUNUSED(height))
+{
+}
+
+void wxPrinterDCImpl::DoSetDeviceClippingRegion(const wxRegion& WXUNUSED(region))
+{
+}
+
+bool wxPrinterDCImpl::DoFloodFill(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), const wxColour& WXUNUSED(col),
+                         wxFloodFillStyle WXUNUSED(style) )
+{
+    return false;
+}
+
+bool wxPrinterDCImpl::DoGetPixel(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), wxColour *WXUNUSED(col)) const
+{
+    return false;
+}
+
+void wxPrinterDCImpl::DoDrawPoint(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y))
+{
+}
+
+void wxPrinterDCImpl::DoDrawLine(wxCoord WXUNUSED(x1), wxCoord WXUNUSED(y1), wxCoord WXUNUSED(x2), wxCoord WXUNUSED(y2))
+{
+}
+
+void wxPrinterDCImpl::DoDrawArc(wxCoord WXUNUSED(x1), wxCoord WXUNUSED(y1),
+                       wxCoord WXUNUSED(x2), wxCoord WXUNUSED(y2),
+                       wxCoord WXUNUSED(xc), wxCoord WXUNUSED(yc))
+{
+}
+
+void wxPrinterDCImpl::DoDrawEllipticArc(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), wxCoord WXUNUSED(w), wxCoord WXUNUSED(h),
+                               double WXUNUSED(sa), double WXUNUSED(ea))
+{
+}
+
+void wxPrinterDCImpl::DoDrawRectangle(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), wxCoord WXUNUSED(width), wxCoord WXUNUSED(height))
+{
+}
+
+void wxPrinterDCImpl::DoDrawRoundedRectangle(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
+                                    wxCoord WXUNUSED(width), wxCoord WXUNUSED(height),
+                                    double WXUNUSED(radius))
+{
+}
+
+void wxPrinterDCImpl::DoDrawEllipse(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
+                           wxCoord WXUNUSED(width), wxCoord WXUNUSED(height))
+{
+}
+
+void wxPrinterDCImpl::DoCrossHair(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y))
+{
+}
+
+void wxPrinterDCImpl::DoDrawIcon(const wxIcon& WXUNUSED(icon), wxCoord WXUNUSED(x), wxCoord WXUNUSED(y))
+{
+}
+
+void wxPrinterDCImpl::DoDrawBitmap(const wxBitmap &WXUNUSED(bmp), wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
+                          bool WXUNUSED(useMask))
+{
+}
+
+void wxPrinterDCImpl::DoDrawText(const wxString& WXUNUSED(text), wxCoord WXUNUSED(x), wxCoord WXUNUSED(y))
+{
+}
+
+void wxPrinterDCImpl::DoDrawRotatedText(const wxString& WXUNUSED(text),
+                               wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), double WXUNUSED(angle))
+{
+}
+
+bool wxPrinterDCImpl::DoBlit(wxCoord WXUNUSED(xdest), wxCoord WXUNUSED(ydest),
+                    wxCoord WXUNUSED(width), wxCoord WXUNUSED(height),
+                    wxDC *WXUNUSED(source),
+                    wxCoord WXUNUSED(xsrc), wxCoord WXUNUSED(ysrc),
+                    wxRasterOperationMode WXUNUSED(rop),
+                    bool WXUNUSED(useMask),
+                    wxCoord WXUNUSED(xsrcMask),
+                    wxCoord WXUNUSED(ysrcMask))
+{
+    return false;
+}
+
+void wxPrinterDCImpl::DoDrawLines(int WXUNUSED(n), const wxPoint WXUNUSED(points)[],
+                         wxCoord WXUNUSED(xoffset), wxCoord WXUNUSED(yoffset) )
+{
+}
+
+void wxPrinterDCImpl::DoDrawPolygon(int WXUNUSED(n), const wxPoint WXUNUSED(points)[],
+                       wxCoord WXUNUSED(xoffset), wxCoord WXUNUSED(yoffset),
+                       wxPolygonFillMode WXUNUSED(fillStyle) )
+{
+}
+
+
