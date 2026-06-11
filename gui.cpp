@@ -119,6 +119,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer1->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer1->SetDrawOutsideMargins(false);
     m_plot->AddLayer(vectorLayer1);
+    m_plot->AddLayer(new mpTitle("Message Signal(time)"));
+    m_plot->AddLayer(new mpInfoCoords());
     m_plot->Fit();
     m_plot->SetMargins(0, 0, 0,0);
 
@@ -144,6 +146,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer2->SetDrawOutsideMargins(false);
     mf_plot->AddLayer(vectorLayer2);
+    mf_plot->AddLayer(new mpTitle("Message Signal(freq)"));
+    mf_plot->AddLayer(new mpInfoCoords());
     mf_plot->Fit();
     mf_plot->SetMargins(0, 0, 0,0);
 
@@ -167,6 +171,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer3->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer3->SetDrawOutsideMargins(false);
     s_plot->AddLayer(vectorLayer3);
+    s_plot->AddLayer(new mpTitle("Modulated Signal(time)"));
+    s_plot->AddLayer(new mpInfoCoords());
     s_plot->Fit();
     s_plot->SetMargins(0, 0, 0,0);
 
@@ -190,6 +196,8 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     vectorLayer4->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
     vectorLayer4->SetDrawOutsideMargins(false);
     sf_plot->AddLayer(vectorLayer4);
+    sf_plot->AddLayer(new mpTitle("Modulated Signal(freq)"));
+    sf_plot->AddLayer(new mpInfoCoords());
     sf_plot->Fit();
     sf_plot->SetMargins(0, 0, 0,0);
 
