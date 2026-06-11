@@ -130,11 +130,9 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     // read as: for(typename variable in iterable)
     // : means "in keyword" in python
     for(double d: m1.freq) {
-        std::cout << d;
         x2.push_back(d);
     }
     for(std::complex<double> d: m1.original_f) {
-        std::cout << d;
         y2.push_back(abs(d));
     }
 

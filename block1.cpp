@@ -35,7 +35,6 @@ message_signal::message_signal(double fm1, double fm2, double fm3, double fc) {
             freq[i] = -time.size()/2 + i;
         }
         // normalize this new vector
-        std::cout << fs;
         freq*=(-fs/time.size());
 
         original.resize(time.size(), 0);
