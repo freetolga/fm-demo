@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<wxsmith>
+	<object class="wxFrame" name="MathPlotDemoFrame">
+		<title>MathPlot Demo</title>
+		<size>800,400</size>
+		<id_arg>0</id_arg>
+		<object class="wxAuiManager" variable="AuiManager1" member="yes">
+			<style>wxAUI_MGR_ALLOW_ACTIVE_PANE|wxAUI_MGR_DEFAULT</style>
+			<object class="AuiManagerItem">
+				<object class="wxPanel" name="ID_PANEL1" variable="pLog" member="yes">
+					<minsize>120,-1</minsize>
+					<object class="wxBoxSizer" variable="BoxSizer2" member="no">
+						<orient>wxVERTICAL</orient>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bDraw" member="yes">
+								<label>Draw sinus</label>
+								<handler function="OnbDrawClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxALL|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bSample" member="yes">
+								<label>Draw Sample</label>
+								<handler function="OnbSampleClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bBar" member="yes">
+								<label>Draw Bar</label>
+								<tooltip>A function view as bar chart</tooltip>
+								<handler function="OnbBarClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bLog" member="yes">
+								<label>Log Y sample</label>
+								<handler function="OnbLogClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bLogXY" member="yes">
+								<label>Log XY sample</label>
+								<handler function="OnbLogXYClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bBarChart" member="yes">
+								<label>Draw BarChart</label>
+								<handler function="OnbChartClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bPieChart" member="yes">
+								<label>Draw PieChart</label>
+								<handler function="OnbChartClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bImage" member="yes">
+								<label>Draw Image</label>
+								<handler function="OnbImageClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bMultiYAxis" member="yes">
+								<label>Multi Y-Axis</label>
+								<handler function="OnbMultiYAxisClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxButton" name="" variable="bMovingObject" member="yes">
+								<label>Moving object</label>
+								<handler function="OnbMovingObjectClick" entry="EVT_BUTTON" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+						<object class="sizeritem">
+							<object class="wxCheckBox" name="" variable="cbFreeLine" member="yes">
+								<label>Free line</label>
+								<tooltip>Free drawing on the plot area. Left click and move the mouse. Illustration of OnUserMouseAction</tooltip>
+								<handler function="OncbFreeLineClick" entry="EVT_CHECKBOX" />
+							</object>
+							<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+							<border>10</border>
+						</object>
+					</object>
+				</object>
+				<name>PaneName0</name>
+				<caption>Log</caption>
+				<minimizebutton>0</minimizebutton>
+				<maximizebutton>0</maximizebutton>
+				<pinbutton>0</pinbutton>
+				<closebutton>0</closebutton>
+				<dockdirection>Left</dockdirection>
+				<dockfixed>0</dockfixed>
+				<dockabledirection></dockabledirection>
+				<floatable>0</floatable>
+				<movable>0</movable>
+				<destroyonclose>0</destroyonclose>
+				<firstadd>0</firstadd>
+			</object>
+			<object class="AuiManagerItem">
+				<object class="wxPanel" name="ID_PANEL2" variable="pPlot" member="yes">
+					<pos>227,228</pos>
+					<object class="wxBoxSizer" variable="BoxSizer1" member="no">
+						<orient>wxVERTICAL</orient>
+						<object class="sizeritem">
+							<object class="mpWindow" name="ID_MATHPLOT1" variable="mPlot" member="yes" />
+							<flag>wxALL|wxEXPAND</flag>
+							<border>5</border>
+							<option>1</option>
+						</object>
+					</object>
+				</object>
+				<name>PaneName1</name>
+				<caption>Plot</caption>
+				<minimizebutton>0</minimizebutton>
+				<pinbutton>0</pinbutton>
+				<closebutton>0</closebutton>
+				<dockdirection>Center</dockdirection>
+				<dockfixed>0</dockfixed>
+				<dockabledirection></dockabledirection>
+				<destroyonclose>0</destroyonclose>
+				<firstadd>0</firstadd>
+			</object>
+		</object>
+		<object class="wxMenuBar" variable="MenuBar1" member="no">
+			<object class="wxMenu" variable="Menu1" member="no">
+				<label>File</label>
+				<object class="wxMenuItem" name="idMenuPreview" variable="miPreview" member="no">
+					<label>Print Preview</label>
+					<bitmap stock_id="wxART_FULL_SCREEN" stock_client="wxART_MENU" />
+					<handler function="OnmiPreviewSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="idMenuPrint" variable="miPrint" member="yes">
+					<label>Print</label>
+					<bitmap stock_id="wxART_PRINT" stock_client="wxART_MENU" />
+					<handler function="OnmiPrintSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="idMenuExit" variable="miQuit" member="no">
+					<label>Exit</label>
+					<accel>Alt-X</accel>
+					<bitmap stock_id="wxART_QUIT" stock_client="wxART_MENU" />
+					<handler function="OnmiQuitSelected" entry="EVT_MENU" />
+				</object>
+			</object>
+			<object class="wxMenu" variable="Menu3" member="no">
+				<label>Help</label>
+				<object class="wxMenuItem" name="idMenuAbout" variable="miAbout" member="no">
+					<label>About</label>
+					<accel>F1</accel>
+					<bitmap stock_id="wxART_INFORMATION" stock_client="wxART_MENU" />
+					<handler function="OnmiAboutSelected" entry="EVT_MENU" />
+				</object>
+			</object>
+		</object>
+		<object class="wxTimer" name="ID_TIMER" variable="Timer" member="yes">
+			<interval>25</interval>
+			<handler function="OnTimerTrigger" entry="EVT_TIMER" />
+		</object>
+	</object>
+</wxsmith>

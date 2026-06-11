@@ -1,34 +1,40 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
+Thumbs.db
+*.bak
+whoops/
+tmp/
+backups/
+
+# Microsoft Visual Studio 
+.vs/
+vc_mswud/
+vc_mswu/
+x64/
+obj/
+bin/
+*.pdb
 *.obj
+*.user
+*.suo
+UpgradeLog.htm
 
-# Precompiled Headers
-*.gch
-*.pch
+# GCC
+.dep/
+*.eep
+*.lss
+*.sym
+*.map
+*.elf
+*.hex
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# Epsilon
+ebackup.sta
+default.tag
 
-# Fortran module files
-*.mod
+# DOxygen generated code etc.
+/Doc/index.html - Shortcut.lnk
+/Doc/html/
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-build/
-
-GPATH
-GRTAGS
-GTAGS
+# misc junk
+/mathplot/mathplot.h_save.h
+/mathplot/mathplot_refactorTypes.cpp
+/mathplot/mathplot_refactorTypes.h

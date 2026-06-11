@@ -1,0 +1,1606 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<wxsmith>
+	<object class="wxDialog" name="MathPlotConfigDialog">
+		<title>MathPlot Configuration</title>
+		<id_arg>0</id_arg>
+		<style>wxSTAY_ON_TOP|wxDEFAULT_DIALOG_STYLE</style>
+		<object class="wxBoxSizer" variable="sizerMain" member="yes">
+			<orient>wxVERTICAL</orient>
+			<object class="sizeritem">
+				<object class="wxNotebook" name="" variable="nbConfig" member="yes">
+					<handler function="OnnbConfigPageChanged" entry="EVT_NOTEBOOK_PAGE_CHANGED" />
+					<object class="notebookpage">
+						<object class="wxPanel" name="" variable="Panel1" member="yes">
+							<object class="wxBoxSizer" variable="BoxSizer3" member="no">
+								<orient>wxVERTICAL</orient>
+								<object class="sizeritem">
+									<object class="wxStaticBoxSizer" variable="StaticBoxSizer1" member="no">
+										<label>Title </label>
+										<orient>wxVERTICAL</orient>
+										<object class="sizeritem">
+											<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="no">
+												<cols>3</cols>
+												<rows>2</rows>
+												<growablecols>1</growablecols>
+												<object class="sizeritem">
+													<object class="wxStaticText" name="" variable="StaticText11" member="yes">
+														<label>Title :</label>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxTextCtrl" name="" variable="edTitle" member="yes" />
+													<flag>wxALL|wxEXPAND</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+												<object class="sizeritem">
+													<object class="wxButton" name="" variable="bFontTitle" member="yes">
+														<label>Font</label>
+														<size>64,-1</size>
+														<enabled>0</enabled>
+														<handler function="OnbFontClick" entry="EVT_BUTTON" />
+													</object>
+													<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbTitleVisible" member="yes">
+														<label>Visible</label>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+											</object>
+											<flag>wxLEFT|wxRIGHT|wxEXPAND</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticBoxSizer" variable="StaticBoxSizer2" member="no">
+										<label>Margins </label>
+										<orient>wxVERTICAL</orient>
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer17" member="no">
+												<orient>wxVERTICAL</orient>
+												<object class="sizeritem">
+													<object class="wxBoxSizer" variable="BoxSizer20" member="no">
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText41" member="yes">
+																<label>Top :</label>
+															</object>
+															<flag>wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxTextCtrl" name="" variable="edMarginTop" member="yes">
+																<value>50</value>
+																<size>40,-1</size>
+																<validator>wxIntegerValidator&lt;unsigned int&gt; (&amp;int__top)</validator>
+																<tooltip>Top</tooltip>
+																<style>wxTE_RIGHT</style>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText38" member="yes">
+																<label>Bottom :</label>
+															</object>
+															<flag>wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxTextCtrl" name="" variable="edMarginBottom" member="yes">
+																<value>50</value>
+																<size>40,-1</size>
+																<validator>wxIntegerValidator&lt;unsigned int&gt; (&amp;int__bottom)</validator>
+																<tooltip>Bottom</tooltip>
+																<style>wxTE_RIGHT</style>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText39" member="yes">
+																<label>Left :</label>
+															</object>
+															<flag>wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxTextCtrl" name="" variable="edMarginLeft" member="yes">
+																<value>50</value>
+																<size>40,-1</size>
+																<validator>wxIntegerValidator&lt;unsigned int&gt; (&amp;int__left)</validator>
+																<tooltip>Left</tooltip>
+																<style>wxTE_RIGHT</style>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText40" member="yes">
+																<label>Right :</label>
+															</object>
+															<flag>wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxTextCtrl" name="" variable="edMarginRight" member="yes">
+																<value>50</value>
+																<size>40,-1</size>
+																<validator>wxIntegerValidator&lt;unsigned int&gt; (&amp;int__right)</validator>
+																<tooltip>Right</tooltip>
+																<style>wxTE_RIGHT</style>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+													</object>
+													<flag>wxLEFT|wxRIGHT|wxEXPAND</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+												<object class="sizeritem">
+													<object class="wxBoxSizer" variable="BoxSizer21" member="no">
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbDrawBox" member="yes">
+																<label>Draw box</label>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText37" member="yes">
+																<label>Extra margin :</label>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxTextCtrl" name="" variable="edExtraMargin" member="yes">
+																<value>8</value>
+																<size>30,-1</size>
+																<validator>wxIntegerValidator&lt;unsigned int&gt; (&amp;int__extra)</validator>
+																<tooltip>Extra margin for plot area</tooltip>
+																<style>wxTE_RIGHT</style>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="spacer">
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxButton" name="" variable="bBGColor" member="yes">
+																<label>bg color</label>
+																<tooltip>Color of the background of the plot area</tooltip>
+																<handler function="OnbColorClick" entry="EVT_BUTTON" />
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxLEFT|wxRIGHT|wxEXPAND</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticBoxSizer" variable="StaticBoxSizer3" member="no">
+										<label>Mouse coordinates </label>
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer1" member="no">
+												<orient>wxVERTICAL</orient>
+												<object class="sizeritem">
+													<object class="wxBoxSizer" variable="BoxSizer12" member="no">
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText18" member="yes">
+																<label>Position :</label>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxChoice" name="" variable="cbCoord" member="yes">
+																<use_items_array>1</use_items_array>
+																<selection>0</selection>
+																<extra_code>cbCoord-&gt;Set(WXSIZEOF(InfoPosition__choices), InfoPosition__choices);&#x0A;cbCoord-&gt;SetSelection(7);</extra_code>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbCoordVisible" member="yes">
+														<label>Visible</label>
+													</object>
+													<flag>wxALL|wxEXPAND</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbCoordOutside" member="yes">
+														<label>Coordinates in Margins</label>
+														<tooltip>Shows the coordinates when the mouse is in the margins</tooltip>
+													</object>
+													<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbCoordinates" member="yes">
+														<label>Series coordinates</label>
+														<tooltip>Shows the coordinates of the series closest to the mouse position</tooltip>
+													</object>
+													<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbMagnetize" member="yes">
+														<label>Magnetize</label>
+														<tooltip>Follow the mouse by drawing a horizontal and vertical line</tooltip>
+													</object>
+													<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+													<border>5</border>
+												</object>
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxStaticBoxSizer" variable="StaticBoxSizer4" member="no">
+												<label>Brush </label>
+												<object class="sizeritem">
+													<object class="wxFlexGridSizer" variable="FlexGridSizer4" member="no">
+														<cols>2</cols>
+														<rows>2</rows>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText22" member="yes">
+																<label>Color :</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxButton" name="" variable="bCoordBrushColor" member="yes">
+																<handler function="OnbColorClick" entry="EVT_BUTTON" />
+															</object>
+															<flag>wxALL|wxEXPAND</flag>
+															<border>2</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText23" member="yes">
+																<label>Style :</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxChoice" name="" variable="cbCoordBrushStyle" member="yes">
+																<use_items_array>1</use_items_array>
+																<selection>0</selection>
+																<extra_code>cbCoordBrushStyle-&gt;Set(WXSIZEOF(InfoBrushStyle__choices), InfoBrushStyle__choices);&#x0A;cbCoordBrushStyle-&gt;SetSelection(0);</extra_code>
+															</object>
+															<flag>wxALL|wxEXPAND</flag>
+															<border>2</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+												</object>
+											</object>
+											<flag>wxALL|wxALIGN_TOP</flag>
+											<border>5</border>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticBoxSizer" variable="StaticBoxSizer12" member="no">
+										<label>Mouse interaction</label>
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer22" member="no">
+												<object class="sizeritem">
+													<object class="wxStaticText" name="" variable="StaticText36" member="yes">
+														<label>Left mouse action :</label>
+													</object>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxChoice" name="" variable="ChoiceLeftMouseAction" member="yes">
+														<content>
+															<item>Box zoom</item>
+															<item>Drag zoom</item>
+														</content>
+														<use_items_array>1</use_items_array>
+													</object>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+												</object>
+											</object>
+											<flag>wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+							</object>
+						</object>
+						<label>General</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="" variable="Panel2" member="yes">
+							<object class="wxBoxSizer" variable="BoxSizer16" member="no">
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer6" member="no">
+										<cols>2</cols>
+										<rows>5</rows>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText16" member="yes">
+												<label>Position :</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="cbLegendPosition" member="yes">
+												<use_items_array>1</use_items_array>
+												<selection>0</selection>
+												<extra_code>cbLegendPosition-&gt;Set(WXSIZEOF(InfoPosition__choices), InfoPosition__choices);\\&#x0A;cbLegendPosition-&gt;SetSelection(6);</extra_code>
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<border>2</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText24" member="yes">
+												<label>Style :</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="cbLegendStyle" member="yes">
+												<content>
+													<item>Line</item>
+													<item>Square</item>
+													<item>Symbol</item>
+												</content>
+												<use_items_array>1</use_items_array>
+												<selection>0</selection>
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<border>2</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText25" member="yes">
+												<label>Direction :</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="cbLegendDirection" member="yes">
+												<content>
+													<item>Vertical</item>
+													<item>Horizontal</item>
+												</content>
+												<use_items_array>1</use_items_array>
+												<selection>0</selection>
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<border>2</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxCheckBox" name="" variable="cbLegendVisible" member="yes">
+												<label>Visible</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="spacer">
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxCheckBox" name="" variable="cbLegendDefaultVisibility" member="yes">
+												<label>Default visibility</label>
+												<tooltip>When checked, the series name is always displayed even if the series is not ploted.</tooltip>
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxALIGN_TOP</flag>
+									<border>5</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBoxSizer" variable="BoxSizer15" member="no">
+										<orient>wxVERTICAL</orient>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bFontLegend" member="yes">
+												<label>Font</label>
+												<enabled>0</enabled>
+												<handler function="OnbFontClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL</flag>
+											<border>5</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxStaticBoxSizer" variable="StaticBoxSizer5" member="no">
+												<label>Brush </label>
+												<object class="sizeritem">
+													<object class="wxFlexGridSizer" variable="FlexGridSizer7" member="no">
+														<cols>2</cols>
+														<rows>2</rows>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText20" member="yes">
+																<label>Color :</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxButton" name="" variable="bLegendBrushColor" member="yes">
+																<handler function="OnbColorClick" entry="EVT_BUTTON" />
+															</object>
+															<flag>wxALL|wxEXPAND</flag>
+															<border>2</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText21" member="yes">
+																<label>Style :</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxChoice" name="" variable="cbLegendBrushStyle" member="yes">
+																<use_items_array>1</use_items_array>
+																<selection>0</selection>
+																<extra_code>cbLegendBrushStyle-&gt;Set(WXSIZEOF(InfoBrushStyle__choices), InfoBrushStyle__choices);&#x0A;cbLegendBrushStyle-&gt;SetSelection(0);</extra_code>
+															</object>
+															<flag>wxALL|wxEXPAND</flag>
+															<border>2</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+										</object>
+									</object>
+									<flag>wxALL|wxALIGN_TOP</flag>
+									<border>5</border>
+									<option>1</option>
+								</object>
+							</object>
+						</object>
+						<label>Legend</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="" variable="Panel3" member="yes">
+							<object class="wxBoxSizer" variable="sizerAxis" member="yes">
+								<orient>wxVERTICAL</orient>
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer3" member="no">
+										<cols>4</cols>
+										<rows>1</rows>
+										<growablecols>0</growablecols>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="ChoiceAxis" member="yes">
+												<use_items_array>1</use_items_array>
+												<handler function="OnAxisSelect" entry="EVT_CHOICE" />
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bAddXAxis" member="yes">
+												<label>Add X axis</label>
+												<handler function="OnbAddAxisClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bAddYAxis" member="yes">
+												<label>Add Y axis</label>
+												<handler function="OnbAddAxisClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bDelAxis" member="yes">
+												<label>Delete</label>
+												<handler function="OnbDelAxisClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxTOP|wxBOTTOM|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer8" member="no">
+										<cols>3</cols>
+										<rows>1</rows>
+										<growablecols>1</growablecols>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText8" member="yes">
+												<label>Name :</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxTextCtrl" name="" variable="edAxisName" member="yes" />
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bFontAxis" member="yes">
+												<label>Font</label>
+												<size>64,-1</size>
+												<enabled>0</enabled>
+												<handler function="OnbFontClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBoxSizer" variable="BoxSizer6" member="no">
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer7" member="no">
+												<orient>wxVERTICAL</orient>
+												<object class="sizeritem">
+													<object class="wxStaticBoxSizer" variable="StaticBoxSizer6" member="no">
+														<label>Pen </label>
+														<object class="sizeritem">
+															<object class="wxNotebook" name="" variable="nbPenAxisGrid" member="yes">
+																<object class="notebookpage">
+																	<object class="wxPanel" name="" variable="Panel6" member="yes">
+																		<object class="wxFlexGridSizer" variable="FlexGridSizer10" member="no">
+																			<cols>2</cols>
+																			<rows>3</rows>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText12" member="yes">
+																					<label>Color :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxButton" name="" variable="bAxisPenColor" member="yes">
+																					<handler function="OnbColorClick" entry="EVT_BUTTON" />
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText13" member="yes">
+																					<label>Width :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxChoice" name="" variable="cbAxisPenWidth" member="yes">
+																					<use_items_array>1</use_items_array>
+																					<selection>0</selection>
+																					<extra_code>cbAxisPenWidth-&gt;Set(WXSIZEOF(PenWidth__choices), PenWidth__choices);&#x0A;cbAxisPenWidth-&gt;SetSelection(0);</extra_code>
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText14" member="yes">
+																					<label>Style :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxChoice" name="" variable="cbAxisPenStyle" member="yes">
+																					<use_items_array>1</use_items_array>
+																					<selection>0</selection>
+																					<extra_code>cbAxisPenStyle-&gt;Set(WXSIZEOF(PenStyle__choices), PenStyle__choices);</extra_code>
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																		</object>
+																	</object>
+																	<label>Axis</label>
+																</object>
+																<object class="notebookpage">
+																	<object class="wxPanel" name="" variable="Panel7" member="yes">
+																		<object class="wxFlexGridSizer" variable="FlexGridSizer2" member="no">
+																			<cols>2</cols>
+																			<rows>3</rows>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText42" member="yes">
+																					<label>Color :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxButton" name="" variable="bGridPenColor" member="yes">
+																					<handler function="OnbColorClick" entry="EVT_BUTTON" />
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText43" member="yes">
+																					<label>Width :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxChoice" name="" variable="cbGridPenWidth" member="yes">
+																					<use_items_array>1</use_items_array>
+																					<selection>0</selection>
+																					<extra_code>cbGridPenWidth-&gt;Set(WXSIZEOF(PenWidth__choices), PenWidth__choices);&#x0A;cbGridPenWidth-&gt;SetSelection(0);</extra_code>
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText44" member="yes">
+																					<label>Style :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxChoice" name="" variable="cbGridPenStyle" member="yes">
+																					<use_items_array>1</use_items_array>
+																					<selection>0</selection>
+																					<extra_code>cbGridPenStyle-&gt;Set(WXSIZEOF(PenStyle__choices), PenStyle__choices);</extra_code>
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																		</object>
+																	</object>
+																	<label>Grid</label>
+																</object>
+															</object>
+															<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													<border>2</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxStaticBoxSizer" variable="StaticBoxSizer7" member="no">
+														<label>Scale </label>
+														<object class="sizeritem">
+															<object class="wxFlexGridSizer" variable="FlexGridSizer12" member="no">
+																<cols>2</cols>
+																<rows>3</rows>
+																<object class="sizeritem">
+																	<object class="wxCheckBox" name="" variable="cbAutoScale" member="yes">
+																		<label>Auto</label>
+																		<checked>1</checked>
+																		<handler function="OncbAutoScaleClick" entry="EVT_CHECKBOX" />
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="spacer">
+																	<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText27" member="yes">
+																		<label>Min :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxTextCtrl" name="" variable="edScaleMin" member="yes">
+																		<value>-1</value>
+																		<size>64,-1</size>
+																		<validator>wxFloatingPointValidator&lt;double&gt; (4, &amp;scale__min)</validator>
+																		<enabled>0</enabled>
+																		<style>wxTE_RIGHT</style>
+																	</object>
+																	<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText28" member="yes">
+																		<label>Max :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxTextCtrl" name="" variable="edScaleMax" member="yes">
+																		<value>1</value>
+																		<size>64,-1</size>
+																		<validator>wxFloatingPointValidator&lt;double&gt; (4, &amp;scale__max)</validator>
+																		<enabled>0</enabled>
+																		<style>wxTE_RIGHT</style>
+																	</object>
+																	<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														</object>
+													</object>
+													<flag>wxALL|wxEXPAND</flag>
+													<border>2</border>
+												</object>
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>2</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer5" member="no">
+												<orient>wxVERTICAL</orient>
+												<object class="sizeritem">
+													<object class="wxBoxSizer" variable="BoxSizer13" member="no">
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText17" member="yes">
+																<label>Position :</label>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxChoice" name="" variable="cbAxisPosition" member="yes" />
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbAxisVisible" member="yes">
+														<label>Visible</label>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbGridVisible" member="yes">
+														<label>Show grid</label>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbAxisOutside" member="yes">
+														<label>Draw Outside Margins</label>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxBoxSizer" variable="BoxSizer14" member="no">
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText29" member="yes">
+																<label>Format :</label>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxChoice" name="" variable="cbFormat" member="yes">
+																<content>
+																	<item>Auto</item>
+																	<item>Decimal</item>
+																	<item>Scientific</item>
+																	<item>Time</item>
+																	<item>Hours</item>
+																	<item>Date</item>
+																	<item>DateTime</item>
+																	<item>User</item>
+																	<item>None</item>
+																</content>
+																<use_items_array>1</use_items_array>
+																<selection>0</selection>
+																<extra_code>cbFormat-&gt;Set(WXSIZEOF(cbFormat__choices), cbFormat__choices);&#x0A;cbFormat-&gt;SetSelection(0);</extra_code>
+																<handler function="OncbFormatSelect" entry="EVT_CHOICE" />
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+												</object>
+												<object class="sizeritem">
+													<object class="wxFlexGridSizer" variable="FlexGridSizer11" member="no">
+														<cols>2</cols>
+														<rows>1</rows>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText26" member="yes">
+																<label>User Label Format :</label>
+																<pos>192,200</pos>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxTextCtrl" name="" variable="edFormat" member="yes">
+																<size>60,-1</size>
+																<enabled>0</enabled>
+																<tooltip>Format of the label for the axis. Should be like c++ format.</tooltip>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<option>1</option>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbLogAxis" member="yes">
+														<label>Logarithmic axis</label>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>5</border>
+												</object>
+											</object>
+											<flag>wxALL|wxALIGN_TOP</flag>
+											<border>2</border>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+								</object>
+							</object>
+						</object>
+						<label>Axis</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="" variable="Panel4" member="yes">
+							<object class="wxBoxSizer" variable="BoxSizer8" member="no">
+								<orient>wxVERTICAL</orient>
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer13" member="no">
+										<cols>3</cols>
+										<rows>1</rows>
+										<growablecols>1</growablecols>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText1" member="yes">
+												<label>Series name :</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="ChoiceSeries" member="yes">
+												<handler function="OnChoiceSeries" entry="EVT_CHOICE" />
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bDelSeries" member="yes">
+												<label>Delete</label>
+												<enabled>0</enabled>
+												<handler function="OnbDelSeriesClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer14" member="no">
+										<cols>2</cols>
+										<rows>2</rows>
+										<growablecols>1</growablecols>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText2" member="yes">
+												<label>Name :</label>
+											</object>
+											<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxTextCtrl" name="" variable="edSeriesName" member="yes" />
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxStaticText" name="" variable="StaticText35" member="yes">
+												<label>Y axis :</label>
+											</object>
+											<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="ChoiceSeriesYAxis" member="yes" />
+											<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer15" member="no">
+										<cols>2</cols>
+										<rows>1</rows>
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer9" member="no">
+												<orient>wxVERTICAL</orient>
+												<object class="sizeritem">
+													<object class="wxStaticBoxSizer" variable="StaticBoxSizer8" member="no">
+														<label>Pen </label>
+														<object class="sizeritem">
+															<object class="wxFlexGridSizer" variable="FlexGridSizer17" member="no">
+																<cols>2</cols>
+																<rows>3</rows>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText3" member="yes">
+																		<label>Color :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxButton" name="" variable="bSeriesPenColor" member="yes">
+																		<handler function="OnbColorClick" entry="EVT_BUTTON" />
+																	</object>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText4" member="yes">
+																		<label>Width :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxChoice" name="" variable="cbSeriesPenWidth" member="yes">
+																		<use_items_array>1</use_items_array>
+																		<selection>0</selection>
+																		<extra_code>cbSeriesPenWidth-&gt;Set(WXSIZEOF(PenWidth__choices), PenWidth__choices);</extra_code>
+																	</object>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText5" member="yes">
+																		<label>Style :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxChoice" name="" variable="cbSeriesPenStyle" member="yes">
+																		<use_items_array>1</use_items_array>
+																		<selection>0</selection>
+																		<extra_code>cbSeriesPenStyle-&gt;Set(WXSIZEOF(PenStyle__choices), PenStyle__choices);</extra_code>
+																	</object>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>2</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxBoxSizer" variable="BoxSizer11" member="no">
+														<orient>wxVERTICAL</orient>
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbSeriesVisible" member="yes">
+																<label>Visible</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbSeriesContinuity" member="yes">
+																<label>Continuity</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbSeriesOutside" member="yes">
+																<label>Draw Outside Margins</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbSeriesShowName" member="yes">
+																<label>Show name</label>
+																<handler function="OncbSeriesShowNameClick" entry="EVT_CHECKBOX" />
+															</object>
+															<flag>wxALL|wxALIGN_LEFT</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxBoxSizer" variable="BoxSizer23" member="no">
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText15" member="yes">
+																		<label>Position :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxChoice" name="" variable="cbSeriesNamePosition" member="yes">
+																		<content>
+																			<item>Align NW</item>
+																			<item>Align NE</item>
+																			<item>Align SE</item>
+																			<item>Align SW</item>
+																		</content>
+																		<use_items_array>1</use_items_array>
+																		<enabled>0</enabled>
+																	</object>
+																	<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+															</object>
+															<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+														</object>
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbTractable" member="yes">
+																<label>Tractable</label>
+																<tooltip>Allow mouse coordinates</tooltip>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxCheckBox" name="" variable="cbSeriesLegend" member="yes">
+																<label>Hidden in the Legend</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>5</border>
+												</object>
+											</object>
+											<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxBoxSizer" variable="BoxSizer10" member="no">
+												<orient>wxVERTICAL</orient>
+												<object class="sizeritem">
+													<object class="wxStaticBoxSizer" variable="StaticBoxSizer9" member="no">
+														<label>Brush </label>
+														<object class="sizeritem">
+															<object class="wxFlexGridSizer" variable="FlexGridSizer16" member="no">
+																<cols>2</cols>
+																<rows>2</rows>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText6" member="yes">
+																		<label>Color :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxButton" name="" variable="bSeriesBrushColor" member="yes">
+																		<handler function="OnbColorClick" entry="EVT_BUTTON" />
+																	</object>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText7" member="yes">
+																		<label>Style :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxChoice" name="" variable="cbSeriesBrushStyle" member="yes">
+																		<content>
+																			<item>Solid</item>
+																			<item>Transparent</item>
+																			<item>BDiagonal</item>
+																			<item>CrossDiagonal</item>
+																			<item>FDiagonal</item>
+																			<item>Cross</item>
+																			<item>Horizontal</item>
+																			<item>Vertical</item>
+																		</content>
+																		<use_items_array>1</use_items_array>
+																		<selection>0</selection>
+																	</object>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_LEFT</flag>
+													<border>2</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxStaticBoxSizer" variable="StaticBoxSizer10" member="no">
+														<label>Symbol </label>
+														<object class="sizeritem">
+															<object class="wxFlexGridSizer" variable="FlexGridSizer18" member="no">
+																<cols>2</cols>
+																<rows>2</rows>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText9" member="yes">
+																		<label>Type :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxChoice" name="" variable="cbSeriesSymbolType" member="yes">
+																		<content>
+																			<item>None</item>
+																			<item>Circle</item>
+																			<item>Square</item>
+																			<item>UpTriangle</item>
+																			<item>DownTriangle</item>
+																			<item>Cross</item>
+																			<item>Plus</item>
+																		</content>
+																		<use_items_array>1</use_items_array>
+																		<selection>0</selection>
+																	</object>
+																	<flag>wxALL|wxEXPAND</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxStaticText" name="" variable="StaticText10" member="yes">
+																		<label>Size :</label>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>5</border>
+																	<option>1</option>
+																</object>
+																<object class="sizeritem">
+																	<object class="wxSpinCtrl" name="" variable="cbSeriesSymbolSize" member="yes">
+																		<value>4</value>
+																		<min>4</min>
+																	</object>
+																	<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																	<border>2</border>
+																	<option>1</option>
+																</object>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														</object>
+													</object>
+													<flag>wxALL</flag>
+													<border>2</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxFlexGridSizer" variable="FlexGridSizer19" member="no">
+														<cols>2</cols>
+														<rows>1</rows>
+														<object class="sizeritem">
+															<object class="wxStaticText" name="" variable="StaticText19" member="yes">
+																<label>Skip point over :</label>
+															</object>
+															<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxSpinCtrl" name="" variable="cbSeriesStep" member="yes">
+																<value>1</value>
+																<min>1</min>
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+													</object>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxCheckBox" name="" variable="cbBar" member="yes">
+														<label>View as bar</label>
+														<enabled>0</enabled>
+													</object>
+													<flag>wxALL|wxEXPAND</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+											</object>
+											<flag>wxALL|wxALIGN_TOP|wxALIGN_CENTER_HORIZONTAL</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+							</object>
+						</object>
+						<label>Series</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="" variable="Panel5" member="yes">
+							<object class="wxBoxSizer" variable="sizerLines" member="yes">
+								<orient>wxVERTICAL</orient>
+								<object class="sizeritem">
+									<object class="wxFlexGridSizer" variable="FlexGridSizer5" member="no">
+										<cols>5</cols>
+										<rows>1</rows>
+										<growablecols>0</growablecols>
+										<object class="sizeritem">
+											<object class="wxChoice" name="" variable="ChoiceLines" member="yes">
+												<handler function="OnChoiceLinesSelect" entry="EVT_CHOICE" />
+											</object>
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bAddLines" member="yes">
+												<label>Add</label>
+												<handler function="OnbAddLinesClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxTOP|wxBOTTOM|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="" variable="bDelLines" member="yes">
+												<label>Delete</label>
+												<enabled>0</enabled>
+												<handler function="OnbDelLinesClick" entry="EVT_BUTTON" />
+											</object>
+											<flag>wxTOP|wxBOTTOM|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+										</object>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+								</object>
+								<object class="sizeritem">
+									<object class="wxPanel" name="" variable="pLines" member="yes">
+										<object class="wxBoxSizer" variable="BoxSizer4" member="no">
+											<orient>wxVERTICAL</orient>
+											<object class="sizeritem">
+												<object class="wxFlexGridSizer" variable="FlexGridSizer9" member="no">
+													<cols>3</cols>
+													<rows>3</rows>
+													<growablecols>1</growablecols>
+													<object class="sizeritem">
+														<object class="wxStaticText" name="" variable="StaticText31" member="yes">
+															<label>Name :</label>
+														</object>
+														<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxTextCtrl" name="" variable="edLinesName" member="yes" />
+														<flag>wxALL|wxEXPAND</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxRadioButton" name="" variable="rbLinesDirection" member="yes">
+															<label>Horizontal</label>
+															<selected>1</selected>
+															<enabled>0</enabled>
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+													</object>
+													<object class="sizeritem">
+														<object class="wxStaticText" name="" variable="StaticText30" member="yes">
+															<label>Value :</label>
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxTextCtrl" name="" variable="edLinesValue" member="yes">
+															<value>1</value>
+															<size>64,-1</size>
+															<validator>wxFloatingPointValidator&lt;double&gt; (4, &amp;line__value)</validator>
+															<style>wxTE_RIGHT</style>
+														</object>
+														<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="spacer">
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxStaticText" name="" variable="stLinesYIndexLabel" member="yes">
+															<label>Y axis :</label>
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxChoice" name="" variable="ChoiceLinesYAxis" member="yes" />
+														<flag>wxALL|wxEXPAND</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+												</object>
+												<flag>wxALL|wxEXPAND</flag>
+												<border>5</border>
+											</object>
+											<object class="sizeritem">
+												<object class="wxFlexGridSizer" variable="FlexGridSizer20" member="no">
+													<cols>2</cols>
+													<rows>1</rows>
+													<object class="sizeritem">
+														<object class="wxBoxSizer" variable="BoxSizer18" member="no">
+															<object class="sizeritem">
+																<object class="wxStaticBoxSizer" variable="StaticBoxSizer11" member="no">
+																	<label>Pen </label>
+																	<object class="sizeritem">
+																		<object class="wxFlexGridSizer" variable="FlexGridSizer21" member="no">
+																			<cols>2</cols>
+																			<rows>3</rows>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText32" member="yes">
+																					<label>Color :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxButton" name="" variable="bLinesPenColor" member="yes">
+																					<handler function="OnbColorClick" entry="EVT_BUTTON" />
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText33" member="yes">
+																					<label>Width :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxChoice" name="" variable="cbLinesPenWidth" member="yes">
+																					<use_items_array>1</use_items_array>
+																					<selection>0</selection>
+																					<extra_code>cbLinesPenWidth-&gt;Set(WXSIZEOF(PenWidth__choices), PenWidth__choices);</extra_code>
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxStaticText" name="" variable="StaticText34" member="yes">
+																					<label>Style :</label>
+																				</object>
+																				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+																				<border>5</border>
+																				<option>1</option>
+																			</object>
+																			<object class="sizeritem">
+																				<object class="wxChoice" name="" variable="cbLinesPenStyle" member="yes">
+																					<use_items_array>1</use_items_array>
+																					<selection>0</selection>
+																					<extra_code>cbLinesPenStyle-&gt;Set(WXSIZEOF(PenStyle__choices), PenStyle__choices);</extra_code>
+																				</object>
+																				<flag>wxALL|wxEXPAND</flag>
+																				<border>2</border>
+																				<option>1</option>
+																			</object>
+																		</object>
+																		<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+																	</object>
+																</object>
+																<flag>wxALL</flag>
+																<border>2</border>
+															</object>
+															<object class="sizeritem">
+																<object class="wxBoxSizer" variable="BoxSizer19" member="no">
+																	<orient>wxVERTICAL</orient>
+																	<object class="sizeritem">
+																		<object class="wxCheckBox" name="" variable="cbLinesVisible" member="yes">
+																			<label>Visible</label>
+																		</object>
+																		<flag>wxALL|wxALIGN_LEFT</flag>
+																		<border>3</border>
+																		<option>1</option>
+																	</object>
+																	<object class="sizeritem">
+																		<object class="wxCheckBox" name="" variable="cbLinesOutside" member="yes">
+																			<label>Draw Outside Margins</label>
+																		</object>
+																		<flag>wxALL|wxALIGN_LEFT</flag>
+																		<border>3</border>
+																		<option>1</option>
+																	</object>
+																	<object class="sizeritem">
+																		<object class="wxCheckBox" name="" variable="cbLinesShowName" member="yes">
+																			<label>Show name</label>
+																		</object>
+																		<flag>wxALL|wxALIGN_LEFT</flag>
+																		<border>3</border>
+																		<option>1</option>
+																	</object>
+																</object>
+																<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+																<border>5</border>
+															</object>
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													</object>
+												</object>
+												<flag>wxALL|wxEXPAND</flag>
+												<border>5</border>
+											</object>
+										</object>
+									</object>
+									<flag>wxEXPAND</flag>
+									<border>5</border>
+									<option>1</option>
+								</object>
+							</object>
+						</object>
+						<label>Lines</label>
+					</object>
+				</object>
+				<flag>wxALL|wxEXPAND</flag>
+				<border>5</border>
+				<option>1</option>
+			</object>
+			<object class="sizeritem">
+				<object class="wxBoxSizer" variable="BoxSizer2" member="no">
+					<object class="sizeritem">
+						<object class="wxButton" name="" variable="bApply" member="yes">
+							<label>Apply</label>
+							<handler function="OnbApplyClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>4</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxButton" name="" variable="bClose" member="yes">
+							<label>Close</label>
+							<handler function="OnQuit" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>4</border>
+						<option>1</option>
+					</object>
+				</object>
+				<flag>wxEXPAND</flag>
+				<border>4</border>
+			</object>
+		</object>
+	</object>
+</wxsmith>
