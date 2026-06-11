@@ -77,6 +77,13 @@ void message_signal::take_fft_message() {
     }
     // take the fft
     fft(original_f);
+
+    // shift the fft
+    for(int i = 0; i < freq.size()/2; ++i) {
+        original_f[freq.size()/2 - i] = original_f[i];
+        original_f[freq.size()/2 + i] = original_f[freq.size() - i];
+    }
+
 }
 
 void message_signal::take_fft_modulated() {
@@ -86,4 +93,9 @@ void message_signal::take_fft_modulated() {
     }
     // take the fft
     fft(modulated_f);
+   // shift the fft
+    for(int i = 0; i < freq.size()/2; ++i) {
+        modulated_f[freq.size()/2 - i] = modulated_f[i];
+        modulated_f[freq.size()/2 + i] = modulated_f[freq.size() - i];
+    }
 }
