@@ -15,6 +15,10 @@ inline double triple_max(double a, double b, double c) {
     return std::max(std::max(a,b),c);
 }
 
+void fftshift_double(std::valarray<double> in, std::valarray<double> out) {
+
+}
+
 
 message_signal::message_signal(double fm1, double fm2, double fm3, double fc) {
 
@@ -79,9 +83,11 @@ void message_signal::take_fft_message() {
     fft(original_f);
 
     // shift the fft
-    for(int i = 0; i < freq.size()/2; ++i) {
-        original_f[freq.size()/2 + i] = original_f[i];
-        original_f[freq.size()/2 - i] = original_f[freq.size() - i];
+    size_t n = freq.size();
+    for(size_t i = 0; i < n/2; ++i) {
+        auto buffer = original_f[n/2 + i];
+        original_f[n/2 + i] = original_f[i];
+        original_f[i] = buffer;
     }
 
 }
@@ -93,11 +99,15 @@ void message_signal::take_fft_modulated() {
     }
     // take the fft
     fft(modulated_f);
-   // shift the fft
-    for(int i = 0; i < freq.size()/2; ++i) {
-        modulated_f[freq.size()/2 - i] = modulated_f[i];
-        modulated_f[freq.size()/2 + i] = modulated_f[freq.size() - i];
+
+    // shift the fft
+    size_t n = freq.size();
+    for(size_t i = 0; i < n/2; ++i) {
+        auto buffer = modulated_f[n/2 + i];
+        modulated_f[n/2 + i] = modulated_f[i];
+        modulated_f[i] = buffer;
     }
+
 }
 
 void message_signal::add_noise() {
