@@ -13,6 +13,8 @@ enum
 {
     ID_Hello = 1,
     BUTTON_plot = wxID_HIGHEST + 1,
+    BUTTON_load,
+    BUTTON_save,
     SLIDER_FM1,
     SLIDER_FM2,
     SLIDER_FM3,
@@ -40,7 +42,11 @@ private:
     void OnPlot(wxCommandEvent& event);
     void OnSliderChange(wxCommandEvent& event);
     void OnCheckBoxChange(wxCommandEvent& event);
+    void OnLoadButton(wxCommandEvent& event);
     void CleanAllPlots(void);
+    wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate Controlled");
+    wxButton *loadButton = new wxButton(this, BUTTON_load, "Load audio file");
+    wxButton *saveButton = new wxButton(this, BUTTON_save, "Save result to file");
     mpWindow *m_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *mf_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *s_plot = new mpWindow(this, -1, wxDefaultPosition);
@@ -73,8 +79,8 @@ MyFrame::MyFrame()
     wxGridSizer *plots_sizer = new wxGridSizer(2, 2, 10 ,0);
     wxBoxSizer *controls_sizer = new wxBoxSizer(wxVERTICAL);
 
-    wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate and Plot");
-    wxButton *saveButton = new wxButton(this, BUTTON_plot, "Save result to file");
+
+    controls_sizer->Add(loadButton, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(plotButton, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(fm1_slider, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 0);
@@ -92,6 +98,7 @@ MyFrame::MyFrame()
 
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
+    Bind(wxEVT_BUTTON, &MyFrame::OnLoadButton, this, BUTTON_load);
     Bind(wxEVT_CHECKBOX, &MyFrame::OnCheckBoxChange, this, BUTTON_ADD_NOISE);
     Bind(wxEVT_SLIDER, &MyFrame::OnSliderChange, this);
 }
@@ -229,4 +236,110 @@ void MyFrame::CleanAllPlots() {
 
 void MyFrame::OnCheckBoxChange(wxCommandEvent &e) {
     this->add_noise = this->addNoise->GetValue();
+}
+
+void MyFrame::OnLoadButton(wxCommandEvent& e) {
+    wxString filename = wxFileSelector("Choose a file to open");
+    if ( !filename.empty() ) {
+           message_signal m1(filename.ToStdString());
+           std::vector<double> x;
+           std::vector<double> y;
+           for(double d: m1.time) {
+               x.push_back(d);
+           }
+           for(double d: m1.original) {
+               y.push_back(d);
+           }
+           mpFXYVector *vectorLayer1 = new mpFXYVector("Original signal(time)");
+           vectorLayer1->SetData(std::move(x), std::move(y));
+           vectorLayer1->SetContinuity(true);
+           vectorLayer1->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+           vectorLayer1->SetDrawOutsideMargins(false);
+           m_plot->AddLayer(vectorLayer1);
+           m_plot->AddLayer(new mpTitle("Message Signal(time)"));
+           m_plot->AddLayer(new mpInfoCoords());
+           m_plot->Fit();
+           m_plot->SetMargins(0, 0, 0,0);
+
+           m1.take_fft_message();
+
+           std::vector<double> x2;
+           std::vector<double> y2;
+           // sidenote: how for-range works in c++11 and later
+           // for(typename iteration_variable : iterable  )
+           // read as: for(typename variable in iterable)
+           // : means "in keyword" in python
+           for(double d: m1.freq) {
+               x2.push_back(d);
+           }
+           for(std::complex<double> d: m1.original_f) {
+               y2.push_back(abs(d));
+           }
+
+
+           mpFXYVector *vectorLayer2 = new mpFXYVector("Original signal(freq)");
+           vectorLayer2->SetData(std::move(x2), std::move(y2));
+           vectorLayer2->SetContinuity(true);
+           vectorLayer2->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+           vectorLayer2->SetDrawOutsideMargins(false);
+           mf_plot->AddLayer(vectorLayer2);
+           mf_plot->AddLayer(new mpTitle("Message Signal(freq)"));
+           mf_plot->AddLayer(new mpInfoCoords());
+           mf_plot->Fit();
+           mf_plot->SetMargins(0, 0, 0,0);
+
+
+           m1.modulate();
+           if(this->add_noise) m1.add_noise();
+
+           std::vector<double> x3;
+           std::vector<double> y3;
+           for(double d: m1.time) {
+               x3.push_back(d);
+           }
+           for(double d: m1.modulated) {
+               y3.push_back(d);
+           }
+
+
+           mpFXYVector *vectorLayer3 = new mpFXYVector("Modulated signal(time)");
+           vectorLayer3->SetData(std::move(x3), std::move(y3));
+           vectorLayer3->SetContinuity(true);
+           vectorLayer3->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+           vectorLayer3->SetDrawOutsideMargins(false);
+           s_plot->AddLayer(vectorLayer3);
+           s_plot->AddLayer(new mpTitle("Modulated Signal(time)"));
+           s_plot->AddLayer(new mpInfoCoords());
+           s_plot->Fit();
+           s_plot->SetMargins(0, 0, 0,0);
+
+
+           m1.take_fft_modulated();
+
+           std::vector<double> x4;
+           std::vector<double> y4;
+           for(double d: m1.freq) {
+               x4.push_back(d);
+           }
+           for(auto d: m1.modulated_f) {
+               y4.push_back(abs(d));
+           }
+
+
+
+           mpFXYVector *vectorLayer4 = new mpFXYVector("Modulated signal(freq)");
+           vectorLayer4->SetData(std::move(x4),std::move( y4));
+           vectorLayer4->SetContinuity(true);
+           vectorLayer4->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+           vectorLayer4->SetDrawOutsideMargins(false);
+           sf_plot->AddLayer(vectorLayer4);
+           sf_plot->AddLayer(new mpTitle("Modulated Signal(freq)"));
+           sf_plot->AddLayer(new mpInfoCoords());
+           sf_plot->Fit();
+           sf_plot->SetMargins(0, 0, 0,0);
+
+
+
+    }
+
 }

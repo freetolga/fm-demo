@@ -2,6 +2,7 @@
 #include <random>
 #include <valarray>
 #include <iostream>
+#include <AudioFile.h>
 
 #include "block1.hpp"
 #include "fft.hpp"
@@ -47,6 +48,31 @@ message_signal::message_signal(double fm1, double fm2, double fm3, double fc) {
         modulated_f.resize(freq.size(), 0 + 0j);
         // set the original signal
         original = cos(2*pi*fm1*time) + cos(2*pi*fm2*time) + cos(2*pi*fm3*time);
+}
+
+message_signal::message_signal(std::string audio_path) {
+    AudioFile<double> audio_file;
+    audio_file.load(audio_path);
+    double fs = audio_file.getSampleRate();
+    size_t n = audio_file.getNumSamplesPerChannel();
+    std::valarray<double> time(n);
+    std::valarray<double> buffer(n);
+    for(size_t i = 0; i < n; ++i) {
+        // mix the channels together
+        buffer[i] = audio_file.samples[0][i] + audio_file.samples[1][i];
+    }
+    // calculate frequency axis based on given data
+    freq.resize(time.size(), 0);
+    for(int i = 0; i < freq.size(); ++i) {
+        freq[i] = -time.size()/2 + i;
+    }
+    // normalize this new vector
+    freq*=(-fs/time.size());
+
+    // initialize the rest of the data
+    modulated.resize(time.size(), 0);
+    original_f.resize(freq.size(), 0 + 0j);
+    modulated_f.resize(freq.size(), 0 + 0j);
 }
 
 void message_signal::set_ac(double newac) {

@@ -21,6 +21,7 @@ public:
     // changeable FM constant
     double kf = 1.0;
     message_signal(double fm1, double fm2, double fm3, double fc);
+    message_signal(std::string audio_path);
     void set_ac(double newac);
     void modulate();
     void take_fft_message();
