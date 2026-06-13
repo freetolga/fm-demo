@@ -27,4 +27,5 @@ public:
     void take_fft_message();
     void take_fft_modulated();
     void add_noise();
+    void save_to_file(std::string save_path);
 };

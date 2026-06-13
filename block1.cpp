@@ -53,13 +53,14 @@ message_signal::message_signal(double fm1, double fm2, double fm3, double fc) {
 message_signal::message_signal(std::string audio_path) {
     AudioFile<double> audio_file;
     audio_file.load(audio_path);
+    audio_file.setNumChannels(1);
     double fs = audio_file.getSampleRate();
     size_t n = audio_file.getNumSamplesPerChannel();
-    std::valarray<double> time(n);
-    std::valarray<double> buffer(n);
+    original.resize(n);
+    time.resize(n);
     for(size_t i = 0; i < n; ++i) {
-        // mix the channels together
-        buffer[i] = audio_file.samples[0][i] + audio_file.samples[1][i];
+        original[i] = audio_file.samples[0][i];
+        time[i] = i;
     }
     // calculate frequency axis based on given data
     freq.resize(time.size(), 0);
@@ -144,4 +145,14 @@ void message_signal::add_noise() {
     for(double &d: modulated) {
         d += dist(rng);
     }
+}
+
+void message_signal::save_to_file(std::string path) {
+    AudioFile<double> buffer;
+    size_t n = this->original.size();
+    buffer.setAudioBufferSize(1, n); 
+    for(int i = 0; i < n; ++i) {
+        buffer.samples[0][i] = original[i];
+    }
+    buffer.save(path, AudioFileFormat::Wave);
 }

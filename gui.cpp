@@ -8,6 +8,9 @@
 #include <mathplot.h>
 
 #include "block1.hpp"
+#include "wx/arrstr.h"
+#include "wx/filedlg.h"
+#include "wx/string.h"
 
 enum
 {
@@ -43,6 +46,7 @@ private:
     void OnSliderChange(wxCommandEvent& event);
     void OnCheckBoxChange(wxCommandEvent& event);
     void OnLoadButton(wxCommandEvent& event);
+    void OnSaveButton(wxCommandEvent& event);
     void CleanAllPlots(void);
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate Controlled");
     wxButton *loadButton = new wxButton(this, BUTTON_load, "Load audio file");
@@ -60,6 +64,7 @@ private:
     double fm3 = 2000;
     double fc = 10000;
     bool add_noise = false;
+    message_signal m1 = message_signal(this->fm1, this->fm2, this->fm3, this->fc);
 };
 
 
@@ -99,6 +104,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
     Bind(wxEVT_BUTTON, &MyFrame::OnLoadButton, this, BUTTON_load);
+    Bind(wxEVT_BUTTON, &MyFrame::OnSaveButton, this, BUTTON_save);
     Bind(wxEVT_CHECKBOX, &MyFrame::OnCheckBoxChange, this, BUTTON_ADD_NOISE);
     Bind(wxEVT_SLIDER, &MyFrame::OnSliderChange, this);
 }
@@ -111,7 +117,7 @@ void MyFrame::OnExit(wxCommandEvent& event)
 void MyFrame::OnPlot(wxCommandEvent& event) {
     this->CleanAllPlots();
 
-    message_signal m1(this->fm1, this->fm2, this->fm3, this->fc);
+    m1 = message_signal(this->fm1, this->fm2, this->fm3, this->fc);
     std::vector<double> x;
     std::vector<double> y;
     for(double d: m1.time) {
@@ -209,7 +215,6 @@ void MyFrame::OnPlot(wxCommandEvent& event) {
     sf_plot->SetMargins(0, 0, 0,0);
 
 
-
 }
 
 void MyFrame::OnSliderChange(wxCommandEvent& event) {
@@ -239,9 +244,9 @@ void MyFrame::OnCheckBoxChange(wxCommandEvent &e) {
 }
 
 void MyFrame::OnLoadButton(wxCommandEvent& e) {
-    wxString filename = wxFileSelector("Choose a file to open");
+    wxString filename = wxFileSelector("Choose a file to open", wxEmptyString, wxEmptyString, ".wav");
     if ( !filename.empty() ) {
-           message_signal m1(filename.ToStdString());
+           m1 = message_signal(filename.ToStdString());
            std::vector<double> x;
            std::vector<double> y;
            for(double d: m1.time) {
@@ -338,8 +343,11 @@ void MyFrame::OnLoadButton(wxCommandEvent& e) {
            sf_plot->Fit();
            sf_plot->SetMargins(0, 0, 0,0);
 
-
-
     }
 
+}
+
+void MyFrame::OnSaveButton(wxCommandEvent &e) {
+    std::string save_path = wxFileSelector("Choose where to save the message", wxEmptyString, "music.wav", ".wav", "*.wav", wxFD_SAVE).ToStdString();
+    m1.save_to_file(save_path);
 }
