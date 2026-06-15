@@ -147,12 +147,22 @@ void message_signal::add_noise() {
     }
 }
 
-void message_signal::save_to_file(std::string path) {
+void message_signal::save_original(std::string path) {
     AudioFile<double> buffer;
     size_t n = this->original.size();
     buffer.setAudioBufferSize(1, n); 
     for(int i = 0; i < n; ++i) {
         buffer.samples[0][i] = original[i];
+    }
+    buffer.save(path, AudioFileFormat::Wave);
+}
+
+void message_signal::save_modulated(std::string path) {
+    AudioFile<double> buffer;
+    size_t n = this->modulated.size();
+    buffer.setAudioBufferSize(1, n); 
+    for(int i = 0; i < n; ++i) {
+        buffer.samples[0][i] = modulated[i];
     }
     buffer.save(path, AudioFileFormat::Wave);
 }

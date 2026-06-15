@@ -8,6 +8,7 @@
 #include <mathplot.h>
 
 #include "block1.hpp"
+#include "block2.hpp"
 #include "wx/arrstr.h"
 #include "wx/filedlg.h"
 #include "wx/string.h"
@@ -18,6 +19,8 @@ enum
     BUTTON_plot = wxID_HIGHEST + 1,
     BUTTON_load,
     BUTTON_save,
+    BUTTON_save2,
+    BUTTON_demodulate,
     SLIDER_FM1,
     SLIDER_FM2,
     SLIDER_FM3,
@@ -47,14 +50,23 @@ private:
     void OnCheckBoxChange(wxCommandEvent& event);
     void OnLoadButton(wxCommandEvent& event);
     void OnSaveButton(wxCommandEvent& event);
+    void OnDemodulateButton(wxCommandEvent& event);
     void CleanAllPlots(void);
+    void OnSave2Button(wxCommandEvent &e);
+    wxBoxSizer *main_sizer = new wxBoxSizer(wxHORIZONTAL);
+    wxGridSizer *plots_sizer = new wxGridSizer(3, 2, 0 ,0);
+    wxBoxSizer *controls_sizer = new wxBoxSizer(wxVERTICAL);
     wxButton *plotButton = new wxButton(this, BUTTON_plot, "Generate Controlled");
     wxButton *loadButton = new wxButton(this, BUTTON_load, "Load audio file");
-    wxButton *saveButton = new wxButton(this, BUTTON_save, "Save result to file");
+    wxButton *saveButton = new wxButton(this, BUTTON_save, "Save original signal");
+    wxButton *save2Button = new wxButton(this, BUTTON_save2, "Save modulated signal");
+    wxButton *demodulateButton = new wxButton(this, BUTTON_demodulate, "Demodulate Workspace");
     mpWindow *m_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *mf_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *s_plot = new mpWindow(this, -1, wxDefaultPosition);
     mpWindow *sf_plot = new mpWindow(this, -1, wxDefaultPosition);
+    mpWindow *d_plot = new mpWindow(this, -1, wxDefaultPosition);
+    mpWindow *df_plot = new mpWindow(this, -1, wxDefaultPosition);
     wxSlider *fm1_slider = new wxSlider(this, SLIDER_FM1, 20, 1, 2000);
     wxSlider *fm2_slider =  new wxSlider(this, SLIDER_FM2, 200, 1, 2000);
     wxSlider *fm3_slider = new wxSlider(this, SLIDER_FM3, 2000, 1, 2000);
@@ -80,10 +92,6 @@ bool MyApp::OnInit()
 MyFrame::MyFrame()
     : wxFrame(NULL, wxID_ANY, "Block1 GUI")
 {
-    wxBoxSizer *main_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxGridSizer *plots_sizer = new wxGridSizer(2, 2, 10 ,0);
-    wxBoxSizer *controls_sizer = new wxBoxSizer(wxVERTICAL);
-
 
     controls_sizer->Add(loadButton, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(plotButton, 0, wxSHAPED | wxCENTER, 0);
@@ -91,11 +99,15 @@ MyFrame::MyFrame()
     controls_sizer->Add(fm2_slider, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(fm3_slider, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(saveButton, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(save2Button, 0, wxSHAPED | wxCENTER, 0);
     controls_sizer->Add(addNoise, 0, wxSHAPED | wxCENTER, 0);
+    controls_sizer->Add(demodulateButton, 0, wxSHAPED | wxCENTER, 0);
     plots_sizer->Add(m_plot, 1, wxSHAPED | wxCENTER, 0);
     plots_sizer->Add(mf_plot, 1, wxSHAPED | wxCENTER, 0);
     plots_sizer->Add(s_plot, 1, wxSHAPED | wxCENTER, 0);
     plots_sizer->Add(sf_plot, 1, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(d_plot, 1, wxSHAPED | wxCENTER, 0);
+    plots_sizer->Add(df_plot, 1, wxSHAPED | wxCENTER, 0);
     main_sizer->Add(controls_sizer, 1, wxEXPAND | wxCENTER, 0);
     main_sizer->Add(plots_sizer, 10, wxEXPAND | wxCENTER, 0);
     SetSizer(main_sizer); 
@@ -105,6 +117,8 @@ MyFrame::MyFrame()
     Bind(wxEVT_BUTTON, &MyFrame::OnPlot, this, BUTTON_plot);
     Bind(wxEVT_BUTTON, &MyFrame::OnLoadButton, this, BUTTON_load);
     Bind(wxEVT_BUTTON, &MyFrame::OnSaveButton, this, BUTTON_save);
+    Bind(wxEVT_BUTTON, &MyFrame::OnSave2Button, this, BUTTON_save2);
+    Bind(wxEVT_BUTTON, &MyFrame::OnDemodulateButton, this, BUTTON_demodulate);
     Bind(wxEVT_CHECKBOX, &MyFrame::OnCheckBoxChange, this, BUTTON_ADD_NOISE);
     Bind(wxEVT_SLIDER, &MyFrame::OnSliderChange, this);
 }
@@ -228,7 +242,6 @@ void MyFrame::OnSliderChange(wxCommandEvent& event) {
         case SLIDER_FM3:
             this->fm3 = this->fm3_slider->GetValue();
             break;
-
     }
 }
 
@@ -348,6 +361,61 @@ void MyFrame::OnLoadButton(wxCommandEvent& e) {
 }
 
 void MyFrame::OnSaveButton(wxCommandEvent &e) {
-    std::string save_path = wxFileSelector("Choose where to save the message", wxEmptyString, "music.wav", ".wav", "*.wav", wxFD_SAVE).ToStdString();
-    m1.save_to_file(save_path);
+    std::string save_path = wxFileSelector("Choose where to save the message", wxEmptyString, "orignial.wav", ".wav", "*.wav", wxFD_SAVE).ToStdString();
+    m1.save_original(save_path);
+}
+
+void MyFrame::OnSave2Button(wxCommandEvent &e) {
+    std::string save_path = wxFileSelector("Choose where to save the modulated signal", wxEmptyString, "modulated.wav", ".wav", "*.wav", wxFD_SAVE).ToStdString();
+    m1.save_modulated(save_path);
+}
+
+void MyFrame::OnDemodulateButton(wxCommandEvent &e) {
+    d_plot->DelAllLayers(mpDeleteAction::mpNoDelete);
+    df_plot->DelAllLayers(mpDeleteAction::mpNoDelete);
+    block2 m2(m1.modulated, m1.time, m1.kf, m1.fs, m1.fc);
+
+    m2.pll();
+
+    std::vector<double> x5;
+    std::vector<double> y5;
+    for(double d: m2.time) {
+        x5.push_back(d);
+    }
+    for(double d: m2.output) {
+        y5.push_back(d);
+    }
+    mpFXYVector *vectorLayer5 = new mpFXYVector("Recovered Signal(time)");
+    vectorLayer5->SetData(std::move(x5),std::move( y5));
+    vectorLayer5->SetContinuity(true);
+    vectorLayer5->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+    vectorLayer5->SetDrawOutsideMargins(false);
+
+    d_plot->AddLayer(vectorLayer5);
+    d_plot->AddLayer(new mpTitle("Recovered Signal(time)"));
+    d_plot->AddLayer(new mpInfoCoords());
+    d_plot->Fit();
+    d_plot->SetMargins(0, 0, 0,0);
+
+    
+    m2.take_fft_output();
+    std::vector<double> x6;
+    std::vector<double> y6;
+    for(auto d: m2.freq) {
+        x6.push_back(d);
+    }
+    for(auto d: m2.output_f) {
+        y6.push_back(abs(d));
+    }
+    mpFXYVector *vectorLayer6 = new mpFXYVector("Recovered Signal(freq)");
+    vectorLayer6->SetData(std::move(x6),std::move( y6));
+    vectorLayer6->SetContinuity(true);
+    vectorLayer6->SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
+    vectorLayer6->SetDrawOutsideMargins(false);
+    df_plot->AddLayer(vectorLayer6);
+    df_plot->AddLayer(new mpTitle("Recovered Signal(freq)"));
+    df_plot->AddLayer(new mpInfoCoords());
+    df_plot->Fit();
+    df_plot->SetMargins(0, 0, 0,0);
+
 }
