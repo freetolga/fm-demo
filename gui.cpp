@@ -375,7 +375,7 @@ void MyFrame::OnDemodulateButton(wxCommandEvent &e) {
     df_plot->DelAllLayers(mpDeleteAction::mpNoDelete);
     block2 m2(m1.modulated, m1.time, m1.kf, m1.fs, m1.fc);
 
-    m2.pll();
+    m2.hilbert_demodulate();
 
     std::vector<double> x5;
     std::vector<double> y5;

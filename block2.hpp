@@ -35,6 +35,7 @@ public:
     freq*=(-fs/time.size());
     }
     void take_fft_output();
-    void pll();
+    void pll_demodulate();
+    void hilbert_demodulate();
     void mse();
 };

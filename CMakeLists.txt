@@ -10,7 +10,7 @@ add_subdirectory(third_party/audiofile)
 add_library(block1 block1.cpp fft.cpp)
 target_link_libraries(block1 PUBLIC AudioFile)
 
-add_library(block2 block2.cpp fft.cpp)
+add_library(block2 block2.cpp fft.cpp hilbert.cpp)
 
 
 if (MSVC)
