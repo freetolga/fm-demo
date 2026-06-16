@@ -30,6 +30,7 @@ class id(enum.IntEnum):
     LABEL_FM3 = LABEL_FM2 + 1
     BUTTON_ADD_NOISE = LABEL_FM3 + 1
     NOISE_SLIDER = BUTTON_ADD_NOISE + 1
+    MESSAGE_AMPLITUDE_SLIDER = NOISE_SLIDER + 1
 
 class MyFrame(wx.Frame):
     def __init__(self, title):
@@ -64,17 +65,21 @@ class MyFrame(wx.Frame):
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.fm1_slider = wx.Slider(self, id.SLIDER_FM1, 20, 1, 2000)
-        self.fm1_slider.Label = "fm1"
+        self.fm1_label = wx.StaticText(self, wx.ID_ANY, "fm1")
         self.fm2_slider = wx.Slider(self, id.SLIDER_FM2, 200, 1, 2000)
-        self.fm2_slider.Label = "fm2"
+        self.fm2_label = wx.StaticText(self, wx.ID_ANY, "fm2")
         self.fm3_slider = wx.Slider(self, id.SLIDER_FM3, 2000, 1, 2000)
-        self.fm3_slider.Label = "fm3"
+        self.fm3_label = wx.StaticText(self, wx.ID_ANY, "fm3")
         self.noise_slider = wx.Slider(self, id.NOISE_SLIDER, 1, 1, 2000)
+        self.noise_slider_label = wx.StaticText(self, wx.ID_ANY, "noise stddev")
+        self.message_amplitude_slider = wx.Slider(self, id.MESSAGE_AMPLITUDE_SLIDER, 1, 1, 20)
+        self.message_amplitude_label = wx.StaticText(self, wx.ID_ANY, "am")
         self.noise_slider.Label = "stddev of normal/white noise"
         self.fm1 = 20
         self.fm2 = 200
         self.fm3 = 2000
         self.fc = 10000
+        self.am = 1
         self.add_noise = 0
         self.stddev = 1000
         self.plots_sizer.Add(self.m_canvas, 1, wx.SHAPED | wx.CENTER, 0)
@@ -85,10 +90,16 @@ class MyFrame(wx.Frame):
         self.plots_sizer.Add(self.df_canvas, 1, wx.SHAPED | wx.CENTER, 0)
         self.controls_sizer.Add(self.load_button, 0, wx.EXPAND | wx.CENTER, 0)
         self.controls_sizer.Add(self.plot_button, 0, wx.EXPAND | wx.CENTER, 0)
+        self.controls_sizer.Add(self.fm1_label, 0, wx.EXPAND | wx.CENTER, 0)
         self.controls_sizer.Add(self.fm1_slider, 0, wx.EXPAND | wx.CENTER, 0)
+        self.controls_sizer.Add(self.fm2_label, 0, wx.EXPAND | wx.CENTER, 0)
         self.controls_sizer.Add(self.fm2_slider, 0, wx.EXPAND | wx.CENTER, 0)
+        self.controls_sizer.Add(self.fm3_label, 0, wx.EXPAND | wx.CENTER, 0)
         self.controls_sizer.Add(self.fm3_slider, 0, wx.EXPAND | wx.CENTER, 0)
+        self.controls_sizer.Add(self.noise_slider_label, 0, wx.EXPAND | wx.CENTER, 0)
         self.controls_sizer.Add(self.noise_slider, 0, wx.EXPAND | wx.CENTER, 0)
+        self.controls_sizer.Add(self.message_amplitude_label, 0, wx.EXPAND | wx.CENTER, 0)
+        self.controls_sizer.Add(self.message_amplitude_slider, 0, wx.EXPAND | wx.CENTER, 0)
         self.main_sizer.Add(self.controls_sizer, 1, wx.EXPAND | wx.CENTER, 0)
         self.main_sizer.Add(self.plots_sizer, 10, wx.EXPAND | wx.CENTER, 0)
         self.SetSizer(self.main_sizer)
@@ -99,6 +110,7 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnAudioLoadButton, None, id.BUTTON_load)
         self.Bind(wx.EVT_SLIDER, self.OnSliderChange, None, id.SLIDER_FM1, id.SLIDER_FM3)
         self.Bind(wx.EVT_SLIDER, self.OnNoiseSliderChange, None, id.NOISE_SLIDER)
+        self.Bind(wx.EVT_SLIDER, self.OnMessageAmplitudeSliderChange, None, id.MESSAGE_AMPLITUDE_SLIDER)
 
 
  
@@ -118,6 +130,7 @@ class MyFrame(wx.Frame):
         time = np.arange(0, 0.1, 1/fs)
 
         m = cos(2*pi*self.fm1*time) + cos(2*pi*self.fm2*time) + cos(2*pi*self.fm3*time)
+        m = self.am * m
 
         s = cos(2*pi*fc*time + 2*pi*np.cumsum(m)/fs)
 
@@ -268,8 +281,8 @@ class MyFrame(wx.Frame):
 
         sf = fftshift(fft(s))
         sf_noise = fftshift(fft(sf))
-        self.sf_axes.plot(f , sf_noise)
-        self.sf_axes.plot(f , sf)
+        self.sf_axes.plot(f , abs(sf_noise))
+        self.sf_axes.plot(f , abs(sf))
         self.Layout()
         self.sf_canvas.draw()
         self.sf_canvas.Update()
@@ -290,8 +303,8 @@ class MyFrame(wx.Frame):
 
         df = fftshift(fft(d))
         df_noise = fftshift(fft(d_noise))
-        self.df_axes.plot(f[1:], df_noise)
-        self.df_axes.plot(f[1:], df)
+        self.df_axes.plot(f[1:], abs(df_noise))
+        self.df_axes.plot(f[1:], abs(df))
         self.Layout()
         self.df_canvas.draw()
         self.df_canvas.Update()
@@ -306,6 +319,11 @@ class MyFrame(wx.Frame):
 
         save_path = wx.FileSelector("Choose a file to save", '', "export.wav", ".wav", "*.wav", wx.FD_SAVE)
         scipy.io.wavfile.write(save_path, fs, m)
+
+    
+    def OnMessageAmplitudeSliderChange(self,event):
+        self.am = event.GetInt()
+        print(self.am)
 
 
 app = wx.App()
