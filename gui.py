@@ -5,6 +5,12 @@
 # 
 #-------------------------------------------------------------------------------
 
+"""
+WARNING: THIS PROGRAM CONTAINS A INCOMPLETE AUDIO SAVER
+IF YOU PLAY SAVED AUDIO YOU WILL HEAR LOTS OF HIGH AMPLITUDE AND FREQUENCY SOUND
+YOU MIGHT LOSE YOUR SPEAKERS
+"""
+
 import enum
 import wx
 import sys
