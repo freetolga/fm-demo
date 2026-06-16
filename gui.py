@@ -159,7 +159,7 @@ class MyFrame(wx.Frame):
         s = cos(2*pi*fc*time + 2*pi*np.cumsum(m)/fs)
         # im so tired teacher, i had to look this up
         # https://stackoverflow.com/questions/14058340/adding-noise-to-a-signal-in-python
-        noise = np.random.normal(0, self.stddev*0.0000001, n)
+        noise = np.random.normal(0, self.stddev*0.000001, n)
         s_noise = s + noise
         self.s_axes.plot(time , s_noise)
         self.s_axes.plot(time , s)
@@ -269,7 +269,7 @@ class MyFrame(wx.Frame):
         s = cos(2*pi*fc*time + 2*pi*np.cumsum(m)/fs)
         # im so tired teacher, i had to look this up
         # https://stackoverflow.com/questions/14058340/adding-noise-to-a-signal-in-python
-        noise = np.random.normal(0, self.stddev*0.0000001, n)
+        noise = np.random.normal(0, self.stddev*0.000001, n)
         s_noise = s + noise
         self.s_axes.plot(time , s_noise)
         self.s_axes.plot(time , s)
