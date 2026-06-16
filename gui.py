@@ -159,7 +159,7 @@ class MyFrame(wx.Frame):
         s = cos(2*pi*fc*time + 2*pi*np.cumsum(m)/fs)
         # im so tired teacher, i had to look this up
         # https://stackoverflow.com/questions/14058340/adding-noise-to-a-signal-in-python
-        noise = np.random.normal(0, self.stddev*0.000001, n)
+        noise = np.random.normal(0, self.stddev*0.0000000001, n)
         s_noise = s + noise
         self.s_axes.plot(time , s_noise)
         self.s_axes.plot(time , s)
@@ -207,7 +207,7 @@ class MyFrame(wx.Frame):
 
         wx.MessageBox(f"MSE: {mse}")
         save_path = wx.FileSelector("Choose a file to save", '', "export.wav", ".wav", ".wav", wx.FD_SAVE)
-        scipy.io.wavfile.write(save_path, fs, m)
+        scipy.io.wavfile.write(save_path, fs, d)
 
     
     def OnSliderChange(self,event):
@@ -230,8 +230,7 @@ class MyFrame(wx.Frame):
     def OnAudioLoadButton(self, event): 
         path = wx.FileSelector("Choose a file to open", wx.EmptyString, wx.EmptyString, ".wav")
         fs, m = scipy.io.wavfile.read(path)
-        # 1 channel only
-        m = m[:, 0]
+        m = m[: , 1]
         self.m_axes.clear()
         self.mf_axes.clear()
         self.s_axes.clear()
@@ -269,7 +268,7 @@ class MyFrame(wx.Frame):
         s = cos(2*pi*fc*time + 2*pi*np.cumsum(m)/fs)
         # im so tired teacher, i had to look this up
         # https://stackoverflow.com/questions/14058340/adding-noise-to-a-signal-in-python
-        noise = np.random.normal(0, self.stddev*0.000001, n)
+        noise = np.random.normal(0, 0.0000000000000000001, n)
         s_noise = s + noise
         self.s_axes.plot(time , s_noise)
         self.s_axes.plot(time , s)
@@ -289,8 +288,8 @@ class MyFrame(wx.Frame):
         self.sf_axes.relim()
         self.sf_axes.autoscale_view()
 
-        d = np.diff(np.unwrap(np.angle(scipy.signal.hilbert(s))))/(2*pi)*fs
-        d_noise = np.diff(np.unwrap(np.angle(scipy.signal.hilbert(s_noise))))/(2*pi)*fs
+        d = np.diff(np.unwrap(np.angle(scipy.signal.hilbert(s))))/(2*pi)*fs - fc
+        d_noise = np.diff(np.unwrap(np.angle(scipy.signal.hilbert(s_noise))))/(2*pi)*fs - fc
 
 
         self.d_axes.plot(time[1:], d_noise)
@@ -318,7 +317,7 @@ class MyFrame(wx.Frame):
         wx.MessageBox(f"MSE: {mse}")
 
         save_path = wx.FileSelector("Choose a file to save", '', "export.wav", ".wav", "*.wav", wx.FD_SAVE)
-        scipy.io.wavfile.write(save_path, fs, m)
+        scipy.io.wavfile.write(save_path, 44100, d)
 
     
     def OnMessageAmplitudeSliderChange(self,event):
