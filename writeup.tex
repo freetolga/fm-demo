@@ -1,0 +1,266 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+%Template version as of 6/27/2024
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+
+
+\tikzstyle{block} = [draw, fill=white, rectangle, 
+    minimum height=3em, minimum width=6em]
+\tikzstyle{sum} = [draw, fill=white, circle, node distance=1cm]
+\tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
+\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
+
+\title{EEE 302 Project\\
+    \author{\IEEEauthorblockN{1\textsuperscript{st} Tolga Uçar}
+    \IEEEauthorblockA{\textit{Izmir University of Economics} \\
+    Izmir, Türkiye \\
+    freetolga@protonmail.com}
+    }
+}
+\maketitle
+
+\begin{abstract}
+    This project is a techical overview on the inner-workings of frequency modulation(FM) and implementation in discrete-time using Python ,scipy and matplotlib
+\end{abstract}
+
+\begin{IEEEkeywords}
+    signalprocessing, python, frequencymodulation, beginner
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+This paper will go over how frequency modulation works and examples of implementing it in the discrete world
+
+\subsection{Definition of FM}
+
+FM is defined as varying (modulating) the frequency of a sinusoidal carrier-wave in relation to the amplitude of the message as:
+
+
+\begin{equation}
+    s(t) = A_c\cos{(2 \pi f_c t + 2\pi k_f \int_{0}^{t}(m(\tau)) \,d\tau)}
+\end{equation}
+
+
+Where:
+
+$f_c$ is the carrier frequency
+
+$A_c$ is the carrier amplitude
+
+$m(t)$ is the message signal (which could be anything)
+
+
+\subsection{Modulation Techniques}
+
+To modulate a FM signal we need a oscilator that can adjust its oscliation frequency based on some voltage input. The 555 Timer IC is usually used for this purpose by putting the 90-degree phase shifted message into the control pin of the timer which will be simulated using arrays and 1D vectors in software
+
+\subsubsection{matricies and vectors in discrete-time digital systems}
+
+computers store numbers one after another, we will use the fameous IEEE 754 double-presicion floats in this paper. In most programming lanugages the indicies start at 0.
+
+\subsubsection{operator overloading clarification}
+
+in C++ and Python its possible to take the cosine of a vector and other simillar operations that translate to doing it for every element in the vector
+
+in other words,
+
+\begin{lstlisting}
+    a = np.array([0 pi/2 2*pi])
+    b = cos(a)
+\end{lstlisting}
+
+
+turns into:
+
+\begin{lstlisting}
+   for i in range(len(a)):
+        b[index] = cos(a[index])
+\end{lstlisting}
+
+
+or in C++
+
+
+\begin{lstlisting}
+    std::valarray<double> a {0, pi/2, 2*pi};
+    std::valarray<double> b = cos(a);
+\end{lstlisting}
+
+turns into:
+
+\begin{lstlisting}
+    for(int i = 0; i < a.size(); ++a) \{
+        b[i] = cos(a[i]);
+    \}
+\end{lstlisting}
+
+this is done by the programming language authors and sometimes done manually
+
+
+\section{Block diagram and software simulation}
+
+\subsection{Overwiew}
+
+\includegraphics[scale=0.15]{block_diagram.png}
+
+
+block 1 is responsible for modulation and will take the message signal $m(t)$ and output the modulated signal $s(t)$
+
+after modulation during transmission there will be noise which is represented by $w(t)$ and will be simulated using a random variable whose mean is 0 and standard deviation is a small number between 0 and 1 
+
+\subsection{Block1 in Python }
+
+We need to calculate the integral of the signal discretely, to do this we will take a cumulative sum and divide by the sampling frequency to normalize
+
+
+
+First we prepare some constants to use later
+
+\begin{lstlisting}
+import numpy
+fc = 10000
+fs = 2*(max(self.fm1, self.fm2, self.fm3) + fc)
+time = np.arange(0, 0.1, 1/fs)
+fm1 = 20
+fm2 = 200
+fm3 = 2000
+\end{lstlisting}
+
+
+in this case:
+
+
+$f_c$ the carrier frequency is set to 10000 Hz,
+
+
+$f_s$ the sampling frequency is set to double the sum of the highest message tone and the carrier,
+
+
+the time vector $t$ is created using variable name time between 0 and 1 using our sampling frequency to calculate the increments of time using $\frac{1}{f_s}$
+
+Now we will do the modulation
+
+\begin{lstlisting}
+m = cos(2*pi*fm1*time) + cos(2*pi*fm2*time) + cos(2*pi*fm3*time)
+m = am * m
+
+s = cos(2*pi*fc*time + 2*pi*np.cumsum(m)/fs)
+\end{lstlisting}
+
+
+%our time vector is multiplied by the scalar $2\pi f_m1$, the cosine of each element is taken 
+
+
+\subsection{block2}
+
+in block2 we will try to reverse what we did in block1. to do this we will use the hilbert transform and phase derivatives
+
+
+we will first take the hilbert transform
+
+\begin{equation}
+    a(t) = s(t) + js_h(t)
+\end{equation}
+
+
+and take the phase angle
+
+\begin{equation}
+    \theta(t) = \arg(a(t)) = \arctan(\frac{s_h(t)}{s(t)})
+    = \arctan(\frac{s(t - \frac{pi}{2})}{s(t)})
+\end{equation}
+
+
+fix the arctan using unwrap fucntion in python
+
+\begin{equation}
+    \theta_u(t) = unwrap(t)
+\end{equation}
+
+
+
+
+now we take the derivative of this to get the instatnaneous phase angle
+
+\begin{equation}
+    m(t) = \frac{d\theta_u(t)}{dt}
+\end{equation}
+
+
+
+
+\subsection{block2 in python}
+
+this can be done with 1 line of code
+
+NOTE: normalize by dividing with $(2\pi dt)$
+
+NOTE: normalize the dc offset with $-fc$
+
+\begin{lstlisting}
+demodulated = np.diff(np.unwrap(np.angle(scipy.signal.hilbert(s))))/(2*pi)*fs - fc
+\end{lstlisting}
+
+
+
+\subsection{noise}
+
+to prevent noise from causing signficant discomfort a simple low pass filter must be used
+
+\begin{equation}
+    LPF(f) = \frac{1}{2 \pi f_c t}
+\end{equation}
+
+this $f_c$ means cutoff not carrier
+
+
+apply this using convolution or frequency domain
+
+\section*{Acknowledgment}
+
+Special thanks to my teachers, friends and the internet and gemini for the help
+
+\section*{References}
+
+
+\vspace{12pt}
+\end{document}
