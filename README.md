@@ -13,8 +13,13 @@ this is me applying what i learned in signals and systems to a wxwidgets c++ pro
 - white noise
 - working fft
 - working fftshift
-- half working demodulation and saving(python only)
-- block 1 almost fully explained in writeup
+- half working demodulation and saving(python only, incomplete)
+- block 1 & 2 explained in writeup(citations missing)
+
+## future dreams
+- port to imgui+implot
+- port to arduino avr sketch
+- make a full chain using 2 arduinos
 
 # screenshot
 
