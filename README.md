@@ -18,6 +18,7 @@ this is me applying what i learned in signals and systems to a wxwidgets c++ pro
 
 ## future dreams
 - port to imgui+implot
+- port to wasm(make a web demo)
 - port to arduino avr sketch
 - make a full chain using 2 arduinos
 
